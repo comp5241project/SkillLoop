@@ -1,0 +1,10 @@
+{
+  "name": "skillloop",
+  "private": true,
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev:interview": "node --env-file-if-exists=.env.local scripts/interview-dev.cjs",
+    "test:interview": "node --test interview/*.test.cjs"
+  },
+  "dependencies": { "ai": "7.0.151" }
+}

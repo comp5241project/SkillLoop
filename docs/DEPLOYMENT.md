@@ -1,42 +1,51 @@
 # Deploy to Vercel
 
-The four module pages are plain static files. The optional knowledge backend runs from `/api/knowledge` as a Vercel Function in the same project.
+Deploy the four module pages and `/api/knowledge`, `/api/interview`, `/api/correction` in the same existing SkillLoop project.
 
-## Initial setup
+## Project settings
 
-1. In Vercel, import `comp5241project/SkillLoop` using a GitHub account that can access it.
-2. Set the production branch to `main`.
-3. Use Framework Preset **Other** and the repository root as Root Directory.
-4. Leave Build Command and Install Command empty. Use `.` as Output Directory if Vercel asks for one.
-5. Deploy. The static sample needs no environment variables or database. To enable teacher publishing and account references, follow [knowledge backend setup](KNOWLEDGE-BACKEND.md) and redeploy with its server environment variables.
+- Repository: `comp5241project/SkillLoop`; production branch: `main`.
+- Framework: **Other**; root and output directory: repository root (`.`).
+- Node.js: 22 or later. Install: `npm ci --omit=dev`; no frontend build.
+- Keep clean URLs and trailing slashes from `vercel.json`. Do not add a catch-all SPA rewrite.
 
-The root contains `index.html`. Each module has its own `index.html`; directory URLs such as `/interview/` therefore work directly. `vercel.json` sets the framework to Other, skips installation and building, and serves the repository root. It enables clean URLs and trailing slashes. Knowledge-map assets and API calls use root-relative URLs so direct visits and refreshes work after Vercel redirects `.html` links to clean URLs. Do not add a rewrite that sends every URL to the home page: this is a multi-page site.
+Vercel Git integration can build branch previews and deploy `main`. A Git push alone does not confirm a successful deployment. Check the deployment's commit and build status.
 
-After connecting the repository, Vercel can deploy new main commits and provide branch/PR previews, subject to the project's Git integration settings. Pushing this repository alone does not create or confirm a Vercel deployment.
+## Backend configuration
 
-## Check the deployment
+Set values in the intended Vercel environment, then redeploy. `.env.example` lists names only; it is not loaded automatically. Real credentials stay in Vercel or an ignored `.env.local`, never browser code or Git.
 
-- Open all four module URLs directly and refresh them. For knowledge-map, also check the public Knowledge Home and account-gated My Knowledge page, the sample `graph.html?graph=software-development` link and direct concept, question and case URLs. The sample works before Supabase is configured; teacher editing and account sign-in need the backend variables and appropriate accounts.
-- Use the sidebar and the brand link back to the home page.
-- Create a learning path and follow one of its lesson links.
-- Save and revise an interview answer; refresh and check the replay.
-- Enter a correction and reveal its reference explanation.
-- Check at a phone width.
+| Module | Variables | Behavior without configuration |
+| --- | --- | --- |
+| Knowledge accounts and publishing | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | Curated public sample; account operations unavailable |
+| Knowledge AI source discovery | `OPENAI_API_KEY`, optional `OPENAI_MODEL` | Teacher source discovery unavailable |
+| Interview | `AI_GATEWAY_API_KEY` locally or deployment OIDC access; `INTERVIEW_AI_MODEL` or shared `AI_GATEWAY_MODEL` | Labelled sample conversation |
+| Correction teacher drafting | `CORRECTION_TEACHER_CODE`; Gateway access with `CORRECTION_AI_MODEL` or `AI_GATEWAY_MODEL`, or `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` | Labelled sample draft |
 
-Knowledge personal records are stored only in the account backend. Old browser Knowledge records are left untouched but current pages do not read, write or import them. Study-mark editing is paused. Account nodes and links require the Knowledge migrations and backend configuration.
+The per-module model settings override the shared Gateway model. Keep the existing shared variable to continue using the same model in both modules. Knowledge uses its own OpenAI configuration. Correction can use OpenRouter instead of Gateway. Setting a variable does not prove provider access or available credits.
 
-## If deployment fails
+Follow [knowledge backend setup](KNOWLEDGE-BACKEND.md) for the Supabase migrations and account roles. Apply pending migrations in filename order through the team's database workflow; merging source does not migrate the database. Interview records and correction publications remain browser-local; they are not automatically synced to Knowledge accounts. The correction teacher code protects drafting only; it does not create a Supabase teacher session.
 
-Open the failed deployment in Vercel and read its Build Logs. The GitHub status only reports the failure; it does not explain the cause. With Vercel CLI installed and signed in to the owning account, you can also run:
+## Local preview and checks
 
 ```sh
-npx vercel inspect <deployment-id> --logs
+npm ci
+npm run dev
+npm test
 ```
 
-Check that Root Directory points to the repository root and Production Branch is `main`. Build settings are defined in `vercel.json`; there is no `npm run build` or `dist` directory. The static sample does not need an API key. If the knowledge backend returns 503, check its Vercel environment variables and the Supabase migration. If the log reports a permission or Git author error, resolve that account access issue before retrying.
+Open `http://127.0.0.1:8765`. The common preview runs all three API routes and reads `.env.local` if present. The module-specific preview commands remain available in their READMEs. A Python static server can show the sample pages but cannot run the APIs.
 
-## Knowledge AI source discovery
+Before releasing, check all four entry URLs directly and after refresh. Follow knowledge graph, concept and question links; complete a learning assessment; submit and revise interview answers; finish a correction case; inspect teacher draft validation; check phone layouts. Use mocked responses first. Real sign-in, database policies and paid model calls need separate configured-service verification.
 
-The knowledge backend can request AI-assisted source discovery after `OPENAI_API_KEY` is set on the server. Teachers review returned sources and manually edit the graph draft. No model credential is sent to browser JavaScript. See [knowledge backend setup](KNOWLEDGE-BACKEND.md).
+## Deployment failures
+
+Check Vercel Build Logs for the exact deployment and commit. Confirm the repository root, Node version and install command. There is no `npm run build` or `dist` directory. If a backend returns unavailable, inspect only the matching module's environment configuration. Do not replace a real provider error with a claim that sample output came from AI.
+
+With Vercel CLI authenticated to the owning account:
+
+```sh
+vercel inspect <deployment-url-or-id> --logs
+```
 
 Reference: [Vercel project configuration](https://vercel.com/docs/project-configuration).
