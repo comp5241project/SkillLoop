@@ -40,12 +40,10 @@ Storage keys are prefixed with `skillloop.v1.`. Use one key per module so pages 
 | `profile`    | `{background, goal, diagnostic}`                          | learning-path                   |
 | `knowledge`  | `{selected, completed: conceptId[]}`                      | knowledge-map                   |
 | `interview`  | `{draft, events: [{label, detail}], hintUsed, hasAnswer}` | interview                       |
-| `correction` | `{draft, revealed, nextSeen, caseId, cases}`              | correction-lab                  |
+| `correction` | `{draft, revealed, nextSeen, caseId}`                     | correction-lab                  |
 | `activity`   | `[{module, type, at, conceptId?, conceptIds?, caseId?}]`  | all modules through appendEvent |
 
 `background` is `beginner`, `student` or `graduate`. `goal` is `internship` or `build`. Diagnostic `no` correctly rejects the claim that error-free execution guarantees correctness; `yes` indicates a foundation check is useful.
-
-In `correction`, the top-level fields describe the open case. `cases` maps each case ID to `{draft, revealed, nextSeen, checks, flagged, spotChecked, causeTries, applyTries}`. `checks`, `flagged` and the `*Tries` fields are arrays of indexes: self-ticked criteria, flagged answer lines and chosen options. Case IDs are defined in `correction-lab/cases.js`.
 
 Study completion is self-reported, not proof of mastery. Activity is capped at 100 entries and interview history at 40 entries. Draft inputs are capped at 5,000 characters. Stored content is shown using `textContent`, not injected HTML.
 

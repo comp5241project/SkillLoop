@@ -6,7 +6,7 @@
     ['knowledge-map', 'workflow', 'Skill map'],
     ['learning-path', 'route', 'My path'],
     ['interview', 'messages-square', 'Interview'],
-    ['correction-lab', 'search-check', 'Correction lab'],
+    ['correction-lab', 'scan-line', 'Correction lab'],
   ];
   document.getElementById('site-header').innerHTML = `
     <a class="sl-brand" href="${root}index.html" aria-label="SkillLoop home">
