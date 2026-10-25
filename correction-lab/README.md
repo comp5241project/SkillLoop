@@ -44,7 +44,11 @@ In this prototype, **Publish** saves the case in this browser only, so it can be
 
 ### AI configuration
 
-The API key stays on the server. Set these in Vercel (Production and Preview) or in an uncommitted `.env.local`:
+The API key stays on the server. Set these in Vercel (Production and Preview) or in an uncommitted `.env.local`.
+
+**Option 1, Vercel AI Gateway (preferred when set):** `AI_GATEWAY_MODEL`, for example `anthropic/claude-haiku-5.5`, plus `CORRECTION_TEACHER_CODE`. On Vercel the deployment's OIDC token is used, so no key is needed; locally set `AI_GATEWAY_API_KEY`. These are the same variable names as the interview module.
+
+**Option 2, OpenRouter:**
 
 | Variable | Value |
 | --- | --- |
@@ -52,7 +56,7 @@ The API key stays on the server. Set these in Vercel (Production and Preview) or
 | `OPENROUTER_MODEL` | Up to three model IDs from [openrouter.ai/models](https://openrouter.ai/models), separated by commas, for example free ones ending in `:free`. OpenRouter tries the next one when a provider is down. |
 | `CORRECTION_TEACHER_CODE` | Code a teacher types before drafting, so visitors cannot use the quota |
 
-Without all three, the studio runs in demo mode and loads a labelled sample draft. Free models have daily limits and may log prompts, so only send course material, never student data.
+Without a teacher code and one complete provider, the studio runs in demo mode and loads a labelled sample draft. Free models have daily limits and may log prompts, so only send course material, never student data.
 
 ### Run locally
 

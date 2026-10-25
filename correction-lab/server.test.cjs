@@ -79,6 +79,27 @@ test('a comma-separated model list is sent as fallbacks', async () => {
   assert.deepEqual(sent.models, ['a/one:free', 'b/two:free']);
 });
 
+test('AI Gateway is preferred and can use the OIDC token', async () => {
+  let url;
+  let sent;
+  const fetchImpl = async (target, options) => {
+    url = target;
+    sent = options;
+    return reply(JSON.stringify(cases[0]))();
+  };
+  const gateway = { ...env, AI_GATEWAY_MODEL: 'anthropic/claude-haiku-5.5' };
+  const out = await service.draft(body(), { env: gateway, fetchImpl, example: cases[0], oidcToken: 'oidc' });
+  assert.equal(out.source, 'ai');
+  assert.match(url, /ai-gateway\.vercel\.sh/);
+  assert.equal(JSON.parse(sent.body).model, 'anthropic/claude-haiku-5.5');
+  assert.equal(sent.headers.Authorization, 'Bearer oidc');
+});
+
+test('without a gateway token, OpenRouter is used', () => {
+  const ai = service.provider({ ...env, AI_GATEWAY_MODEL: 'x/y' }, undefined);
+  assert.equal(ai.name, 'OpenRouter');
+});
+
 test('a rate limit returns a clear message', async () => {
   await assert.rejects(
     service.draft(body(), { env, fetchImpl: reply('', 429), example: cases[0] }),
@@ -89,7 +110,7 @@ test('a rate limit returns a clear message', async () => {
 test('a missing model gets a specific message', async () => {
   await assert.rejects(
     service.draft(body(), { env, fetchImpl: reply('{"error":"No endpoints"}', 404), example: cases[0] }),
-    /free provider is unavailable/
+    /provider is unavailable/
   );
 });
 

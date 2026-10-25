@@ -7,7 +7,11 @@ const example = global.window.SkillLoopCases[0];
 
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
-  if (req.method === 'GET') return res.status(200).json({ available: service.configured() });
+  // Vercel sends a short-lived OIDC token that AI Gateway accepts instead of an API key.
+  const oidcToken = req.headers['x-vercel-oidc-token'] || process.env.VERCEL_OIDC_TOKEN;
+  if (req.method === 'GET') {
+    return res.status(200).json({ available: service.configured(process.env, oidcToken) });
+  }
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ error: 'Method not allowed.' });
@@ -23,7 +27,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: error.message || 'The request could not be read.' });
   }
   try {
-    return res.status(200).json(await service.draft(body, { example }));
+    return res.status(200).json(await service.draft(body, { example, oidcToken }));
   } catch (error) {
     if (!error.status) console.error(`Correction draft failed: ${error.name}`);
     return res

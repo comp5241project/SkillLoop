@@ -5,19 +5,44 @@
  */
 const { check, TOPICS, CONCEPTS, FLUENCY } = require('./case-check.js');
 
-const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const LIMITS = { notes: 6000, focus: 200 };
 const PROVIDER_ERRORS = {
-  400: 'The AI service rejected the request. Check that OPENROUTER_MODEL is a valid model ID.',
-  401: 'The AI key was not accepted. Check OPENROUTER_API_KEY.',
-  402: 'The AI account has no credit for this model. Use a model ending in :free.',
-  404: 'The AI model or its free provider is unavailable. Add a fallback model to OPENROUTER_MODEL.',
-  429: 'The free AI quota is used up for now. Try again later.',
+  400: 'The AI service rejected the request. Check the model ID setting.',
+  401: 'The AI key was not accepted. Check the API key setting.',
+  402: 'The AI account has no credit for this model.',
+  404: 'The AI model or its provider is unavailable. Try another model.',
+  429: 'The AI quota is used up for now. Try again later.',
   other: 'The AI service did not respond. Try again.',
 };
 
-function configured(env = process.env) {
-  return Boolean(env.OPENROUTER_API_KEY && env.OPENROUTER_MODEL && env.CORRECTION_TEACHER_CODE);
+/**
+ * Vercel AI Gateway is used when AI_GATEWAY_MODEL is set; on Vercel it can authenticate with the
+ * deployment's OIDC token. Otherwise OpenRouter, where a comma-separated OPENROUTER_MODEL lists
+ * fallbacks for unreliable free providers.
+ */
+function provider(env = process.env, oidcToken = env.VERCEL_OIDC_TOKEN) {
+  const gatewayToken = env.AI_GATEWAY_API_KEY || oidcToken;
+  if (env.AI_GATEWAY_MODEL && gatewayToken) {
+    return {
+      name: 'AI Gateway',
+      url: 'https://ai-gateway.vercel.sh/v1/chat/completions',
+      token: gatewayToken,
+      models: { model: env.AI_GATEWAY_MODEL },
+    };
+  }
+  if (env.OPENROUTER_API_KEY && env.OPENROUTER_MODEL) {
+    return {
+      name: 'OpenRouter',
+      url: 'https://openrouter.ai/api/v1/chat/completions',
+      token: env.OPENROUTER_API_KEY,
+      models: { models: env.OPENROUTER_MODEL.split(',').map((m) => m.trim()).filter(Boolean).slice(0, 3) },
+    };
+  }
+  return null;
+}
+
+function configured(env = process.env, oidcToken) {
+  return Boolean(env.CORRECTION_TEACHER_CODE && provider(env, oidcToken));
 }
 
 function readRequest(body) {
@@ -91,9 +116,10 @@ function finish(draft, request) {
   };
 }
 
-async function draft(body, { env = process.env, fetchImpl = fetch, example } = {}) {
+async function draft(body, { env = process.env, fetchImpl = fetch, example, oidcToken } = {}) {
   const request = readRequest(body);
-  if (!configured(env)) return { result: demo(request), source: 'demo' };
+  if (!configured(env, oidcToken)) return { result: demo(request), source: 'demo' };
+  const ai = provider(env, oidcToken);
   if (body.teacherCode !== env.CORRECTION_TEACHER_CODE) {
     const error = new Error('The teacher code is not correct.');
     error.status = 403;
@@ -113,26 +139,20 @@ async function draft(body, { env = process.env, fetchImpl = fetch, example } = {
     const timer = setTimeout(() => controller.abort(), 45000);
     let reply;
     try {
-      const response = await fetchImpl(ENDPOINT, {
+      const response = await fetchImpl(ai.url, {
         method: 'POST',
         signal: controller.signal,
         headers: {
-          Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${ai.token}`,
           'Content-Type': 'application/json',
           'X-Title': 'SkillLoop Correction Lab',
         },
-        body: JSON.stringify({
-          // A comma-separated list lets OpenRouter fall back when a free provider is down.
-          models: env.OPENROUTER_MODEL.split(',').map((m) => m.trim()).filter(Boolean).slice(0, 3),
-          messages,
-          temperature: 0.6,
-          max_tokens: 3000,
-        }),
+        body: JSON.stringify({ ...ai.models, messages, temperature: 0.6, max_tokens: 3000 }),
       });
       if (!response.ok) {
         // Log the provider's reason for the Vercel logs; it never contains the API key.
         const detail = await response.text().catch(() => '');
-        console.error(`OpenRouter ${response.status}: ${detail.slice(0, 300)}`);
+        console.error(`${ai.name} ${response.status}: ${detail.slice(0, 1200)}`);
         const error = new Error(PROVIDER_ERRORS[response.status] || PROVIDER_ERRORS.other);
         error.status = 502;
         throw error;
@@ -215,4 +235,4 @@ function demo(request) {
   };
 }
 
-module.exports = { configured, readRequest, prompt, parse, draft, demo };
+module.exports = { provider, configured, readRequest, prompt, parse, draft, demo };
