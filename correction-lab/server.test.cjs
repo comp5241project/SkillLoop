@@ -100,6 +100,22 @@ test('without a gateway token, OpenRouter is used', () => {
   assert.equal(ai.name, 'OpenRouter');
 });
 
+test('a draft that stays imperfect is returned for the teacher to fix', async () => {
+  const half = JSON.stringify({ title: 'Half a case', lines: ['a', 'b'], flaws: [0], cause: { options: [{ text: 'x' }] } });
+  const out = await service.draft(body(), { env, fetchImpl: reply(half), example: cases[0] });
+  assert.equal(out.source, 'ai');
+  assert.ok(out.problems.length > 0);
+  assert.equal(out.result.cause.options.length, 3);
+  assert.deepEqual(out.result.fix.criteria, []);
+});
+
+test('an unreadable reply twice is an error', async () => {
+  await assert.rejects(
+    service.draft(body(), { env, fetchImpl: reply('no json here'), example: cases[0] }),
+    /not readable/
+  );
+});
+
 test('a rate limit returns a clear message', async () => {
   await assert.rejects(
     service.draft(body(), { env, fetchImpl: reply('', 429), example: cases[0] }),

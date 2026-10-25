@@ -244,7 +244,7 @@
     writeStore({ teacherDraft: draft });
   }
 
-  function showDraft(next, source) {
+  function showDraft(next, source, hasProblems) {
     draft = next;
     draft.related = Array.isArray(draft.related) ? draft.related : [];
     draft.notes = draft.notes && typeof draft.notes === 'object' ? draft.notes : {};
@@ -253,7 +253,9 @@
     $('#tc-origin').textContent =
       source === 'demo'
         ? 'Sample draft (Sample — API not connected yet). Connect the API to draft from your notes.'
-        : 'Drafted by AI. Check every line: AI can be wrong about its own mistakes too.';
+        : hasProblems
+          ? 'Drafted by AI, but parts of it do not fit the case format. Fix the items listed below the editor, then check every line.'
+          : 'Drafted by AI. Check every line: AI can be wrong about its own mistakes too.';
     renderEditor();
     changed();
     app.icons();
@@ -321,7 +323,7 @@
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || 'The draft failed. Try again.');
       status('');
-      showDraft(body.result, body.source);
+      showDraft(body.result, body.source, Array.isArray(body.problems) && body.problems.length > 0);
       $('#tc-step2').focus();
     } catch (error) {
       status(

@@ -99,8 +99,25 @@ function parse(content) {
   return JSON.parse(content.slice(start, end + 1));
 }
 
+/**
+ * Coerce a model reply into the editable case shape, so even an imperfect draft opens in the
+ * teacher's editor. case-check.js still decides whether it can be published.
+ */
 function finish(draft, request) {
-  const slug = String(draft.id || draft.name || 'case')
+  const text = (value) => (typeof value === 'string' ? value : value == null ? '' : String(value));
+  const list = (value) => (Array.isArray(value) ? value : []);
+  const ints = (value) => list(value).map(Number).filter(Number.isInteger);
+  const choice = (value = {}) => {
+    const options = list(value.options).slice(0, 3).map((o) => ({ text: text(o && o.text), why: text(o && o.why) }));
+    while (options.length < 3) options.push({ text: '', why: '' });
+    return { ...(value.question !== undefined && { question: text(value.question) }), options, answer: Number(value.answer) };
+  };
+  const notes = {};
+  Object.entries(draft.notes && typeof draft.notes === 'object' ? draft.notes : {}).forEach(([k, v]) => {
+    notes[k] = text(v);
+  });
+  const fix = draft.fix || {};
+  const slug = text(draft.id || draft.name || 'case')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
@@ -110,8 +127,27 @@ function finish(draft, request) {
     id: `ai-${slug || 'case'}-${Date.now().toString(36)}`,
     topic: request.topic,
     format: request.format,
-    related: Array.isArray(draft.related) ? draft.related : [],
-    notes: draft.notes && typeof draft.notes === 'object' ? draft.notes : {},
+    // Match what the editor's dropdowns show when the model picks an unknown value.
+    conceptId: CONCEPTS.includes(draft.conceptId) ? draft.conceptId : CONCEPTS[0],
+    fluency: FLUENCY.includes(draft.fluency) ? draft.fluency : undefined,
+    name: text(draft.name),
+    kind: text(draft.kind),
+    source: text(draft.source),
+    title: text(draft.title),
+    question: text(draft.question),
+    lines: list(draft.lines).map(text),
+    flaws: ints(draft.flaws),
+    related: ints(draft.related),
+    notes,
+    cause: choice(draft.cause),
+    fix: {
+      prompt: text(fix.prompt),
+      title: text(fix.title),
+      text: text(fix.text),
+      example: text(fix.example),
+      criteria: list(fix.criteria).map(text),
+    },
+    apply: { question: '', ...choice(draft.apply) },
     origin: 'ai-draft',
   };
 }
@@ -127,6 +163,7 @@ async function draft(body, { env = process.env, fetchImpl = fetch, example, oidc
   }
   const messages = prompt(request, example);
   let problems = [];
+  let latest = null;
   // One retry: the model gets the validation problems and corrects its own draft.
   for (let attempt = 0; attempt < 2; attempt += 1) {
     if (problems.length) {
@@ -147,7 +184,14 @@ async function draft(body, { env = process.env, fetchImpl = fetch, example, oidc
           'Content-Type': 'application/json',
           'X-Title': 'SkillLoop Correction Lab',
         },
-        body: JSON.stringify({ ...ai.models, messages, temperature: 0.6, max_tokens: 3000 }),
+        body: JSON.stringify({
+          ...ai.models,
+          messages,
+          temperature: 0.6,
+          max_tokens: 3000,
+          // Ask for JSON mode; providers that do not support it ignore the setting.
+          response_format: { type: 'json_object' },
+        }),
       });
       if (!response.ok) {
         // Log the provider's reason for the Vercel logs; it never contains the API key.
@@ -163,15 +207,18 @@ async function draft(body, { env = process.env, fetchImpl = fetch, example, oidc
       clearTimeout(timer);
     }
     try {
-      const result = finish(parse(String(reply || '')), request);
-      problems = check(result);
-      if (!problems.length) return { result, source: 'ai' };
+      latest = finish(parse(String(reply || '')), request);
+      problems = check(latest);
+      if (!problems.length) return { result: latest, source: 'ai' };
     } catch (_) {
       problems = ['The reply was not a valid JSON object.'];
     }
+    console.error(`${ai.name} draft attempt ${attempt + 1} problems: ${problems.join(' ').slice(0, 600)}`);
     messages.push({ role: 'assistant', content: String(reply || '') });
   }
-  const error = new Error('The AI draft did not match the case format twice. Try again or shorten the notes.');
+  // A readable but imperfect draft goes to the teacher, who fixes it; publishing stays locked.
+  if (latest) return { result: latest, source: 'ai', problems };
+  const error = new Error('The AI reply was not readable twice. Try again or shorten the notes.');
   error.status = 502;
   throw error;
 }
