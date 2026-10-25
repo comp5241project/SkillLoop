@@ -86,7 +86,6 @@ These shared edits are proposed for whoever merges:
 
 1. **Icon**: use `search-check` instead of `scan-line` for the correction lab. One line in `shared/navigation.js` (`['correction-lab', 'search-check', 'Correction lab']`) and one in the root `index.html` card (`data-lucide="search-check"`). The icon is in the bundled Lucide library.
 2. **Data contract**: in `docs/DATA-CONTRACTS.md`, change the `correction` row to `{draft, revealed, nextSeen, caseId, cases, teacherDraft?, authored?}` and add the descriptions above. The change is additive; no other module reads this key.
-
-The page links to the team's [Code Review Bureau prototype](https://sonic-fiddle-gzb7c64.vercel.app/bureau.html). Its source code is separate and has not been imported.
+3. **Code Review Bureau**: the old prototype link has been removed from this module, which now replaces it. Remove the remaining mentions in the root `README.md` (Current behavior), `THIRD-PARTY-NOTICES.md` and the correction lab task in `docs/MODULE-TASKS.md`.
 
 Check line flagging and the empty-selection message, wrong and right choices, the empty-fix message, the reference and ticks, the apply question, starting a case again, reload persistence, the lesson link and phone layout. See [team tasks](../docs/MODULE-TASKS.md).
