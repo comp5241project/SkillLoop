@@ -303,7 +303,7 @@
     notes.setCustomValidity('');
     const button = $('#tc-draft');
     button.disabled = true;
-    status(available ? 'Drafting… free models can take up to a minute.' : 'Loading the sample draft…');
+    status(available ? 'Drafting… free models can take up to two minutes. Keep this page open.' : 'Loading the sample draft…');
     try {
       const response = await fetch('/api/correction/', {
         method: 'POST',

@@ -6,6 +6,7 @@
 const { check, TOPICS, CONCEPTS, FLUENCY } = require('./case-check.js');
 
 const LIMITS = { notes: 6000, focus: 200 };
+const TIME_BUDGET = 170000; // api/correction.js allows 180 seconds
 const PROVIDER_ERRORS = {
   400: 'The AI service rejected the request. Check the model ID setting.',
   401: 'The AI key was not accepted. Check the API key setting.',
@@ -66,7 +67,7 @@ function prompt(request, example) {
   const system = `You write practice cases for a software engineering course. Learners read an AI answer that contains planted mistakes, find the wrong lines, choose the cause, write a fix and answer a related question.
 
 Return one JSON object only, no Markdown, with exactly these fields:
-id (lowercase words joined by hyphens), topic, name (max 60 chars), kind (max 30), source (max 80, the lecture topic), conceptId, fluency (optional), title (a question, max 120), question (what the user asked the AI, max 400), format ("code" or "text"), lines (3 to 12 strings, the AI answer split into lines, max 160 chars each; "" for a blank line), flaws (0-based indexes of the 1 to 3 wrong lines), related (0-based indexes of lines that are acceptable to flag but not wrong, may be empty), notes (object from line index to a one-sentence note for every flaw and related line), cause ({options: 3 × {text, why}, answer: index}), fix ({prompt, title, text, example, criteria: 3 to 4 strings}), apply ({question, options: 3 × {text, why}, answer: index}).
+id (lowercase words joined by hyphens), topic, name (max 60 chars), kind (max 30), source (max 80, the lecture topic), conceptId, fluency (optional), title (a question, max 120), question (what the user asked the AI, max 400), format ("code" or "text"), lines (3 to 8 strings, the AI answer split into lines, max 160 chars each; "" for a blank line), flaws (0-based indexes of the 1 to 3 wrong lines), related (0-based indexes of lines that are acceptable to flag but not wrong, may be empty), notes (object from line index to a one-sentence note for every flaw and related line), cause ({options: 3 × {text, why}, answer: index}), fix ({prompt, title, text, example, criteria: 3 to 4 strings}), apply ({question, options: 3 × {text, why}, answer: index}).
 
 Rules:
 - topic must be: ${JSON.stringify(TOPICS)}.
@@ -164,6 +165,8 @@ async function draft(body, { env = process.env, fetchImpl = fetch, example, oidc
   const messages = prompt(request, example);
   let problems = [];
   let latest = null;
+  // Both attempts share one time budget, inside the function's maxDuration.
+  const deadline = Date.now() + TIME_BUDGET;
   // One retry: the model gets the validation problems and corrects its own draft.
   for (let attempt = 0; attempt < 2; attempt += 1) {
     if (problems.length) {
@@ -173,7 +176,7 @@ async function draft(body, { env = process.env, fetchImpl = fetch, example, oidc
       });
     }
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 45000);
+    const timer = setTimeout(() => controller.abort(), Math.max(5000, deadline - Date.now()));
     let reply;
     try {
       const response = await fetchImpl(ai.url, {
@@ -212,6 +215,13 @@ async function draft(body, { env = process.env, fetchImpl = fetch, example, oidc
         `${ai.name} reply: model=${data && data.model} finish=${first.finish_reason} chars=${content.length} ` +
           `start=${JSON.stringify(content.slice(0, 120))} end=${JSON.stringify(content.slice(-120))}`
       );
+    } catch (error) {
+      if (error.name !== 'AbortError') throw error;
+      // Out of time: keep an earlier readable draft rather than losing it.
+      if (latest) return { result: latest, source: 'ai', problems };
+      const timeout = new Error('The free AI model took too long. Try again in a minute.');
+      timeout.status = 504;
+      throw timeout;
     } finally {
       clearTimeout(timer);
     }

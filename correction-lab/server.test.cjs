@@ -116,6 +116,13 @@ test('an unreadable reply twice is an error', async () => {
   );
 });
 
+test('a timeout gives a clear message', async () => {
+  const fetchImpl = async () => {
+    throw Object.assign(new Error('aborted'), { name: 'AbortError' });
+  };
+  await assert.rejects(service.draft(body(), { env, fetchImpl, example: cases[0] }), /took too long/);
+});
+
 test('a rate limit returns a clear message', async () => {
   await assert.rejects(
     service.draft(body(), { env, fetchImpl: reply('', 429), example: cases[0] }),

@@ -38,4 +38,5 @@ module.exports = async function handler(req, res) {
   }
 };
 
-module.exports.config = { maxDuration: 60 };
+// Free models are slow; Hobby allows up to 300 seconds.
+module.exports.config = { maxDuration: 180 };
