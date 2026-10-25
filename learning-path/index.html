@@ -4,10 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f6f5f1" />
-    <meta
-      name="description"
-      content="SkillLoop: short software development lessons, personalised paths, interview practice and AI correction challenges."
-    />
+    <meta name="description" content="SkillLoop: short software development lessons, personalised paths, interview practice and AI correction challenges." />
     <title>My path | SkillLoop</title>
     <link rel="icon" href="../public/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../shared/styles.css" />
@@ -15,6 +12,7 @@
     <script src="../shared/vendor/lucide.min.js" defer></script>
     <script src="../shared/storage.js" defer></script>
     <script src="../shared/navigation.js" defer></script>
+    <script src="data.js" defer></script>
     <script src="script.js" defer></script>
   </head>
   <body data-root="../" data-module="learning-path">
@@ -24,14 +22,50 @@
       <div class="sl-shell">
         <aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside>
         <main id="main-content" class="sl-main">
-          <div class="sl-kicker">Personalised learning</div>
-          <h1>Your path starts here.</h1>
-          <p class="sl-intro">Match the next step to where you are.</p>
-          <div class="sl-card">
+          
+          <!-- 弹窗遮罩层 -->
+          <div id="sl-quiz-modal" class="sl-modal-overlay">
+            <div class="sl-modal-content">
+              <div class="sl-icon-title" style="margin-bottom: 12px">
+                <i data-lucide="sparkles" aria-hidden="true"></i>
+                <h3>Calibrate your path</h3>
+              </div>
+              <p>Would you like to take a quick 5-question assessment? We'll use your answers to tailor the perfect learning path for you.</p>
+              <div class="sl-modal-actions">
+                <button type="button" class="sl-btn" id="btn-modal-skip">Skip for now</button>
+                <button type="button" class="sl-btn sl-btn-main" id="btn-modal-start">Start Test</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 第一屏：测试题卡片 (默认隐藏) -->
+          <div class="sl-card" id="sl-welcome-card" style="display: none;">
+            <div class="sl-kicker">Skill Check</div>
+            <h1>Let's find your starting point.</h1>
+            <p class="sl-intro">Answer these 5 questions to calibrate your engineering path.</p>
+            
+            <form id="sl-quiz-form" style="margin-top: 24px;">
+              <div id="sl-quiz-questions"></div>
+            </form>
+            
+            <div class="sl-row" style="margin-top: 24px; justify-content: flex-end;">
+              <button type="button" class="sl-btn sl-btn-main" id="btn-submit-quiz" style="width: 100%;">
+                Submit & Continue<i data-lucide="arrow-right" aria-hidden="true"> </i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 第二屏：主评估卡片 (初始隐藏) -->
+          <div class="sl-card sl-assessment-card" id="sl-personal-card" style="display: none;">
             <div class="sl-icon-title" style="margin-bottom: 17px">
               <i data-lucide="sliders-horizontal" aria-hidden="true"> </i>
               <h3>Set your starting point</h3>
             </div>
+            
+            <div id="sl-skill-check-banner" style="display: none; padding: 12px; background: #eff6ff; border-left: 4px solid #2563eb; border-radius: 4px; margin-bottom: 16px;">
+              <p class="sl-small" id="sl-skill-check-text" style="margin: 0;"></p>
+            </div>
+
             <div class="sl-grid" style="margin-top: 0">
               <div>
                 <label for="sl-background">Experience</label>
@@ -49,45 +83,47 @@
                 </select>
               </div>
             </div>
-            <div class="sl-message">
-              <div class="sl-kicker" style="margin-bottom: 9px">Quick check</div>
-              <p>Code runs without errors. Is it necessarily correct?</p>
-              <div class="sl-row" style="justify-content: flex-start; margin-top: 13px">
-                <button type="button" class="sl-btn" data-diagnostic="no">
-                  No. Check its results.
-                </button>
-                <button type="button" class="sl-btn" data-diagnostic="yes">Yes, it works.</button>
-              </div>
-              <div
-                id="sl-diagnostic-result"
-                class="sl-small"
-                aria-live="polite"
-                style="margin-top: 10px"
-              >
-                Choose an answer to refine your path.
+
+            <div class="sl-grid" style="margin-top: 16px;">
+              <div>
+                <label for="sl-ai-model">AI Model for Teaching Video Generation</label>
+                <select id="sl-ai-model">
+                  <option value="sora">OpenAI Sora</option>
+                  <option value="runway">Runway Gen-2</option>
+                  <option value="pika">Pika Labs</option>
+                </select>
               </div>
             </div>
-            <button type="button" class="sl-btn sl-btn-main" id="sl-make-path">
+
+            <div style="margin-top: 24px;" id="sl-habits-section">
+              <h4 style="margin-bottom: 8px;">Code Habits Audit</h4>
+              <p class="sl-small" style="margin-bottom: 12px;">Select the habits you want to fix:</p>
+              <div class="sl-checkbox-list" id="bad-habits-list"></div>
+            </div>
+
+            <button type="button" class="sl-btn sl-btn-main" id="sl-make-path" style="margin-top: 24px;">
               Build my path<i data-lucide="arrow-right" aria-hidden="true"> </i>
             </button>
           </div>
-          <div class="sl-card sl-spaced" aria-live="polite">
-            <div class="sl-row">
-              <h3>Your next steps</h3>
-              <span class="sl-chip">Sample recommendation</span>
+
+          <!-- 第三屏：最终路径展示卡片 (初始隐藏) -->
+          <div class="sl-card sl-spaced" aria-live="polite" id="sl-path-card" style="display: none;">
+            <div class="sl-row" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+              <h3 id="sl-path-heading">Your next steps</h3>
+              <div class="sl-row" style="gap: 10px;">
+                <span class="sl-chip" id="sl-path-chip">Personalised recommendation</span>
+                <button type="button" class="sl-btn" id="sl-reset-path" style="font-size: 0.85rem; padding: 4px 12px;">Retake</button>
+              </div>
             </div>
             <div id="sl-path-list"></div>
             <div id="sl-path-title" class="sl-small" style="margin: 12px 0"></div>
-            <a class="sl-btn" href="../knowledge-map/"
-              >Explore skill map<i data-lucide="arrow-up-right" aria-hidden="true"> </i>
+            <a class="sl-btn" href="../knowledge-map/" style="margin-top: 16px;">
+              Explore skill map<i data-lucide="arrow-up-right" aria-hidden="true"> </i>
             </a>
           </div>
+
         </main>
       </div>
     </div>
-    <noscript
-      >Please enable JavaScript to use the interactive exercises.
-      <a href="../index.html">Home</a></noscript
-    >
   </body>
 </html>
