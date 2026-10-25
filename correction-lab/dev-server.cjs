@@ -36,9 +36,15 @@ http
   .createServer((req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     if (url.pathname.replace(/\/$/, '') === '/api/correction') return api(req, res);
+    // Match vercel.json (cleanUrls + trailingSlash): /page.html redirects to /page/.
+    if (url.pathname.endsWith('.html')) {
+      const clean = url.pathname.replace(/(index)?\.html$/, '').replace(/\/?$/, '/');
+      return res.writeHead(308, { Location: clean + url.search }).end();
+    }
     let file = path.join(ROOT, decodeURIComponent(url.pathname));
     if (!file.startsWith(ROOT)) return res.writeHead(403).end();
     if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html');
+    else if (url.pathname.endsWith('/')) file = file.replace(/\/$/, '') + '.html';
     fs.readFile(file, (error, data) => {
       if (error) return res.writeHead(404).end('Not found');
       res.writeHead(200, {

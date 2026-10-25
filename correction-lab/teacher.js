@@ -270,7 +270,7 @@
     authored.forEach((item) => {
       const row = element('div', 'sl-row cl-published-row');
       const link = element('a', '', item.title);
-      link.href = `./?case=${encodeURIComponent(item.id)}`;
+      link.href = `/correction-lab/?case=${encodeURIComponent(item.id)}`;
       const remove = element('button', 'sl-text-button', 'Unpublish');
       remove.type = 'button';
       remove.addEventListener('click', () => {
@@ -303,7 +303,7 @@
     button.disabled = true;
     status(available ? 'Drafting… free models can take up to a minute.' : 'Loading the sample draft…');
     try {
-      const response = await fetch('/api/correction', {
+      const response = await fetch('/api/correction/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -360,7 +360,7 @@
     URL.revokeObjectURL(link.href);
   });
 
-  fetch('/api/correction')
+  fetch('/api/correction/')
     .then((response) => (response.ok ? response.json() : { available: false }))
     .catch(() => ({ available: false, offline: true }))
     .then((info) => {
