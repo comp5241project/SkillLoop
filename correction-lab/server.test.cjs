@@ -69,6 +69,16 @@ test('an invalid reply is retried once with the problems', async () => {
   assert.equal(out.source, 'ai');
 });
 
+test('a comma-separated model list is sent as fallbacks', async () => {
+  let sent;
+  const fetchImpl = async (url, options) => {
+    sent = JSON.parse(options.body);
+    return reply(JSON.stringify(cases[0]))();
+  };
+  await service.draft(body(), { env: { ...env, OPENROUTER_MODEL: 'a/one:free, b/two:free' }, fetchImpl, example: cases[0] });
+  assert.deepEqual(sent.models, ['a/one:free', 'b/two:free']);
+});
+
 test('a rate limit returns a clear message', async () => {
   await assert.rejects(
     service.draft(body(), { env, fetchImpl: reply('', 429), example: cases[0] }),
@@ -79,7 +89,7 @@ test('a rate limit returns a clear message', async () => {
 test('a missing model gets a specific message', async () => {
   await assert.rejects(
     service.draft(body(), { env, fetchImpl: reply('{"error":"No endpoints"}', 404), example: cases[0] }),
-    /model was not found/
+    /free provider is unavailable/
   );
 });
 

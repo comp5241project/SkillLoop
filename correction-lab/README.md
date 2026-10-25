@@ -49,7 +49,7 @@ The API key stays on the server. Set these in Vercel (Production and Preview) or
 | Variable | Value |
 | --- | --- |
 | `OPENROUTER_API_KEY` | OpenRouter key |
-| `OPENROUTER_MODEL` | A model ID from [openrouter.ai/models](https://openrouter.ai/models), for example one ending in `:free` |
+| `OPENROUTER_MODEL` | Up to three model IDs from [openrouter.ai/models](https://openrouter.ai/models), separated by commas, for example free ones ending in `:free`. OpenRouter tries the next one when a provider is down. |
 | `CORRECTION_TEACHER_CODE` | Code a teacher types before drafting, so visitors cannot use the quota |
 
 Without all three, the studio runs in demo mode and loads a labelled sample draft. Free models have daily limits and may log prompts, so only send course material, never student data.

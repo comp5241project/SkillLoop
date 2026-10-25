@@ -11,7 +11,7 @@ const PROVIDER_ERRORS = {
   400: 'The AI service rejected the request. Check that OPENROUTER_MODEL is a valid model ID.',
   401: 'The AI key was not accepted. Check OPENROUTER_API_KEY.',
   402: 'The AI account has no credit for this model. Use a model ending in :free.',
-  404: 'The AI model was not found. Check OPENROUTER_MODEL.',
+  404: 'The AI model or its free provider is unavailable. Add a fallback model to OPENROUTER_MODEL.',
   429: 'The free AI quota is used up for now. Try again later.',
   other: 'The AI service did not respond. Try again.',
 };
@@ -122,7 +122,8 @@ async function draft(body, { env = process.env, fetchImpl = fetch, example } = {
           'X-Title': 'SkillLoop Correction Lab',
         },
         body: JSON.stringify({
-          model: env.OPENROUTER_MODEL,
+          // A comma-separated list lets OpenRouter fall back when a free provider is down.
+          models: env.OPENROUTER_MODEL.split(',').map((m) => m.trim()).filter(Boolean).slice(0, 3),
           messages,
           temperature: 0.6,
           max_tokens: 3000,
