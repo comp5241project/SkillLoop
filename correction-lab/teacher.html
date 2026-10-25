@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f5f1" />
+    <meta
+      name="description"
+      content="SkillLoop: draft correction cases with AI and publish them after teacher review."
+    />
+    <title>Case studio | SkillLoop</title>
+    <link rel="icon" href="../public/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../shared/styles.css" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="../shared/vendor/lucide.min.js" defer></script>
+    <script src="../shared/storage.js" defer></script>
+    <script src="../shared/navigation.js" defer></script>
+    <script src="case-check.js" defer></script>
+    <script src="teacher.js" defer></script>
+  </head>
+  <body data-root="../" data-module="correction-lab">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div id="skillloop-prototype">
+      <header id="site-header" class="sl-head"></header>
+      <div class="sl-shell">
+        <aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside>
+        <main id="main-content" class="sl-main cl-main">
+          <div class="sl-kicker">Correction lab · Teachers</div>
+          <h1>Let AI draft the mistakes. You check them.</h1>
+          <p class="sl-intro">
+            Describe what you taught. AI drafts an answer with planted mistakes and an answer key.
+            Nothing reaches students until you have reviewed it.
+          </p>
+          <p class="cl-summary">
+            <a href="./">Back to the correction lab</a>
+            <span class="sl-chip" id="tc-mode">Checking AI connection…</span>
+          </p>
+
+          <section class="sl-card cl-case-card" aria-labelledby="tc-step1">
+            <h2 class="cl-title" id="tc-step1"><span class="sl-dot">1</span> Describe the case</h2>
+            <form id="tc-form" class="cl-form">
+              <div class="cl-form-grid">
+                <div>
+                  <label for="tc-topic">Topic</label>
+                  <select id="tc-topic"></select>
+                </div>
+                <div>
+                  <label for="tc-audience">Learners</label>
+                  <select id="tc-audience">
+                    <option value="beginner">Beginners without a CS background</option>
+                    <option value="cs">CS students and graduates</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="tc-format">AI answer as</label>
+                  <select id="tc-format">
+                    <option value="code">Code</option>
+                    <option value="text">Text</option>
+                  </select>
+                </div>
+              </div>
+              <label for="tc-focus">Mistake to plant (optional)</label>
+              <input id="tc-focus" type="text" maxlength="200" placeholder="e.g. treats passing tests as proof the product is right" />
+              <label for="tc-notes">Lecture notes</label>
+              <textarea id="tc-notes" maxlength="6000" placeholder="Paste the key points you taught. AI will stay within them."></textarea>
+              <div id="tc-code-row">
+                <label for="tc-code">Teacher code</label>
+                <input id="tc-code" type="password" autocomplete="off" maxlength="100" />
+              </div>
+              <button type="submit" class="sl-btn sl-btn-main sl-spaced" id="tc-draft">
+                Draft with AI<i data-lucide="sparkles" aria-hidden="true"></i>
+              </button>
+              <div class="cl-result" id="tc-status" aria-live="polite" hidden></div>
+            </form>
+          </section>
+
+          <section class="sl-card cl-case-card" id="tc-review" aria-labelledby="tc-step2" hidden>
+            <h2 class="cl-title" id="tc-step2" tabindex="-1">
+              <span class="sl-dot">2</span> Review and edit the draft
+            </h2>
+            <p class="cl-hint" id="tc-origin"></p>
+            <div id="tc-editor"></div>
+            <div class="cl-result" id="tc-errors" aria-live="polite"></div>
+          </section>
+
+          <section class="sl-card cl-case-card" id="tc-publish" aria-labelledby="tc-step3" hidden>
+            <h2 class="cl-title" id="tc-step3"><span class="sl-dot">3</span> Confirm and publish</h2>
+            <fieldset class="cl-criteria">
+              <legend>I have checked that</legend>
+              <div id="tc-checklist"></div>
+            </fieldset>
+            <div class="sl-row">
+              <button type="button" class="sl-btn sl-btn-main" id="tc-publish-btn" disabled>
+                Publish to this browser<i data-lucide="send" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="sl-btn" id="tc-export">
+                Export JSON<i data-lucide="download" aria-hidden="true"></i>
+              </button>
+            </div>
+            <p class="cl-note">
+              Prototype publishing saves the case in this browser only, so you can try it as a student.
+              Sharing it with every student needs the team's shared backend. Export JSON to add it to
+              the case list through a pull request.
+            </p>
+          </section>
+
+          <section class="sl-card cl-case-card" aria-labelledby="tc-step4">
+            <h2 class="cl-title" id="tc-step4">Published in this browser</h2>
+            <div id="tc-published"></div>
+          </section>
+        </main>
+      </div>
+    </div>
+    <noscript
+      >Please enable JavaScript to use the case studio.
+      <a href="../index.html">Home</a></noscript
+    >
+  </body>
+</html>

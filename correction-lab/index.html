@@ -16,6 +16,7 @@
     <script src="../shared/storage.js" defer></script>
     <script src="../shared/navigation.js" defer></script>
     <script src="cases.js" defer></script>
+    <script src="case-check.js" defer></script>
     <script src="script.js" defer></script>
   </head>
   <body data-root="../" data-module="correction-lab">
@@ -42,6 +43,7 @@
             <div class="cl-chips">
               <span class="sl-chip" id="sl-case-kind"></span>
               <span class="sl-chip" id="sl-case-fluency" hidden></span>
+              <span class="sl-chip" id="sl-case-origin" hidden>AI-drafted · Teacher-reviewed</span>
               <span class="sl-chip" id="sl-case-source"></span>
             </div>
             <h2 id="sl-case-title" class="cl-title" tabindex="-1"></h2>
@@ -115,7 +117,7 @@
 
           <p class="cl-note sl-spaced">
             Cases are written by the team from the course lectures. Stars come from the line and choice
-            questions only.
+            questions only. Teachers can <a href="teacher.html">draft new cases with AI</a>.
             <a
               href="https://sonic-fiddle-gzb7c64.vercel.app/bureau.html"
               target="_blank"

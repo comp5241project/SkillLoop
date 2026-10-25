@@ -5,7 +5,6 @@
  */
 (function () {
   const app = window.SkillLoop;
-  const cases = window.SkillLoopCases;
   const $ = (selector) => document.querySelector(selector);
   const text = (value) => (typeof value === 'string' ? value.slice(0, 5000) : '');
   const indexes = (value, max) =>
@@ -13,6 +12,14 @@
       ? [...new Set(value.filter((n) => Number.isInteger(n) && n >= 0 && n < max))]
       : [];
   const saved = app.read('correction', {});
+  // Cases a teacher reviewed and published in this browser (teacher.html); invalid ones are skipped.
+  const builtIn = window.SkillLoopCases;
+  const authored = (Array.isArray(saved.authored) ? saved.authored : []).filter(
+    (item) =>
+      !window.SkillLoopCaseCheck.check(item).length &&
+      !builtIn.some((other) => other.id === item.id)
+  );
+  const cases = [...builtIn, ...authored];
   const stored = saved.cases && typeof saved.cases === 'object' ? saved.cases : {};
 
   const blank = () => ({
@@ -52,6 +59,7 @@
     const entry = state();
     // Top-level fields mirror the open case so the original contract still reads correctly.
     app.write('correction', {
+      ...app.read('correction', {}),
       draft: entry.draft,
       revealed: entry.revealed,
       nextSeen: entry.nextSeen,
@@ -202,8 +210,13 @@
     $('#sl-case-source').textContent = `Lecture: ${data.source}`;
     $('#sl-case-fluency').textContent = `AI Fluency: ${data.fluency}`;
     $('#sl-case-fluency').hidden = !data.fluency;
+    $('#sl-case-origin').hidden = data.origin !== 'teacher-reviewed';
     $('#sl-case-question').textContent = data.question;
-    $('#sl-spot-hint').textContent = `Tap the ${data.flaws.length} lines that are wrong, then check.`;
+    const count = data.flaws.length;
+    $('#sl-spot-hint').textContent =
+      count === 1
+        ? 'Tap the 1 line that is wrong, then check.'
+        : `Tap the ${count} lines that are wrong, then check.`;
     renderLines();
     $('#sl-spot-check').hidden = entry.spotChecked;
 

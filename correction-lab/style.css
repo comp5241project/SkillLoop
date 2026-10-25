@@ -102,6 +102,9 @@
   flex-wrap: wrap;
 }
 #skillloop-prototype .cl-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 12px 0 14px;
   font-size: 22px;
   font-weight: 600;
@@ -378,5 +381,96 @@
   }
   #skillloop-prototype .cl-title {
     font-size: 20px;
+  }
+}
+
+/* Teacher case studio */
+#skillloop-prototype .cl-main input[type='text'],
+#skillloop-prototype .cl-main input[type='password'],
+#skillloop-prototype .cl-field input:not([type]) {
+  width: 100%;
+  border: 1px solid var(--sl-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--sl-panel);
+  color: var(--sl-text);
+  font: inherit;
+}
+#skillloop-prototype .cl-main textarea {
+  min-height: 0;
+}
+#skillloop-prototype #tc-notes {
+  min-height: 160px;
+}
+#skillloop-prototype .cl-form label,
+#skillloop-prototype .cl-field label {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+#skillloop-prototype .cl-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0 12px;
+}
+#skillloop-prototype .cl-edit-group {
+  margin: 18px 0 0;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--sl-line);
+  border-radius: 10px;
+}
+#skillloop-prototype .cl-edit-group legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+#skillloop-prototype .cl-edit-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px auto;
+  gap: 0 10px;
+  align-items: end;
+  margin-bottom: 10px;
+  padding: 4px 10px 10px;
+  border-left: 3px solid var(--sl-line);
+}
+#skillloop-prototype .cl-edit-line[data-role='wrong'] {
+  border-left-color: var(--sl-accent);
+}
+#skillloop-prototype .cl-edit-line[data-role='related'] {
+  border-left-color: var(--sl-gold);
+}
+#skillloop-prototype .cl-edit-line > .cl-field:last-child:nth-child(4) {
+  grid-column: 1 / -1;
+}
+#skillloop-prototype .cl-edit-line .sl-text-button {
+  padding-bottom: 10px;
+}
+#skillloop-prototype .cl-edit-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 8px;
+}
+#skillloop-prototype .cl-edit-option > input {
+  margin-top: 40px;
+  accent-color: var(--sl-accent);
+}
+#skillloop-prototype .cl-edit-option-fields {
+  flex: 1;
+  min-width: 0;
+}
+#skillloop-prototype .cl-error-list {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+#skillloop-prototype .cl-published-row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--sl-line);
+}
+@media (max-width: 480px) {
+  #skillloop-prototype .cl-edit-line {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  #skillloop-prototype .cl-edit-line > .cl-field:first-child {
+    grid-column: 1 / -1;
   }
 }
