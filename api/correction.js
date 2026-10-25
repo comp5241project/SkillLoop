@@ -10,7 +10,9 @@ module.exports = async function handler(req, res) {
   // Vercel sends a short-lived OIDC token that AI Gateway accepts instead of an API key.
   const oidcToken = req.headers['x-vercel-oidc-token'] || process.env.VERCEL_OIDC_TOKEN;
   if (req.method === 'GET') {
-    return res.status(200).json({ available: service.configured(process.env, oidcToken) });
+    const available = service.configured(process.env, oidcToken);
+    const ai = available ? service.provider(process.env, oidcToken) : null;
+    return res.status(200).json({ available, provider: ai ? ai.name : null });
   }
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'GET, POST');
