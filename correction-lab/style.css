@@ -1,1 +1,476 @@
 /* Styles specific to correction-lab. Shared components are in ../shared/styles.css. */
+
+/* Clearer type for this module only: system UI fonts, larger sizes. */
+#skillloop-prototype .cl-main {
+  --cl-font:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'PingFang HK',
+    'Microsoft JhengHei', sans-serif;
+  --cl-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --cl-ok: light-dark(#2f7a4a, #7fcf9a);
+  --cl-ok-bg: light-dark(#e8f3ec, #1f3328);
+  --cl-warn: light-dark(#9a5a0a, #f0b56a);
+  --cl-warn-bg: light-dark(#fbf0df, #3a2e1c);
+  font-family: var(--cl-font);
+  font-size: 15px;
+  line-height: 1.6;
+}
+#skillloop-prototype .cl-main h1,
+#skillloop-prototype .cl-main h2,
+#skillloop-prototype .cl-main h3 {
+  letter-spacing: -0.2px;
+}
+#skillloop-prototype .cl-main .sl-intro {
+  font-size: 16px;
+  max-width: 640px;
+}
+#skillloop-prototype .cl-main .sl-chip {
+  font-size: 12px;
+}
+#skillloop-prototype .cl-main label,
+#skillloop-prototype .cl-main textarea {
+  font-size: 15px;
+}
+#skillloop-prototype .cl-main label {
+  color: var(--sl-text);
+  margin-bottom: 8px;
+}
+#skillloop-prototype .cl-main .sl-btn {
+  font-size: 14px;
+  padding: 10px 14px;
+}
+#skillloop-prototype .cl-main .sl-code {
+  font: 14px/1.7 var(--cl-mono);
+}
+
+/* Progress and case picker */
+#skillloop-prototype .cl-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+  font-size: 14px;
+  color: var(--sl-sub);
+}
+#skillloop-prototype #sl-stars,
+#skillloop-prototype .cl-stars {
+  color: var(--sl-gold);
+  letter-spacing: 1px;
+}
+#skillloop-prototype #sl-stars {
+  color: var(--sl-text);
+  font-weight: 600;
+}
+#skillloop-prototype .cl-topic {
+  margin: 16px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sl-sub);
+}
+#skillloop-prototype .cl-cases {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+#skillloop-prototype .cl-case {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 4px;
+  text-align: left;
+}
+#skillloop-prototype .cl-case-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+#skillloop-prototype .cl-case-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--sl-sub);
+}
+
+/* Case card */
+#skillloop-prototype .cl-case-card {
+  margin-top: 22px;
+  padding: 22px;
+}
+#skillloop-prototype .cl-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+#skillloop-prototype .cl-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 14px;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  scroll-margin-top: 16px;
+}
+#skillloop-prototype .cl-title:focus {
+  outline: none;
+}
+#skillloop-prototype .cl-who {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sl-sub);
+}
+#skillloop-prototype .cl-who svg.lucide {
+  width: 16px;
+  height: 16px;
+}
+#skillloop-prototype .cl-question {
+  background: var(--sl-bg);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+#skillloop-prototype .cl-question p {
+  margin: 4px 0 0;
+  font-size: 16px;
+}
+
+/* Steps */
+#skillloop-prototype .cl-step {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid var(--sl-line);
+}
+#skillloop-prototype .cl-step:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+#skillloop-prototype .cl-step h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+#skillloop-prototype .cl-hint {
+  margin: 0 0 12px;
+  color: var(--sl-sub);
+}
+#skillloop-prototype .cl-answer {
+  border: 1px solid var(--sl-line);
+  border-radius: 10px;
+  padding: 12px;
+}
+#skillloop-prototype #sl-lines {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+/* Answer lines: tap to flag, then marked after checking */
+#skillloop-prototype .cl-line {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  align-items: baseline;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--sl-text);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+}
+#skillloop-prototype button.cl-line:hover {
+  border-color: var(--sl-line);
+  background: var(--sl-bg);
+}
+#skillloop-prototype .cl-line[aria-pressed='true'] {
+  border-color: var(--sl-accent);
+  background: var(--sl-soft);
+}
+#skillloop-prototype .cl-code {
+  gap: 2px !important;
+}
+#skillloop-prototype .cl-code .cl-line {
+  padding: 4px 10px;
+}
+#skillloop-prototype .cl-code .cl-text {
+  font-family: var(--cl-mono);
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+#skillloop-prototype .cl-text {
+  overflow-wrap: anywhere;
+}
+#skillloop-prototype .cl-num {
+  font-family: var(--cl-mono);
+  font-size: 12px;
+  color: var(--sl-sub);
+  text-align: right;
+}
+#skillloop-prototype .cl-line-blank {
+  height: 10px;
+}
+#skillloop-prototype .cl-tag {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+#skillloop-prototype .cl-line-note {
+  grid-column: 2 / -1;
+  font-size: 14px;
+  color: var(--sl-sub);
+}
+#skillloop-prototype .cl-line[data-result='hit'] {
+  border-color: var(--cl-ok);
+  background: var(--cl-ok-bg);
+}
+#skillloop-prototype .cl-line[data-result='hit'] .cl-tag {
+  color: var(--cl-ok);
+}
+#skillloop-prototype .cl-line[data-result='miss'] {
+  border-color: var(--cl-warn);
+  background: var(--cl-warn-bg);
+}
+#skillloop-prototype .cl-line[data-result='miss'] .cl-tag {
+  color: var(--cl-warn);
+}
+#skillloop-prototype .cl-line[data-result='related'] {
+  border-color: var(--sl-line);
+  background: var(--sl-bg);
+}
+#skillloop-prototype .cl-line[data-result='wrong'] {
+  border-color: var(--sl-accent);
+}
+#skillloop-prototype .cl-line[data-result='wrong'] .cl-tag {
+  color: var(--sl-accent);
+}
+
+/* Multiple choice */
+#skillloop-prototype .cl-options {
+  display: grid;
+  gap: 8px;
+}
+#skillloop-prototype .cl-option {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--sl-line);
+  border-radius: 10px;
+  background: var(--sl-panel);
+  color: var(--sl-text);
+  font: inherit;
+  text-align: left;
+}
+#skillloop-prototype .cl-option:not(:disabled):hover {
+  border-color: var(--sl-accent);
+}
+#skillloop-prototype .cl-option:disabled {
+  cursor: default;
+}
+#skillloop-prototype .cl-option[data-result='right'] {
+  border-color: var(--cl-ok);
+  background: var(--cl-ok-bg);
+}
+#skillloop-prototype .cl-option[data-result='wrong'] {
+  border-color: var(--sl-accent);
+  background: var(--sl-soft);
+  text-decoration: line-through;
+  text-decoration-color: var(--sl-accent);
+}
+#skillloop-prototype .cl-apply-question {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+/* Feedback messages */
+#skillloop-prototype .cl-result {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--sl-bg);
+}
+#skillloop-prototype .cl-result:focus {
+  outline: none;
+}
+#skillloop-prototype .cl-result[data-result='right'] {
+  background: var(--cl-ok-bg);
+}
+#skillloop-prototype .cl-result[data-result='partial'] {
+  background: var(--cl-warn-bg);
+}
+#skillloop-prototype .cl-result[data-result='wrong'] {
+  background: var(--sl-soft);
+}
+#skillloop-prototype .cl-retry {
+  font-weight: 600;
+}
+
+/* Reference answer */
+#skillloop-prototype .cl-main .sl-feedback {
+  font-size: 15px;
+}
+#skillloop-prototype .sl-feedback h4 {
+  margin: 0;
+  font-size: 16px;
+}
+#skillloop-prototype .sl-feedback h4:focus {
+  outline: none;
+}
+#skillloop-prototype .cl-example {
+  margin: 12px 0 14px;
+}
+#skillloop-prototype .cl-main .cl-example.cl-prose {
+  font: 15px/1.6 var(--cl-font);
+}
+#skillloop-prototype .cl-criteria {
+  border: 0;
+  padding: 0;
+  margin: 0 0 10px;
+}
+#skillloop-prototype .cl-criteria legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+#skillloop-prototype .cl-main .cl-check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 6px 0;
+  font-size: 15px;
+}
+#skillloop-prototype .cl-check input {
+  width: 17px;
+  height: 17px;
+  margin: 3px 0 0;
+  flex: 0 0 auto;
+  accent-color: var(--sl-accent);
+}
+#skillloop-prototype .cl-note {
+  font-size: 13px;
+  color: var(--sl-sub);
+}
+#skillloop-prototype .cl-link {
+  font-size: 14px;
+}
+#skillloop-prototype .cl-footer {
+  margin-top: 18px;
+  text-align: right;
+}
+#skillloop-prototype .cl-main .sl-text-button {
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  #skillloop-prototype .cl-case-card {
+    padding: 16px;
+  }
+  #skillloop-prototype .cl-cases {
+    grid-template-columns: 1fr;
+  }
+  #skillloop-prototype .cl-line {
+    grid-template-columns: 20px minmax(0, 1fr);
+  }
+  #skillloop-prototype .cl-tag {
+    grid-column: 2;
+  }
+  #skillloop-prototype .cl-title {
+    font-size: 20px;
+  }
+}
+
+/* Teacher case studio */
+#skillloop-prototype .cl-main input[type='text'],
+#skillloop-prototype .cl-main input[type='password'],
+#skillloop-prototype .cl-field input:not([type]) {
+  width: 100%;
+  border: 1px solid var(--sl-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--sl-panel);
+  color: var(--sl-text);
+  font: inherit;
+}
+#skillloop-prototype .cl-main textarea {
+  min-height: 0;
+}
+#skillloop-prototype #tc-notes {
+  min-height: 160px;
+}
+#skillloop-prototype .cl-form label,
+#skillloop-prototype .cl-field label {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+#skillloop-prototype .cl-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0 12px;
+}
+#skillloop-prototype .cl-edit-group {
+  margin: 18px 0 0;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--sl-line);
+  border-radius: 10px;
+}
+#skillloop-prototype .cl-edit-group legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+#skillloop-prototype .cl-edit-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px auto;
+  gap: 0 10px;
+  align-items: end;
+  margin-bottom: 10px;
+  padding: 4px 10px 10px;
+  border-left: 3px solid var(--sl-line);
+}
+#skillloop-prototype .cl-edit-line[data-role='wrong'] {
+  border-left-color: var(--sl-accent);
+}
+#skillloop-prototype .cl-edit-line[data-role='related'] {
+  border-left-color: var(--sl-gold);
+}
+#skillloop-prototype .cl-edit-line > .cl-field:last-child:nth-child(4) {
+  grid-column: 1 / -1;
+}
+#skillloop-prototype .cl-edit-line .sl-text-button {
+  padding-bottom: 10px;
+}
+#skillloop-prototype .cl-edit-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 8px;
+}
+#skillloop-prototype .cl-edit-option > input {
+  margin-top: 40px;
+  accent-color: var(--sl-accent);
+}
+#skillloop-prototype .cl-edit-option-fields {
+  flex: 1;
+  min-width: 0;
+}
+#skillloop-prototype .cl-error-list {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+#skillloop-prototype .cl-published-row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--sl-line);
+}
+@media (max-width: 480px) {
+  #skillloop-prototype .cl-edit-line {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  #skillloop-prototype .cl-edit-line > .cl-field:first-child {
+    grid-column: 1 / -1;
+  }
+}
