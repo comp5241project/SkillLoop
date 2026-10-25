@@ -12,7 +12,7 @@
     <a class="sl-brand" href="${root}index.html" aria-label="SkillLoop home">
       <span class="sl-logo"><i data-lucide="infinity" aria-hidden="true"></i></span>skillloop<span>.</span>
     </a>
-    <div class="sl-top"><span class="sl-badge">Prototype · local data</span><span class="sl-avatar" aria-hidden="true">SL</span></div>`;
+    <div class="sl-top"><span class="sl-badge">${active === 'knowledge-map' ? 'Prototype' : 'Prototype · local data'}</span><span class="sl-avatar" aria-hidden="true">SL</span></div>`;
   document.getElementById('site-navigation').innerHTML = `
     <div class="sl-kicker">Workspace</div>
     <nav class="sl-nav" aria-label="Learning modules">${modules

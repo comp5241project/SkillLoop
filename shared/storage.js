@@ -1,9 +1,11 @@
-/** Browser-local state only. There is no account, database or AI API in this starter. */
+/** Browser-local state helper; callers decide whether to use an account backend. */
 (function () {
   const prefix = 'skillloop.v1.';
   const memory = new Map();
+  let persistent = true;
   const clone = (value) => JSON.parse(JSON.stringify(value));
   function read(key, fallback) {
+    if (!persistent && memory.has(key)) return clone(memory.get(key));
     try {
       const value = localStorage.getItem(prefix + key);
       if (value === null) return clone(fallback);
@@ -15,6 +17,7 @@
           : typeof parsed === typeof fallback;
       return matches ? parsed : clone(fallback);
     } catch (_) {
+      persistent = false;
       return memory.has(key) ? clone(memory.get(key)) : clone(fallback);
     }
   }
@@ -22,8 +25,11 @@
     memory.set(key, clone(value));
     try {
       localStorage.setItem(prefix + key, JSON.stringify(value));
+      persistent = true;
+      return true;
     } catch (_) {
-      /* Still works for this page if storage is unavailable. */
+      persistent = false;
+      return false;
     }
   }
   function appendEvent(event) {
@@ -34,5 +40,5 @@
   function icons() {
     if (window.lucide) window.lucide.createIcons({ attrs: { 'stroke-width': 1.5 } });
   }
-  window.SkillLoop = Object.freeze({ read, write, appendEvent, icons });
+  window.SkillLoop = Object.freeze({ read, write, appendEvent, icons, storageAvailable: () => persistent });
 })();

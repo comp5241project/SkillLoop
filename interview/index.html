@@ -4,17 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f6f5f1" />
+    <title>Interview | SkillLoop</title>
     <meta
       name="description"
-      content="SkillLoop: short software development lessons, personalised paths, interview practice and AI correction challenges."
+      content="Meet your interviewer, make decisions and learn from the conversation."
     />
-    <title>Interview | SkillLoop</title>
     <link rel="icon" href="../public/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../shared/styles.css" />
     <link rel="stylesheet" href="style.css" />
     <script src="../shared/vendor/lucide.min.js" defer></script>
     <script src="../shared/storage.js" defer></script>
     <script src="../shared/navigation.js" defer></script>
+    <script src="model.js" defer></script>
+    <script src="story.js" defer></script>
     <script src="script.js" defer></script>
   </head>
   <body data-root="../" data-module="interview">
@@ -23,67 +25,326 @@
       <header id="site-header" class="sl-head"></header>
       <div class="sl-shell">
         <aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside>
-        <main id="main-content" class="sl-main">
-          <div class="sl-kicker">Practice studio</div>
-          <h1>Show how you think.</h1>
-          <p class="sl-intro">Software testing · Text interview · Scripted demo</p>
-          <div class="sl-card">
-            <div class="sl-row">
-              <div class="sl-icon-title">
-                <i data-lucide="bot" aria-hidden="true"> </i>
-                <h3>Your interviewer</h3>
+        <main id="main-content" class="sl-main" tabindex="-1">
+          <div id="interview-app">
+            <header class="iv-toolbar">
+              <a href="../index.html" class="iv-brand" aria-label="Back to SkillLoop"
+                ><i data-lucide="arrow-left" aria-hidden="true"></i><span>Interview room</span></a
+              >
+              <div class="iv-toolbar-actions">
+                <button id="iv-scenario-open" class="iv-text-button" type="button">
+                  Testing code <i data-lucide="chevron-down" aria-hidden="true"></i>
+                </button>
+                <span id="iv-mode" class="iv-mode">Checking AI…</span>
+                <button
+                  id="iv-history-open"
+                  class="iv-text-button"
+                  type="button"
+                  aria-label="History"
+                >
+                  <i data-lucide="history" aria-hidden="true"></i><span>History</span>
+                </button>
               </div>
-              <span class="sl-chip">Question 01</span>
-            </div>
-            <div class="sl-message">
-              AI-generated code runs successfully. How would you check that it is correct?
-            </div>
-            <label for="sl-answer">Your approach</label>
-            <textarea id="sl-answer" placeholder="Walk through your checks…"></textarea>
-            <div class="sl-row sl-spaced">
-              <button type="button" class="sl-btn" id="sl-hint">
-                <i data-lucide="lightbulb" aria-hidden="true"> </i>A small hint
-              </button>
-              <button type="button" class="sl-btn sl-btn-main" id="sl-submit">
-                Continue<i data-lucide="arrow-right" aria-hidden="true"> </i>
-              </button>
-            </div>
-            <div id="sl-hint-text" class="sl-small" style="margin-top: 12px" hidden>
-              Try an empty input. What should happen?
-            </div>
-            <div id="sl-followup" class="sl-feedback" aria-live="polite" hidden>
-              <div class="sl-icon-title">
-                <i data-lucide="corner-down-right" aria-hidden="true"> </i>
-                <h3>Follow-up</h3>
-              </div>
-              <p>What result would you expect for an empty list, and how would you test it?</p>
-              <p class="sl-small">Preset question · AI service not connected</p>
-            </div>
-          </div>
-          <div class="sl-card sl-spaced">
-            <div class="sl-row">
-              <div class="sl-icon-title">
-                <i data-lucide="history" aria-hidden="true"> </i>
-                <h3>Your process, replayed</h3>
-              </div>
-              <span class="sl-small">This session</span>
-            </div>
-            <div id="sl-replay" aria-live="polite">
-              <div class="sl-step">
-                <span class="sl-dot">01</span>
-                <div>
-                  <h3>Read the question</h3>
-                  <div class="sl-small">Check AI-generated code.</div>
+            </header>
+            <section id="iv-room" aria-label="Conversation with Maya">
+              <div class="iv-scene" id="iv-scene">
+                <div class="iv-portrait" aria-hidden="true">
+                  <span class="iv-window"></span>
+                  <svg
+                    class="iv-character"
+                    viewBox="0 0 360 440"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <ellipse cx="180" cy="418" rx="133" ry="12" fill="#ded6c4" />
+                    <path
+                      d="M110 184C75 125 88 44 153 33c75-17 125 38 107 116l-13 77H105z"
+                      fill="#332f2b"
+                    />
+                    <path
+                      d="m150 181-5 47 36 28 39-29-9-47"
+                      fill="#dca986"
+                      stroke="#40382f"
+                      stroke-width="2"
+                    />
+                    <path
+                      d="M143 218c-55 8-83 46-89 123l-9 71h275l-15-93c-9-55-31-89-84-102l-37 36z"
+                      fill="#696e59"
+                      stroke="#3b4135"
+                      stroke-width="2.5"
+                    />
+                    <path d="m143 219 41 34 37-35-8 88h-57z" fill="#f8f0dd" />
+                    <path
+                      d="m142 217-24 45 23 19-15 29 53 92m43-185 20 47-22 18 15 29-48 92"
+                      stroke="#d0d1b6"
+                      stroke-width="2"
+                    />
+                    <path
+                      d="M124 85c-6 26-5 77 13 101 20 27 49 34 75 10 27-25 33-69 21-111"
+                      fill="#edc09b"
+                      stroke="#40382f"
+                      stroke-width="2.5"
+                    />
+                    <path
+                      d="M119 120c-10-2-15 6-12 16 3 9 10 13 18 12m110-28c12-6 20 3 15 15-2 8-9 11-15 11"
+                      fill="#edc09b"
+                      stroke="#40382f"
+                      stroke-width="2"
+                    />
+                    <path
+                      d="M116 117c0-32 5-60 40-69 48-12 85 19 83 68-26-7-43-28-52-48-15 29-37 39-71 49"
+                      fill="#332f2b"
+                    />
+                    <path
+                      d="M143 125q10-6 20-1m32 0q10-6 20-1"
+                      stroke="#40382f"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                    />
+                    <g class="iv-eyes" fill="#332f2b">
+                      <ellipse cx="154" cy="138" rx="3" ry="4" />
+                      <ellipse cx="204" cy="138" rx="3" ry="4" />
+                    </g>
+                    <path
+                      d="m180 140-3 19 7 2m-23 13q18 14 34-1"
+                      stroke="#976d52"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                    />
+                    <circle cx="125" cy="156" r="5" stroke="#c5a24b" stroke-width="2" />
+                    <circle cx="235" cy="155" r="5" stroke="#c5a24b" stroke-width="2" />
+                    <path
+                      d="M84 328q-10 51 26 64l105 4 3-28-84-16-10-34"
+                      fill="#696e59"
+                      stroke="#3b4135"
+                      stroke-width="2.5"
+                    />
+                    <rect
+                      x="190"
+                      y="302"
+                      width="85"
+                      height="108"
+                      rx="7"
+                      transform="rotate(9 190 302)"
+                      fill="#e7d6b0"
+                      stroke="#695a43"
+                      stroke-width="2.5"
+                    />
+                    <path d="m199 326 49 8m-51 3 41 7" stroke="#b3a17a" stroke-width="2" />
+                    <path
+                      d="M209 367q29-7 32 3c2 9-17 14-24 15l-8 12-17-6"
+                      fill="#edc09b"
+                      stroke="#40382f"
+                      stroke-width="2"
+                    />
+                    <path d="M275 337q18 32 1 58l-19 7" stroke="#3b4135" stroke-width="2.5" />
+                  </svg>
+                  <div class="iv-person-label">
+                    <span class="iv-person-dot"></span><strong>Maya</strong>
+                  </div>
+                </div>
+                <div class="iv-conversation">
+                  <div class="iv-conversation-top">
+                    <button id="iv-exit" class="iv-text-button" type="button" hidden>
+                      Save & leave <i data-lucide="log-out" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                  <p id="iv-last-answer" class="iv-last-answer" hidden></p>
+                  <div class="iv-dialogue" aria-live="polite" aria-atomic="true">
+                    <p id="iv-ack" class="iv-ack"></p>
+                    <div id="iv-feedback" class="iv-turn-feedback iv-ai-block" hidden>
+                      <div class="iv-source-label">
+                        <i data-lucide="sparkles" aria-hidden="true"></i
+                        ><span id="iv-feedback-source">AI feedback</span>
+                      </div>
+                      <p id="iv-feedback-sample" class="iv-sample-note" hidden>
+                        (Sample — API not connected yet)
+                      </p>
+                      <p id="iv-feedback-observation"></p>
+                      <p id="iv-feedback-suggestion"></p>
+                    </div>
+                    <h1 id="iv-question" tabindex="-1">Preparing your question…</h1>
+                    <div id="iv-thinking" class="iv-thinking" hidden>
+                      <span></span><span></span><span></span
+                      ><span class="iv-sr-only">Maya is thinking</span>
+                    </div>
+                  </div>
+                  <div class="iv-response-area">
+                    <form id="iv-compose">
+                      <label for="iv-answer" class="iv-sr-only">Your reply</label>
+                      <textarea
+                        id="iv-answer"
+                        rows="3"
+                        maxlength="1500"
+                        placeholder="Your answer…"
+                      ></textarea>
+                      <div class="iv-compose-actions">
+                        <button id="iv-own-answer" type="button" class="iv-text-button">
+                          <i data-lucide="lightbulb" aria-hidden="true"></i>Reply ideas</button
+                        ><button class="iv-button iv-primary" type="submit">
+                          Send reply <i data-lucide="arrow-up" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </form>
+                    <div id="iv-error" class="iv-error" role="alert" hidden>
+                      <p id="iv-error-text"></p>
+                      <button id="iv-retry" type="button" class="iv-button iv-secondary">
+                        Try again
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+              <div class="iv-room-footer">
+                <span id="iv-save-status" hidden></span
+                ><button id="iv-log-open" class="iv-text-button" type="button" hidden>
+                  <i data-lucide="notebook-text" aria-hidden="true"></i>Conversation log
+                </button>
+              </div>
+            </section>
+            <section id="iv-review" hidden aria-labelledby="iv-review-title">
+              <header class="iv-review-heading">
+                <div>
+                  <h1 id="iv-review-title" tabindex="-1">Review your answers</h1>
+                </div>
+              </header>
+              <div class="iv-review-layout">
+                <section
+                  id="iv-review-feedback"
+                  class="iv-ai-block"
+                  aria-labelledby="iv-feedback-title"
+                >
+                  <div class="iv-section-heading">
+                    <div class="iv-source-label">
+                      <i data-lucide="sparkles" aria-hidden="true"></i>
+                      <h2 id="iv-feedback-title">AI review</h2>
+                    </div>
+                    <button id="iv-review-retry" type="button" class="iv-text-button" hidden>
+                      Retry analysis
+                    </button>
+                  </div>
+                  <p id="iv-review-source" class="iv-sample-note"></p>
+                  <p id="iv-review-summary"></p>
+                  <div id="iv-highlights"></div>
+                  <div class="iv-next-practice">
+                    <i data-lucide="route" aria-hidden="true"></i>
+                    <div>
+                      <h2>Next step</h2>
+                      <p id="iv-next-practice"></p>
+                      <a id="iv-lesson" href="../knowledge-map/" class="iv-text-button"
+                        >Open lesson <i data-lucide="arrow-up-right" aria-hidden="true"></i
+                      ></a>
+                    </div>
+                  </div>
+                </section>
+                <section class="iv-improve" aria-labelledby="iv-improve-title">
+                  <h2 id="iv-improve-title">Improve your answer</h2>
+                  <label for="iv-improve-select" class="iv-sr-only">Choose an answer</label
+                  ><select id="iv-improve-select"></select>
+                  <p id="iv-original" class="iv-original"></p>
+                  <button id="iv-suggest" type="button" class="iv-text-button">
+                    <i data-lucide="sparkles" aria-hidden="true"></i>AI rewrite
+                  </button>
+                  <div id="iv-suggestion" class="iv-suggestion" hidden></div>
+                  <form id="iv-revise-form">
+                    <label for="iv-revision">Your rewrite</label
+                    ><textarea id="iv-revision" rows="4" maxlength="1500" required></textarea
+                    ><button type="submit" class="iv-button iv-primary">
+                      Save rewrite <i data-lucide="check" aria-hidden="true"></i>
+                    </button>
+                  </form>
+                  <button id="iv-compare" type="button" class="iv-text-button" hidden>
+                    Compare with original
+                    <i data-lucide="git-compare-arrows" aria-hidden="true"></i>
+                  </button>
+                  <div id="iv-comparison" class="iv-comparison" hidden></div>
+                  <p id="iv-improve-status" class="iv-small" role="status"></p>
+                </section>
+              </div>
+              <details class="iv-transcript">
+                <summary>Conversation & rewrites <span id="iv-transcript-count"></span></summary>
+                <div id="iv-transcript"></div>
+              </details>
+              <div class="iv-review-actions">
+                <button id="iv-export" class="iv-text-button" type="button">
+                  <i data-lucide="download" aria-hidden="true"></i>Download record</button
+                ><button id="iv-again" class="iv-button iv-secondary" type="button">
+                  New interview <i data-lucide="arrow-right" aria-hidden="true"></i></button
+                ><button id="iv-home" type="button" class="iv-button iv-primary">
+                  Done <i data-lucide="check" aria-hidden="true"></i>
+                </button>
+              </div>
+            </section>
+            <p id="iv-status" class="iv-sr-only" role="status" aria-live="polite"></p>
+            <dialog id="iv-history" aria-labelledby="iv-history-title">
+              <div class="iv-section-heading">
+                <div>
+                  <h2 id="iv-history-title">Past interviews</h2>
+                </div>
+                <button
+                  id="iv-history-close"
+                  class="iv-icon-button"
+                  type="button"
+                  aria-label="Close history"
+                >
+                  <i data-lucide="x" aria-hidden="true"></i>
+                </button>
+              </div>
+              <p id="iv-history-summary" class="iv-small"></p>
+              <div id="iv-history-list"></div>
+              <details id="iv-legacy" hidden>
+                <summary>Earlier practice records</summary>
+                <div id="iv-legacy-list"></div>
+              </details>
+            </dialog>
+            <dialog id="iv-log" aria-labelledby="iv-log-title">
+              <div class="iv-section-heading">
+                <h2 id="iv-log-title">Conversation</h2>
+                <button
+                  id="iv-log-close"
+                  class="iv-icon-button"
+                  type="button"
+                  aria-label="Close conversation log"
+                >
+                  <i data-lucide="x" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div id="iv-log-list"></div>
+            </dialog>
+            <dialog id="iv-ideas" aria-labelledby="iv-choice-label">
+              <div class="iv-section-heading">
+                <h2 id="iv-choice-label">Reply starters</h2>
+                <button
+                  id="iv-ideas-close"
+                  class="iv-icon-button"
+                  type="button"
+                  aria-label="Close reply ideas"
+                >
+                  <i data-lucide="x" aria-hidden="true"></i>
+                </button>
+              </div>
+              <p class="iv-small">Choose a starting point to edit.</p>
+              <div id="iv-choices" class="iv-choices"></div>
+              <p id="iv-ideas-status" class="iv-small" role="status"></p>
+            </dialog>
+            <dialog id="iv-scenarios" aria-labelledby="iv-scenarios-title">
+              <div class="iv-section-heading">
+                <h2 id="iv-scenarios-title">Choose a topic</h2>
+                <button
+                  id="iv-scenarios-close"
+                  class="iv-icon-button"
+                  type="button"
+                  aria-label="Close scenario menu"
+                >
+                  <i data-lucide="x" aria-hidden="true"></i>
+                </button>
+              </div>
+              <div id="iv-scenario-list" class="iv-choices"></div>
+            </dialog>
           </div>
         </main>
       </div>
     </div>
-    <noscript
-      >Please enable JavaScript to use the interactive exercises.
-      <a href="../index.html">Home</a></noscript
-    >
+    <noscript>Please enable JavaScript to enter the interview room.</noscript>
   </body>
 </html>

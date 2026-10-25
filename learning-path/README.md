@@ -1,13 +1,12 @@
-# Personalised paths - module 2
+# Learning path — module 2
 
-Work mainly in this folder.
+Choose whether to take a five-question diagnostic, then select a background, goal and learning preferences. Recommendations use authored rules and course data, not an AI assessment.
 
-- `index.html`: profile inputs, diagnostic question and recommended steps.
-- `script.js`: rule-based recommendations and browser-local profile persistence.
-- `style.css`: styles unique to this module.
+- `index.html`: assessment and profile forms, recommended path.
+- `data.js`: question bank, course options and path rules.
+- `script.js`: randomised assessment, recommendations and persistence.
+- `style.css`: module styles.
 
-Open `/learning-path/`. The current recommendation is an example based on the selected background, goal and one diagnostic answer, not an AI assessment. State uses the `profile` key.
+The existing full record stays under `skillloop_learning_path_data_v10`. Rendering a path also shares `background`, `goal` and `quizScore` through `SkillLoop.write('profile', ...)`, so new interviews can use the selected experience level. Existing records in other modules are retained.
 
-Recommendations link to stable concept IDs in `../knowledge-map/?topic=...`. See [data contracts](../docs/DATA-CONTRACTS.md) before adding or renaming shared values.
-
-Check both goals, all three experience options, both diagnostic answers, lesson links and refresh persistence. Next tasks are in [the team task list](../docs/MODULE-TASKS.md).
+Run `npm run dev` from the repository root and open `/learning-path/`. Check taking or skipping the assessment, all three backgrounds, both goals, saving, resetting and refreshing a path. Course cards describe recommendations; they do not represent completed lessons or measured mastery.

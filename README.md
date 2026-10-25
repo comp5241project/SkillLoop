@@ -4,83 +4,56 @@ Short software development lessons, personalised learning paths, mock interviews
 
 Live site: [skillloop-sigma.vercel.app](https://skillloop-sigma.vercel.app/).
 
-This repository is a **static prototype** built with HTML, CSS and JavaScript. There is no framework, package installation or build step. Each team member can work in one module folder.
+The pages use plain HTML, CSS and JavaScript. Server-side functions handle knowledge accounts and publishing, interview conversations, and teacher correction-case drafts. Each module keeps its own folder and AI configuration.
 
-## Run it locally
+## Run locally
 
-From the repository folder:
+Use Node.js 22 or later:
 
 ```sh
-python -m http.server 8000
+npm ci
+npm run dev
 ```
 
-Open [http://localhost:8000](http://localhost:8000). On Windows, `py -m http.server 8000` also works if Python is installed through the Python launcher. A local static-server extension such as VS Code Live Server can be used instead.
+Open [http://127.0.0.1:8765](http://127.0.0.1:8765). The server runs all three API routes. Copy `.env.example` to an ignored `.env.local` only when enabling backend services. Public sample content works without credentials; knowledge accounts and publishing require Supabase.
 
-## Where each person works
+## Modules
 
-| Module                                | Folder            | Starting files                                    |
-| ------------------------------------- | ----------------- | ------------------------------------------------- |
-| Knowledge map and mini-courses        | `knowledge-map/`  | `index.html`, `style.css`, `script.js`, `data.js` |
-| Initial assessment and learning paths | `learning-path/`  | `index.html`, `style.css`, `script.js`            |
-| Mock interview and process review     | `interview/`      | `index.html`, `style.css`, `script.js`            |
-| AI-style answer correction            | `correction-lab/` | `index.html`, `style.css`, `script.js`            |
+| Module | Folder | Current behavior |
+| --- | --- | --- |
+| Knowledge map | `knowledge-map/` | Explore concept graphs, mini-courses, questions and sourced cases. Supabase supports accounts and teacher publishing; optional AI helps teachers find sources. |
+| Learning path | `learning-path/` | Assess prior knowledge and recommend courses using background, goals and quiz results. Recommendations are rule-based. |
+| Interview | `interview/` | Type answers, receive AI feedback and follow-ups, review the conversation and compare rewrites. A labelled sample is available without AI configuration. |
+| Correction lab | `correction-lab/` | Find errors in authored answers, explain and fix them, then try a related question. Teachers can request AI case drafts and review them before browser-local publication. |
 
-Each folder has its own README. Most work should stay inside the assigned folder. Shared navigation, styling and browser storage helpers live in `shared/`.
+See each folder's README for its workflow. Shared navigation, styles and browser-storage helpers live in `shared/`; server endpoints live in `api/`. Knowledge database migrations are in `supabase/migrations/`.
 
-```text
-SkillLoop/
-  index.html                 Home and module entry points
-  knowledge-map/             Module 1
-  learning-path/             Module 2
-  interview/                 Module 3
-  correction-lab/            Module 4
-  shared/                    Common styles, navigation and storage helpers
-  public/                    Favicon and future static assets
-  docs/                      Collaboration, data contracts and deployment
-  scripts/check_site.py      Dependency-free file and link checks
-  vercel.json                Static hosting configuration
-```
+AI does not publish teaching material automatically. Student correction answers use authored checks and self-review; submitted code is not executed. Knowledge account data can sync through Supabase. Learning paths, interview records and correction progress remain browser-local. Signing into Knowledge does not upload those records.
 
-## Current behavior
+## Collaborate
 
-- Explore seven sample knowledge-map nodes, read mini-lessons and mark them as studied.
-- Choose a background and goal, answer a diagnostic question and open recommended lessons.
-- Save an interview answer, view a scripted follow-up and review answers, revisions and hints.
-- Write a counterexample to an authored code example and open a reference explanation.
-- Refresh or switch pages without losing browser-local progress.
+1. Pull the latest `main` and create a feature branch.
+2. Work in your module and check its interactions, refresh behavior and phone layout.
+3. Open a pull request and merge after checks and review.
 
-Recommendations are rules-based. Interview questions and correction explanations are preset. This starter does **not** call an AI service, execute submitted code, automatically grade open-ended answers, or provide accounts, a database or teacher administration.
-
-The team's separate [Code Review Bureau prototype](https://sonic-fiddle-gzb7c64.vercel.app/bureau.html) is linked from the correction module. Its original source has not been imported into this repository. It can be integrated later when that source is available.
-
-Progress is saved in this browser's local storage. It is not synced between devices or visible to other users. Clearing site data removes it.
-
-## Working together
-
-1. Pull the latest `main`.
-2. Create a feature branch for the work.
-3. Edit your module and test it locally.
-4. Open a pull request and ask a teammate to review it.
-5. Merge after the checks pass.
-
-Discuss changes to `shared/`, `vercel.json` and shared data contracts first. Keep concept IDs stable so links from other modules continue to work.
+Keep shared concept IDs and data formats stable. Discuss changes to `shared/`, API contracts and deployment configuration with the team.
 
 - [Team guide](docs/CONTRIBUTING.md)
-- [Shared data and module contracts](docs/DATA-CONTRACTS.md)
-- [Initial tasks for the four modules](docs/MODULE-TASKS.md)
-- [Vercel deployment](docs/DEPLOYMENT.md)
+- [Data contracts](docs/DATA-CONTRACTS.md)
+- [Module tasks](docs/MODULE-TASKS.md)
+- [Deployment](docs/DEPLOYMENT.md)
 
 ## Checks
 
 ```sh
-python scripts/check_site.py
+npm test
 ```
 
-This checks the expected module files, local HTML links, asset paths, duplicate IDs and hosting configuration. A GitHub Actions workflow runs the same checks on pushes and pull requests. When changing an interaction, also try it in the browser and refresh the page to check persistence.
+This runs the site link check and the knowledge, interview and correction tests. Tests use mock AI and database responses; they do not prove real credentials, provider credits or database permissions. GitHub Actions runs these checks for pull requests and `main`.
 
 ## Deploy
 
-Import `comp5241project/SkillLoop` into Vercel as a static project. Use the repository root, select the **Other** preset, leave install and build commands empty, and serve the repository root (`.`). No environment variables are required for this prototype. See [deployment notes](docs/DEPLOYMENT.md).
+Use the existing Vercel project linked to this repository, production branch `main`, framework **Other**, and repository root. `vercel.json` installs locked dependencies with `npm ci --omit=dev`, skips a frontend build and serves the static pages alongside the API functions. See [deployment setup](docs/DEPLOYMENT.md) for each module's environment variables.
 
 ## References
 
@@ -89,8 +62,8 @@ Import `comp5241project/SkillLoop` into Vercel as a static project. Use the repo
 - [Interview practice discussion](https://www.reddit.com/r/careeradvice/comments/1pa8o7n/): practising alone and reviewing answers.
 - [HypoCompass, IJCAI 2025](https://www.ijcai.org/proceedings/2025/1217): learning through helping an AI agent debug code.
 
-These sources inform the design; they do not establish that this prototype improves learning outcomes.
+These sources inform the design; they do not establish that the prototype improves learning outcomes.
 
 ## License
 
-MIT; see [LICENSE](LICENSE). The locally bundled Lucide icon library has its own [MIT license](shared/vendor/LUCIDE-LICENSE). See [third-party notices](THIRD-PARTY-NOTICES.md).
+MIT; see [LICENSE](LICENSE). Lucide icons have their own [MIT license](shared/vendor/LUCIDE-LICENSE). See [third-party notices](THIRD-PARTY-NOTICES.md).

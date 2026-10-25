@@ -16,7 +16,7 @@ Add more reviewed interview questions and useful follow-ups. Make answers, revis
 
 ## Correction lab
 
-Add reviewed code and workflow cases, clear acceptance criteria and follow-up exercises. Integrate the original Code Review Bureau source when available. Completion means a student can identify a problem, explain a fix, compare it against evidence or checks, and attempt a related task. Do not describe the current preset explanation as automatic grading.
+Add reviewed code and workflow cases, clear acceptance criteria and follow-up exercises. Completion means a student can identify a problem, explain a fix, compare it against evidence or checks, and attempt a related task. Do not describe the current preset explanation as automatic grading.
 
 ## Shared tasks
 
