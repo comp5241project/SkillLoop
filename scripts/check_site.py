@@ -50,6 +50,8 @@ for name in required:
 
 for filename in sorted(ROOT.rglob('*.html')):
     relative = filename.relative_to(ROOT)
+    if any(part in ('node_modules', '.git', '.vercel') for part in relative.parts):
+        continue
     parser = Page(relative)
     source = filename.read_text(encoding='utf-8')
     parser.feed(source)

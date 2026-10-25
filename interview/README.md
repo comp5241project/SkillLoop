@@ -68,3 +68,7 @@ python scripts/check_site.py
 ```
 
 Walk through typing, inserting and editing an idea, per-turn feedback, leaving and resuming, review, a suggestion, a revision, comparison and export. Also check an interrupted response and 390px/320px layouts. See `DESIGN.md` for design evidence and walkthrough findings.
+
+## Integrated project
+
+Use `npm run dev` from the repository root to run all three APIs together. `INTERVIEW_AI_MODEL` overrides the shared `AI_GATEWAY_MODEL` for this module. Other configuration remains unchanged. New interviews use the background shared by Learning path; old records retain their original context.

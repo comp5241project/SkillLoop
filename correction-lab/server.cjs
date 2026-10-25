@@ -23,12 +23,13 @@ const PROVIDER_ERRORS = {
  */
 function provider(env = process.env, oidcToken = env.VERCEL_OIDC_TOKEN) {
   const gatewayToken = env.AI_GATEWAY_API_KEY || oidcToken;
-  if (env.AI_GATEWAY_MODEL && gatewayToken) {
+  const gatewayModel = env.CORRECTION_AI_MODEL || env.AI_GATEWAY_MODEL;
+  if (gatewayModel && gatewayToken) {
     return {
       name: 'AI Gateway',
       url: 'https://ai-gateway.vercel.sh/v1/chat/completions',
       token: gatewayToken,
-      models: { model: env.AI_GATEWAY_MODEL },
+      models: { model: gatewayModel },
     };
   }
   if (env.OPENROUTER_API_KEY && env.OPENROUTER_MODEL) {

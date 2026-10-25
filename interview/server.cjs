@@ -33,7 +33,7 @@ const reviewSchema = object({
 const rewriteSchema = object({ suggestion: string(1500), reason: string(220) });
 const compareSchema = object({ improved: string(300), nextStep: string(220) });
 function configured(env = process.env) {
-  return Boolean(env.AI_GATEWAY_MODEL && (env.AI_GATEWAY_API_KEY || env.VERCEL_OIDC_TOKEN));
+  return Boolean((env.INTERVIEW_AI_MODEL || env.AI_GATEWAY_MODEL) && (env.AI_GATEWAY_API_KEY || env.VERCEL_OIDC_TOKEN));
 }
 function input(body) {
   if (!body || !['turn', 'review', 'rewrite', 'compare'].includes(body.action))
@@ -122,7 +122,7 @@ async function generate(body, dependency = {}) {
   const prepared = input(body);
   const sdk = dependency.sdk || (await import('ai'));
   const result = await sdk.generateText({
-    model: process.env.AI_GATEWAY_MODEL,
+    model: process.env.INTERVIEW_AI_MODEL || process.env.AI_GATEWAY_MODEL,
     system: prepared.system,
     prompt: prepared.prompt,
     output: sdk.Output.object({

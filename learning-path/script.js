@@ -207,6 +207,15 @@ function saveAndRender(data) {
 }
 
 function renderPath(data) {
+  // Share the selected background with the other modules, keeping the original path record.
+  if (window.SkillLoop && ['beginner', 'student', 'graduate'].includes(data.background)) {
+    window.SkillLoop.write('profile', {
+      ...window.SkillLoop.read('profile', {}),
+      background: data.background,
+      goal: data.goal,
+      quizScore: data.quizScore
+    });
+  }
   document.getElementById('sl-welcome-card').style.display = 'none';
   document.getElementById('sl-personal-card').style.display = 'none';
   document.getElementById('sl-path-card').style.display = 'block';

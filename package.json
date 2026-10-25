@@ -3,6 +3,8 @@
   "private": true,
   "engines": { "node": ">=22" },
   "scripts": {
+    "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
+    "test": "node scripts/check.cjs",
     "dev:interview": "node --env-file-if-exists=.env.local scripts/interview-dev.cjs",
     "test:interview": "node --test interview/*.test.cjs"
   },

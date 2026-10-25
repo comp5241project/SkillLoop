@@ -46,7 +46,7 @@ In this prototype, **Publish** saves the case in this browser only, so it can be
 
 The API key stays on the server. Set these in Vercel (Production and Preview) or in an uncommitted `.env.local`.
 
-**Option 1, Vercel AI Gateway (preferred when set):** `AI_GATEWAY_MODEL`, for example `anthropic/claude-haiku-5.5`, plus `CORRECTION_TEACHER_CODE`. On Vercel the deployment's OIDC token is used, so no key is needed; locally set `AI_GATEWAY_API_KEY`. These are the same variable names as the interview module.
+**Option 1, Vercel AI Gateway (preferred when set):** `AI_GATEWAY_MODEL`, for example `anthropic/claude-haiku-5.5`, plus `CORRECTION_TEACHER_CODE`. On Vercel the deployment's OIDC token is used, so no key is needed; locally set `AI_GATEWAY_API_KEY`. Set `CORRECTION_AI_MODEL` to override the shared model for this module. The interview can use its own `INTERVIEW_AI_MODEL`.
 
 **Option 2, OpenRouter:**
 
@@ -80,7 +80,7 @@ State uses the `correction` key. The top-level `{draft, revealed, nextSeen, case
 Apart from one new file, this branch only changes `correction-lab/`.
 
 - **`api/correction.js`** (new, about 30 lines): Vercel only runs functions from the root `api/` folder, so this thin endpoint calls `correction-lab/server.cjs`. It follows the same pattern as `api/interview.js` and needs no npm packages.
-- **AI provider**: the interview branch uses Vercel AI Gateway and the knowledge-map branch uses an OpenAI key. This module uses OpenRouter for the demo. The team should agree on one provider before release.
+- **AI provider**: the interview branch uses Vercel AI Gateway and the knowledge-map branch uses an OpenAI key. This module uses OpenRouter for the demo. Each module may retain its own provider and model.
 
 These shared edits are proposed for whoever merges:
 
@@ -89,3 +89,5 @@ These shared edits are proposed for whoever merges:
 3. **Code Review Bureau**: the old prototype link has been removed from this module, which now replaces it. Remove the remaining mentions in the root `README.md` (Current behavior), `THIRD-PARTY-NOTICES.md` and the correction lab task in `docs/MODULE-TASKS.md`.
 
 Check line flagging and the empty-selection message, wrong and right choices, the empty-fix message, the reference and ticks, the apply question, starting a case again, reload persistence, the lesson link and phone layout. See [team tasks](../docs/MODULE-TASKS.md).
+
+The integrated project also runs all three API routes with `npm run dev` from the repository root. Shared setup and data contracts have been reconciled in the root documentation.
