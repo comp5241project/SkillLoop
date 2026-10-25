@@ -188,7 +188,9 @@ async function draft(body, { env = process.env, fetchImpl = fetch, example, oidc
           ...ai.models,
           messages,
           temperature: 0.6,
-          max_tokens: 3000,
+          // Reasoning models spend output tokens on thinking first; keep room for the JSON.
+          max_tokens: 8000,
+          reasoning: { effort: 'low' },
           // Ask for JSON mode; providers that do not support it ignore the setting.
           response_format: { type: 'json_object' },
         }),
@@ -202,7 +204,14 @@ async function draft(body, { env = process.env, fetchImpl = fetch, example, oidc
         throw error;
       }
       const data = await response.json();
-      reply = data && data.choices && data.choices[0] && data.choices[0].message.content;
+      const first = (data && data.choices && data.choices[0]) || {};
+      reply = first.message && first.message.content;
+      const content = String(reply || '');
+      // Diagnostics only: model, stop reason and the ends of the reply, never the key.
+      console.log(
+        `${ai.name} reply: model=${data && data.model} finish=${first.finish_reason} chars=${content.length} ` +
+          `start=${JSON.stringify(content.slice(0, 120))} end=${JSON.stringify(content.slice(-120))}`
+      );
     } finally {
       clearTimeout(timer);
     }
