@@ -39,6 +39,11 @@ required = ['index.html', 'README.md', 'LICENSE', 'vercel.json', 'shared/styles.
 required += [f'{folder}/{name}' for folder in MODULES
              for name in ('index.html', 'style.css', 'script.js', 'README.md')]
 required.append('knowledge-map/data.js')
+required += ['knowledge-map/explore.html', 'knowledge-map/explore.js',
+             'knowledge-map/account.html', 'knowledge-map/account.js',
+             'knowledge-map/case-editor.js', 'knowledge-map/my.html', 'knowledge-map/home.js', 'knowledge-map/account-entry.js',
+             'knowledge-map/position-writes.js',
+             'docs/KNOWLEDGE-UX-REFACTORING-IMPLEMENTATION-PLAN.md']
 for name in required:
     if not (ROOT / name).is_file():
         errors.append(f'Missing {name}')

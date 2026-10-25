@@ -10,7 +10,7 @@
 | `/interview/`      | Module 3    |
 | `/correction-lab/` | Module 4    |
 
-To open a particular lesson, use `/knowledge-map/?topic=software-testing`. Unknown topic IDs fall back to the testing lesson. No SPA router or catch-all rewrite is needed.
+`/knowledge-map/` opens the public Knowledge Home; `/knowledge-map/my.html` is the student account network and `/knowledge-map/teacher.html` is the teacher studio. Existing sessions do not redirect public pages. Existing links such as `/knowledge-map/?topic=software-testing` redirect to the corresponding sample knowledge page. New direct links use `/knowledge-map/graph.html?graph=<graphId>`, `/knowledge-map/concept.html?graph=<graphId>&topic=<conceptId>`, `/knowledge-map/question.html?graph=<graphId>&question=<questionId>` and `/knowledge-map/case.html?graph=<graphId>&case=<caseId>`. A `version=` parameter opens a historical publication. Unknown IDs show an unavailable page. No SPA router or catch-all rewrite is needed.
 
 ## Concept IDs
 
@@ -38,7 +38,9 @@ Storage keys are prefixed with `skillloop.v1.`. Use one key per module so pages 
 | Key          | Shape                                                     | Writer                          |
 | ------------ | --------------------------------------------------------- | ------------------------------- |
 | `profile`    | `{background, goal, diagnostic}`                          | learning-path                   |
-| `knowledge`  | `{selected, completed: conceptId[]}`                      | knowledge-map                   |
+| `knowledge`  | `{selected, completed: conceptId[], references?: Reference[]}` | historical Knowledge only |
+| `knowledgeV2` | `{nodes: PersonalNode[], edges: PersonalEdge[]}` | historical Knowledge only |
+| `knowledgeStudyV2` | `graphId:conceptId[]` for browser-local study marks | historical Knowledge only |
 | `interview`  | `{draft, events: [{label, detail}], hintUsed, hasAnswer}` | interview                       |
 | `correction` | `{draft, revealed, nextSeen, caseId}`                     | correction-lab                  |
 | `activity`   | `[{module, type, at, conceptId?, conceptIds?, caseId?}]`  | all modules through appendEvent |
@@ -47,4 +49,14 @@ Storage keys are prefixed with `skillloop.v1.`. Use one key per module so pages 
 
 Study completion is self-reported, not proof of mastery. Activity is capped at 100 entries and interview history at 40 entries. Draft inputs are capped at 5,000 characters. Stored content is shown using `textContent`, not injected HTML.
 
-These contracts are for a prototype, not an account system or database schema. When adding a backend, agree authentication, server-side validation and endpoint contracts together. Keep API credentials on the server.
+V1 `Reference` is `{id, version, addedAt, title, description, note}`. V2 personal reference nodes use `{id: graphId + ':' + conceptId, kind:'reference', graphId, conceptId, sourceVersion, titleSnapshot, descriptionSnapshot, note, x, y}`. Personal note nodes use `{id:'note:' + uuid, kind:'note', title, body, x, y}`; manual edges have `{id, source, target, reason}`. These browser key shapes are historical. Current Knowledge pages do not read or write them as personal data. No cleanup or migration runs.
+
+## Knowledge backend contract
+
+The optional backend is a Vercel Function at `/api/knowledge`. `GET ?op=public&graph=<graphId>` returns the current published payload; `version=<version>` selects an immutable historical publication. The browser falls back to `knowledge-map/data.js` only for the sample graph when no backend publication is available. The seven shared concept IDs remain stable, while each other graph has its own namespace.
+
+Account operations use same-origin, HttpOnly cookies. `GET ?op=session` returns `{signedIn, email?, role?}`; `POST ?op=login` accepts `{email,password}` and `POST ?op=logout` clears cookies. A teacher can `GET ?op=my-graphs`, `POST ?op=create-graph` with `{title}`, `GET ?op=draft&graph=<graphId>`, `POST ?op=draft` with `{graphId,payload,expectedRevision}`, and `POST ?op=publish` with `{graphId,revision,reviewed:true}`. Saving returns a new revision; stale revisions return HTTP 409. Learners cannot read unpublished drafts.
+
+Signed-in users can `GET ?op=personal` for account references, note nodes and manual links. `POST ?op=reference` accepts `{graphId,conceptId,sourceVersion?}` and is idempotent across the same graph and concept. `POST ?op=note` and `POST ?op=unreference` accept `{graphId,conceptId,...}`. `personal-note`, `remove-personal-note`, `personal-edge`, `remove-personal-edge` and `personal-position` handle owned personal graph edits. The existing `POST ?op=import-personal` remains available to authenticated accounts for API compatibility, but current Knowledge UI does not call it; its database RPC enforces account ownership. V1 account endpoints still default to the sample graph. A teacher can `POST ?op=discover` with `{query}`; it returns a private research note and HTTPS source links. See [backend setup](KNOWLEDGE-BACKEND.md).
+
+The other modules still use browser-local prototype data. Knowledge study-mark editing is paused until an account progress API exists. Keep API credentials on the server.

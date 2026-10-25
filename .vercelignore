@@ -1,0 +1,6 @@
+docs/
+knowledge-map/docs/
+scripts/
+supabase/
+tests/
+api/*.test.mjs
