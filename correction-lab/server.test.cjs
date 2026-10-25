@@ -18,6 +18,7 @@ const reply = (content, status = 200) => async () => ({
   ok: status === 200,
   status,
   json: async () => ({ choices: [{ message: { content } }] }),
+  text: async () => content,
 });
 
 test('every built-in case passes the shape check', () => {
@@ -72,6 +73,13 @@ test('a rate limit returns a clear message', async () => {
   await assert.rejects(
     service.draft(body(), { env, fetchImpl: reply('', 429), example: cases[0] }),
     /quota/
+  );
+});
+
+test('a missing model gets a specific message', async () => {
+  await assert.rejects(
+    service.draft(body(), { env, fetchImpl: reply('{"error":"No endpoints"}', 404), example: cases[0] }),
+    /model was not found/
   );
 });
 

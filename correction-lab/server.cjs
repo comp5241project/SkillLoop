@@ -7,6 +7,14 @@ const { check, TOPICS, CONCEPTS, FLUENCY } = require('./case-check.js');
 
 const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const LIMITS = { notes: 6000, focus: 200 };
+const PROVIDER_ERRORS = {
+  400: 'The AI service rejected the request. Check that OPENROUTER_MODEL is a valid model ID.',
+  401: 'The AI key was not accepted. Check OPENROUTER_API_KEY.',
+  402: 'The AI account has no credit for this model. Use a model ending in :free.',
+  404: 'The AI model was not found. Check OPENROUTER_MODEL.',
+  429: 'The free AI quota is used up for now. Try again later.',
+  other: 'The AI service did not respond. Try again.',
+};
 
 function configured(env = process.env) {
   return Boolean(env.OPENROUTER_API_KEY && env.OPENROUTER_MODEL && env.CORRECTION_TEACHER_CODE);
@@ -121,11 +129,10 @@ async function draft(body, { env = process.env, fetchImpl = fetch, example } = {
         }),
       });
       if (!response.ok) {
-        const error = new Error(
-          response.status === 429
-            ? 'The free AI quota is used up for now. Try again later.'
-            : 'The AI service did not respond. Try again.'
-        );
+        // Log the provider's reason for the Vercel logs; it never contains the API key.
+        const detail = await response.text().catch(() => '');
+        console.error(`OpenRouter ${response.status}: ${detail.slice(0, 300)}`);
+        const error = new Error(PROVIDER_ERRORS[response.status] || PROVIDER_ERRORS.other);
         error.status = 502;
         throw error;
       }

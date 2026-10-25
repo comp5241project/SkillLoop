@@ -25,6 +25,7 @@ module.exports = async function handler(req, res) {
   try {
     return res.status(200).json(await service.draft(body, { example }));
   } catch (error) {
+    if (!error.status) console.error(`Correction draft failed: ${error.name}`);
     return res
       .status(error.status || 502)
       .json({ error: error.status ? error.message : 'The AI draft failed. Try again.' });
