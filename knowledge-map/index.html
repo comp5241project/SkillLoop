@@ -1,15 +1,17 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Explore knowledge | SkillLoop</title><link rel="icon" href="/public/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/shared/styles.css"><link rel="stylesheet" href="/knowledge-map/network.css">
+<title>Universe | SkillLoop</title><link rel="icon" href="/public/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/shared/styles.css"><link rel="stylesheet" href="/knowledge-map/network.css"><link rel="stylesheet" href="/knowledge-map/curated.css">
 <script src="/shared/vendor/lucide.min.js" defer></script><script src="/shared/storage.js" defer></script><script src="/shared/navigation.js" defer></script>
-<script src="/knowledge-map/data.js" defer></script><script src="/knowledge-map/network-core.js?v=7" defer></script><script src="/knowledge-map/account-entry.js?v=2" defer></script><script src="/knowledge-map/home.js?v=1" defer></script></head>
+<script src="/knowledge-map/data.js" defer></script><script src="/knowledge-map/network-core.js?v=7" defer></script><script src="/knowledge-map/curated-model.js" defer></script><script src="/knowledge-map/curated-data.js" defer></script><script src="/knowledge-map/account-entry.js?v=2" defer></script><script src="/knowledge-map/home.js?v=3" defer></script></head>
 <body data-root="/" data-module="knowledge-map"><a class="skip-link" href="#main-content">Skip to content</a><div id="skillloop-prototype">
 <header id="site-header" class="sl-head"></header><div class="sl-shell"><aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside>
-<main id="main-content" class="sl-main"><div class="sl-kicker">Knowledge</div><h1>Explore ideas. Follow their connections.</h1>
-<p class="sl-intro">Browse published knowledge graphs, read concepts, and try learning activities. Sign in when you want to keep ideas in your own network.</p>
-<nav class="kn-page-nav" aria-label="Knowledge pages"><a href="/knowledge-map/" aria-current="page">Knowledge Home</a><a href="/knowledge-map/explore.html">All public graphs</a></nav>
-<section class="sl-card"><h2>Discover a concept</h2><label for="home-search">Search the curated software development graph</label><input id="home-search" type="search" autocomplete="off" placeholder="Search concepts"><div id="home-concepts" class="kn-directory"></div></section>
-<section class="sl-card"><h2>Featured graphs</h2><p id="home-status" role="status">Loading published resources…</p><div id="home-graphs" class="kn-directory"></div><a class="sl-btn" href="/knowledge-map/explore.html">View full public directory</a></section>
-<section class="sl-card"><h2>Explore relationships and practice</h2><p>Open the sample graph to see how concepts connect, then follow a concept to its questions, cases and learning activities.</p><a class="sl-btn sl-btn-main" href="/knowledge-map/graph.html?graph=software-development">Explore the sample graph</a></section>
+<main id="main-content" class="sl-main"><div class="sl-kicker">Knowledge</div><h1>Universe</h1>
+<p class="sl-intro">Start with a real project, incident, build or collection. Read its story, then follow a knowledge direction when you want to go deeper.</p>
+<nav class="kn-page-nav" aria-label="Knowledge pages"><a href="/knowledge-map/" aria-current="page">Universe</a><a href="/knowledge-map/explore.html">All public graphs</a></nav>
+<section class="sl-card kn-home-primary" aria-labelledby="units-title"><div class="kn-section-head"><div><p class="kn-eyebrow">Curated explorations</p><h2 id="units-title">Choose a starting point</h2><p>Four source-checked samples, each grounded in original material and readable on its own.</p></div><span id="unit-count" class="kn-count" role="status"></span></div>
+<div class="kn-filters"><label for="unit-search">Search <input id="unit-search" type="search" autocomplete="off" placeholder="Project, question or topic"></label><label for="unit-type">Content type <select id="unit-type"><option value="">All types</option><option value="open-source">Open-source breakdown</option><option value="case-study">Case study</option><option value="build-something">Build something</option><option value="knowledge-collection">Knowledge collection</option></select></label><label for="unit-topic">Topic <select id="unit-topic"><option value="">All topics</option></select></label></div>
+<div id="home-units" class="kn-unit-grid"></div></section>
+<section class="sl-card kn-home-secondary"><h2>Teacher-shared and public graphs</h2><p>Browse graphs published through the existing Knowledge directory. Curated Unit directions open from their own articles.</p><p id="home-status" role="status">Loading published resources…</p><div id="home-graphs" class="kn-directory"></div><a class="sl-btn" href="/knowledge-map/explore.html">View full public directory</a></section>
+<section class="sl-card kn-home-secondary"><h2>Existing concept sample</h2><p>The original software development graph remains available for concept-first exploration.</p><label for="home-search">Search concepts</label><input id="home-search" type="search" autocomplete="off" placeholder="Search concepts"><div id="home-concepts" class="kn-directory"></div></section>
 </main></div></div></body></html>

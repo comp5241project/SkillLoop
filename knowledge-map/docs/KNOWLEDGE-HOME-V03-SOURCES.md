@@ -1,0 +1,16 @@
+# Knowledge Home v0.3 source ledger
+
+Reviewed on 2026-10-26 for the four static Curated Samples. These records are editorial source checks, not teacher publication approval. The precise source IDs, URLs, excerpts/locations and version links used by the site live in `../curated-data.js`. New substantive content or changed graph references require a new Unit Version.
+
+Project-team editorial sign-off on wording and educational value is a release review step. The source checks below document what this implementation verified; they do not claim that a teacher published these graphs.
+
+| Unit | Primary material checked | Claim boundary and direction |
+| --- | --- | --- |
+| Excalidraw — How an Infinite Canvas Works | [README](https://github.com/excalidraw/excalidraw/blob/b7de45e88111f5680ae4bb3c3f3541c7d3b279fe/README.md) and [JSON file format](https://github.com/excalidraw/excalidraw/blob/b7de45e88111f5680ae4bb3c3f3541c7d3b279fe/dev-docs/docs/codebase/json-schema.mdx), both pinned to `b7de45e88111f5680ae4bb3c3f3541c7d3b279fe` | README identifies an infinite canvas, zoom/panning and open JSON export. The format document names `elements`, `appState` and `files`. The Unit and graph explain the **saved scene format**, not rendering or collaboration internals. V1 omits the `files` node; V2 adds it and expands the reading. |
+| Cloudflare Workers KV — A Rollout Failure | [Cloudflare incident postmortem](https://blog.cloudflare.com/cloudflare-incident-on-october-30-2023/), published 2023-11-01 | Timeline and Analysis support the mixed release list, misrouted production traffic, 401 responses, dependent products, and manual route repair. The direction graph follows that documented chain. |
+| Build a React Todo App from User Stories | MDN [beginning tutorial](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Frameworks_libraries/React_todo_list_beginning) and [events/state tutorial](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Frameworks_libraries/React_interactivity_events_state) | The first chapter supplies user stories and starter UI; the second supplies `useState` and action callbacks. The user-story-to-UI edge is explicitly a teaching association. |
+| Read the OWASP Top 10 as a Risk Map | [OWASP Top 10:2021](https://top10.owasp.org/2021/), [A01](https://top10.owasp.org/2021/A01_2021-Broken_Access_Control/) and [A04](https://top10.owasp.org/2021/A04_2021-Insecure_Design/) | This is explicitly the 2021 edition. A01 supports server-side authorization checks; A04 supports secure design and threat modeling. The comparison between A01 and A04 is a teaching association, not a technical causal claim. |
+
+All four Units can be read without opening a graph. Every active direction has its own static graph. `source-supported` relationships cite material; `teaching-association` relationships state the learning reason. The graph/source identity is separate from teacher-shared publications, and saving to My Knowledge remains disabled.
+
+Source pages outside the pinned Excalidraw repository may change after this review date. A future correction must preserve the old Unit/Graph URL or withdraw it with a reason; it must not silently replace a pinned graph or rewrite a historical Unit.

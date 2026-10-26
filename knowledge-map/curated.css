@@ -1,0 +1,62 @@
+/* Exploration Unit discovery, reading and direction views. */
+#skillloop-prototype .kn-home-primary { padding: clamp(18px, 3vw, 30px); }
+#skillloop-prototype .kn-section-head { display:flex; justify-content:space-between; gap:20px; align-items:start; }
+#skillloop-prototype .kn-section-head h2 { margin:0 0 6px; font-size:clamp(22px,2.5vw,30px); }
+#skillloop-prototype .kn-section-head p { margin:0; color:var(--sl-sub); }
+#skillloop-prototype .kn-eyebrow { margin:0 0 8px; color:var(--sl-accent); font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+#skillloop-prototype .kn-count { white-space:nowrap; color:var(--sl-sub); }
+#skillloop-prototype .kn-filters { display:grid; grid-template-columns:minmax(200px,2fr) repeat(2,minmax(150px,1fr)); gap:12px; margin:20px 0; }
+#skillloop-prototype .kn-filters label { display:grid; gap:5px; font-weight:600; }
+#skillloop-prototype .kn-filters input, #skillloop-prototype .kn-filters select { min-width:0; width:100%; padding:10px; border:1px solid var(--sl-line); border-radius:8px; background:var(--sl-panel); color:var(--sl-text); }
+#skillloop-prototype .kn-unit-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+#skillloop-prototype .kn-unit-card { display:flex; flex-direction:column; align-items:flex-start; min-width:0; padding:22px; border:1px solid var(--sl-line); border-radius:14px; background:var(--sl-panel); box-shadow:0 6px 20px #00000008; }
+#skillloop-prototype .kn-unit-card h3 { margin:9px 0; font-size:21px; line-height:1.25; }
+#skillloop-prototype .kn-unit-card p { margin:6px 0; }
+#skillloop-prototype .kn-unit-card .sl-btn { margin-top:auto; }
+#skillloop-prototype .kn-type { padding:4px 9px; border-radius:99px; background:var(--sl-soft); color:var(--sl-accent); font-size:12px; font-weight:700; }
+#skillloop-prototype .kn-hook { font-weight:600; }
+#skillloop-prototype .kn-question { color:var(--sl-sub); font-style:italic; }
+#skillloop-prototype .kn-source-origin { color:var(--sl-sub); font-size:12px; }
+#skillloop-prototype .kn-meta { color:var(--sl-sub); font-size:12px; }
+#skillloop-prototype .kn-topic-row { display:flex; flex-wrap:wrap; gap:7px; margin:11px 0 18px; }
+#skillloop-prototype .kn-topic { padding:3px 8px; border:1px solid var(--sl-line); border-radius:99px; color:var(--sl-sub); font-size:12px; }
+#skillloop-prototype .kn-home-secondary { margin-top:26px; }
+#skillloop-prototype .kn-unit-hero { padding:24px 0 15px; border-bottom:1px solid var(--sl-line); }
+#skillloop-prototype .kn-unit-hero h1 { margin:3px 0 12px; font-size:clamp(27px,3vw,38px); line-height:1.15; }
+#skillloop-prototype .kn-lead { font-size:18px; }
+#skillloop-prototype .kn-guiding { font-size:16px; font-weight:650; }
+#skillloop-prototype .kn-unit-layout { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr); gap:20px; align-items:start; }
+#skillloop-prototype .kn-unit-article { min-width:0; }
+#skillloop-prototype .kn-unit-section h2 { margin:4px 0 12px; }
+#skillloop-prototype .kn-unit-section p { max-width:75ch; }
+#skillloop-prototype .kn-unit-aside { position:sticky; top:16px; }
+#skillloop-prototype .kn-unit-aside h2 { margin-top:0; }
+#skillloop-prototype .kn-direction-card { border-top:1px solid var(--sl-line); padding:14px 0; }
+#skillloop-prototype .kn-direction-card h3 { margin:0 0 5px; }
+#skillloop-prototype .kn-direction-card p { margin:6px 0; }
+#skillloop-prototype .kn-future-action { border-top:1px solid var(--sl-line); padding-top:16px; margin-top:8px; }
+#skillloop-prototype .kn-future-action button { cursor:not-allowed; }
+#skillloop-prototype .kn-version-notice { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:14px; margin:16px 0; border:1px solid var(--sl-accent); border-radius:10px; background:var(--sl-soft); }
+#skillloop-prototype .kn-source-label { margin:14px 0 4px; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+#skillloop-prototype .kn-source-links { padding-left:20px; overflow-wrap:anywhere; }
+#skillloop-prototype .kn-source-links li { margin:8px 0; }
+#skillloop-prototype .kn-source-meta { display:block; color:var(--sl-sub); font-size:12px; }
+#skillloop-prototype .kn-source-compact { margin:5px 0; font-size:12px; }
+#skillloop-prototype .kn-direction-layout { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(290px,1fr); gap:18px; align-items:start; }
+#skillloop-prototype .kn-direction-layout > * { min-width:0; }
+#skillloop-prototype .kn-direction-layout .kn-context-panel { position:sticky; top:16px; }
+#skillloop-prototype .kn-curated-list { display:flex; flex-wrap:wrap; gap:8px; }
+#skillloop-prototype .kn-curated-list button { padding:8px 10px; border:1px solid var(--sl-line); border-radius:8px; background:var(--sl-panel); color:var(--sl-text); text-align:left; }
+#skillloop-prototype .kn-curated-list button:hover, #skillloop-prototype .kn-curated-list button:focus-visible { border-color:var(--sl-accent); }
+#skillloop-prototype .kn-state { max-width:680px; padding:28px; }
+#skillloop-prototype .kn-state .sl-btn { margin:8px 8px 0 0; }
+#skillloop-prototype .kn-error { padding:16px; color:var(--sl-accent); }
+@media(max-width:900px) {
+  #skillloop-prototype .kn-unit-layout, #skillloop-prototype .kn-direction-layout { grid-template-columns:1fr; }
+  #skillloop-prototype .kn-unit-aside, #skillloop-prototype .kn-direction-layout .kn-context-panel { position:static; }
+}
+@media(max-width:650px) {
+  #skillloop-prototype .kn-filters, #skillloop-prototype .kn-unit-grid { grid-template-columns:1fr; }
+  #skillloop-prototype .kn-section-head { display:block; }
+  #skillloop-prototype .kn-unit-card { padding:18px; }
+}
