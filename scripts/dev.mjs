@@ -4,6 +4,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { dirname, extname, resolve, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import knowledge from '../api/knowledge.mjs';
+import knowledgeV4 from '../api/knowledge-v4.mjs';
 import interview from '../api/interview.js';
 import correction from '../api/correction.js';
 
@@ -15,7 +16,7 @@ createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
     const route = url.pathname.replace(/\/$/, '');
-    if (['/api/knowledge', '/api/interview', '/api/correction'].includes(route)) {
+    if (['/api/knowledge', '/api/knowledge-v4', '/api/interview', '/api/correction'].includes(route)) {
       const chunks = [];
       let size = 0;
       for await (const chunk of req) {
@@ -24,8 +25,9 @@ createServer(async (req, res) => {
         chunks.push(chunk);
       }
       const body = Buffer.concat(chunks);
-      if (route === '/api/knowledge') {
-        const response = await knowledge.fetch(new Request(url, {
+      if (route === '/api/knowledge' || route === '/api/knowledge-v4') {
+        const handler = route === '/api/knowledge-v4' ? knowledgeV4 : knowledge;
+        const response = await handler.fetch(new Request(url, {
           method: req.method, headers: req.headers,
           ...(body.length ? { body } : {}),
         }));

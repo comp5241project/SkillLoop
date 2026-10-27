@@ -16,6 +16,12 @@ The [architecture and UX audit](docs/ARCHITECTURE-UX-AUDIT.md) records the curre
 | `question.html?graph=<graphId>&question=<questionId>` | Dedicated question URL; seven sample concepts have one each |
 | `case.html?graph=<graphId>&case=<caseId>` | Sourced historical case |
 | `teacher.html` | Private multi-graph visual editor, content forms, AI research, previews and publishing |
+| `studio-v4.html` | Unit-first Teaching Studio with manual and AI-assisted creation |
+| `from-teachers.html` | Formally published teacher Exploration Units |
+| `teacher-unit.html?unit=<id>&version=<v>` | Fixed teacher Unit Version reading page |
+| `teacher-direction.html?graph=<id>&version=<v>` | Fixed Direction Graph Version reading page |
+
+Knowledge v0.4 is implemented beside the historical graph system. Its [architecture plan](docs/KNOWLEDGE-PIPELINE-V04-IMPLEMENTATION-PLAN.md) and [implementation status](docs/KNOWLEDGE-V04-IMPLEMENTATION-STATUS.md) describe the target contract, verification and release prerequisites. The remote database has not yet received the v0.4 migration; public v0.4 pages show an unavailable state until it does.
 
 `network-core.js` loads publications and draws a pannable, zoomable canvas; `public-pages.js` renders public content; `personal.js` manages the student's graph. `data.js` is the curated static sample. `script.js` and `style.css` remain as V1 source/history; the new pages use `network.css`. A public graph falls back to the curated sample only for the original sample graph while no backend publication is available.
 

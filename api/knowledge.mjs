@@ -31,7 +31,7 @@ function parseCookies(request) {
 
 function cookie(name, value, request, maxAge) {
   const secure = new URL(request.url).protocol === 'https:' ? '; Secure' : '';
-  return `${name}=${value}; HttpOnly; SameSite=Lax; Path=/api/knowledge; Max-Age=${maxAge}${secure}`;
+  return `${name}=${value}; HttpOnly; SameSite=Lax; Path=/api/; Max-Age=${maxAge}${secure}`;
 }
 
 function authCookies(request, tokens) {
@@ -60,12 +60,12 @@ async function bodyJson(request) {
   } catch { throw new HttpError(400, 'Invalid JSON object.'); }
 }
 
-async function supabase(path, { method = 'GET', token, body, query, prefer } = {}) {
+async function supabase(path, { method = 'GET', token, keyOverride, body, query, prefer } = {}) {
   const { base, key } = settings();
   const url = new URL(path, base);
   if (query) Object.entries(query).forEach(([name, value]) => url.searchParams.set(name, value));
   const response = await fetch(url, { method, headers: {
-    apikey: key,
+    apikey: keyOverride || key,
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
     ...(prefer ? { Prefer: prefer } : {}),
@@ -110,6 +110,10 @@ async function session(request, required = true) {
 function withSession(data, auth, request, status = 200) {
   const headers = auth?.refreshed ? authCookies(request, auth.refreshed) : {};
   return json(data, status, headers);
+}
+
+function refreshedHeaders(request) {
+  return refreshedByRequest.has(request) ? authCookies(request, refreshedByRequest.get(request)) : {};
 }
 
 function teacher(auth) {
@@ -419,6 +423,8 @@ async function handle(request) {
   throw new HttpError(404, 'Unknown knowledge endpoint.');
 }
 
+export { HttpError, json, bodyJson, supabase, session, withSession, refreshedHeaders, teacher };
+
 export default {
   async fetch(request) {
     try { return await handle(request); }
@@ -426,7 +432,7 @@ export default {
       if (!(error instanceof HttpError)) console.error('Knowledge API error:', error);
       return json({ error: error instanceof HttpError ? error.message : 'Knowledge service failed.' },
         error instanceof HttpError ? error.status : 500,
-        refreshedByRequest.has(request) ? authCookies(request, refreshedByRequest.get(request)) : {});
+        refreshedHeaders(request));
     }
   },
 };

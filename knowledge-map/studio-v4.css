@@ -1,0 +1,26 @@
+.v4-top-tabs{display:flex;gap:.5rem;margin:1rem 0}.v4-top-tabs>*{padding:.6rem 1rem;border:1px solid var(--sl-line);border-radius:999px;background:white;color:inherit;text-decoration:none;font:inherit}.v4-top-tabs [aria-current=page]{background:#17212d;color:white}.v4-layout{display:grid;grid-template-columns:minmax(190px,240px) minmax(0,1fr);gap:1rem}.v4-library{align-self:start}.v4-heading{display:flex;align-items:center;justify-content:space-between;gap:.5rem}.v4-heading h2{margin:0}.v4-workspace{min-width:0}.v4-workspace-head{display:flex;align-items:center;justify-content:space-between;gap:1rem}.v4-workspace-head h2{margin:.1rem 0}.v4-steps{display:flex;gap:.35rem;overflow-x:auto;padding:.8rem 0;margin-bottom:.6rem}.v4-steps button{white-space:nowrap;border:1px solid var(--sl-line);border-radius:999px;padding:.55rem .8rem;background:white;font:inherit;cursor:pointer}.v4-steps button[aria-current=step]{background:#17212d;color:white}.v4-form{display:grid;gap:.8rem}.v4-form label,.v4-inline-form label,.v4-item label,.v4-inspector label{display:grid;gap:.25rem}.v4-form input,.v4-form select,.v4-form textarea,.v4-inline-form input,.v4-item input,.v4-item textarea,.v4-inspector input,.v4-inspector textarea,.v4-inspector select{width:100%;box-sizing:border-box}.v4-inline-form{display:grid;grid-template-columns:1fr 1.4fr auto;gap:.5rem;align-items:end}.v4-item{border:1px solid var(--sl-line);border-radius:12px;padding:.8rem;margin:.6rem 0;display:grid;gap:.5rem}.v4-item-row{display:flex;justify-content:space-between;align-items:center;gap:.7rem}.v4-item textarea{min-height:5rem}.v4-generate{border-top:1px solid var(--sl-line);margin-top:1.25rem}.v4-graph-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(230px,1fr);gap:1rem;margin:1rem 0}#v4-canvas{min-height:430px;border:1px solid var(--sl-line);border-radius:12px;overflow:hidden}.v4-inspector{align-self:start}.v4-inspector form{display:grid;gap:.6rem}.v4-inspector textarea{min-height:5rem}.v4-risk{border-left:3px solid #b36b14;padding:.45rem .7rem;background:#fff8ed;margin:.5rem 0}.v4-good{border-left:3px solid #24704a;padding:.45rem .7rem;background:#effaf3;margin:.5rem 0}@media(max-width:850px){.v4-layout,.v4-graph-layout{grid-template-columns:1fr}.v4-inline-form{grid-template-columns:1fr}.v4-workspace-head{align-items:start}}
+
+.v4-prose{white-space:pre-wrap;line-height:1.7;max-width:76ch}
+.v4-proposal-preview{border:1px solid var(--sl-line);border-radius:12px;padding:.8rem;margin:.8rem 0}
+.v4-proposal-preview summary{cursor:pointer;font-weight:600}
+.v4-proposal-preview[open]{max-height:36rem;overflow:auto}
+.v4-proposal-preview h4{margin:1rem 0 .4rem}
+.v4-proposal-preview .v4-inline-form{grid-template-columns:minmax(0,1fr) auto}
+.v4-proposal-preview select{width:100%;box-sizing:border-box}
+
+/* A Unit owns the Studio workspace; its task navigation stays beside the editor. */
+.v4-layout{display:block}
+.v4-library{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:.8rem}
+.v4-library .v4-heading{gap:.8rem}
+.v4-library .v4-heading h2{white-space:nowrap}
+.v4-library #unit-list{display:flex;gap:.5rem;overflow-x:auto;min-width:0}
+.v4-library #unit-list .kn-list-button{flex:0 0 auto;max-width:220px}
+.v4-workspace{margin-top:1rem}
+.v4-editor-layout{display:grid;grid-template-columns:190px minmax(0,1fr);gap:1rem;align-items:start}
+.v4-panel-stack{min-width:0}
+.v4-steps{display:grid;gap:.3rem;align-content:start;overflow:visible;position:sticky;top:1rem;
+  padding:.7rem;border:1px solid var(--sl-line);border-radius:12px;background:var(--sl-panel)}
+.v4-steps button{text-align:left;white-space:normal}
+@media(max-width:1200px){.v4-graph-layout{grid-template-columns:1fr}}
+@media(max-width:850px){.v4-editor-layout{grid-template-columns:1fr}.v4-steps{display:flex;overflow-x:auto;position:static}
+  .v4-steps button{white-space:nowrap}.v4-library{display:block}.v4-library #unit-list{margin-top:.7rem}}

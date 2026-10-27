@@ -4,6 +4,14 @@
   "installCommand": "npm ci --omit=dev",
   "buildCommand": "",
   "outputDirectory": ".",
+  "functions": {
+    "api/knowledge-v4-worker.mjs": {
+      "maxDuration": 180,
+      "experimentalTriggers": [
+        { "type": "queue/v2beta", "topic": "knowledge-v4-ai", "retryAfterSeconds": 60 }
+      ]
+    }
+  },
   "cleanUrls": true,
   "trailingSlash": true
 }

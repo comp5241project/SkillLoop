@@ -3,7 +3,7 @@
   const root = document.body.dataset.root || './';
   const active = document.body.dataset.module || '';
   const modules = [
-    ['knowledge-map', 'workflow', 'Skill map'],
+    ['knowledge-map', 'workflow', 'Universe'],
     ['learning-path', 'route', 'My path'],
     ['interview', 'messages-square', 'Interview'],
     ['correction-lab', 'scan-line', 'Correction lab'],

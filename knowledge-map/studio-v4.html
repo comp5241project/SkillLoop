@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teaching Studio | SkillLoop</title>
+<link rel="icon" href="/public/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/shared/styles.css"><link rel="stylesheet" href="/knowledge-map/network.css">
+<link rel="stylesheet" href="/knowledge-map/studio-v4.css">
+<script src="/shared/vendor/lucide.min.js" defer></script><script src="/shared/storage.js" defer></script>
+<script src="/shared/navigation.js" defer></script><script src="/knowledge-map/network-core.js" defer></script><script src="/knowledge-map/curated-data.js" defer></script>
+<script src="/knowledge-map/proposal-merge.js" defer></script><script src="/knowledge-map/studio-v4.js" defer></script></head>
+<body data-root="/" data-module="knowledge-map"><a class="skip-link" href="#main-content">Skip to content</a>
+<div id="skillloop-prototype"><header id="site-header" class="sl-head"></header><div class="sl-shell">
+<aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside>
+<main id="main-content" class="sl-main">
+<div class="sl-kicker">Knowledge · Teaching Studio</div><h1>Create an Exploration Unit</h1>
+<p class="sl-intro">Plan learning directions, build their graphs, and publish a version that learners can revisit.</p>
+<nav class="kn-page-nav" aria-label="Knowledge pages"><a href="/knowledge-map/">Discover</a><a href="/knowledge-map/from-teachers.html">From Teachers</a><a href="/knowledge-map/studio-v4.html" aria-current="page">Teaching Studio</a><a href="/knowledge-map/account.html">Account</a></nav>
+<p id="studio-status" role="status">Checking teacher account…</p>
+<div id="studio-root" hidden>
+<div class="v4-top-tabs"><button type="button" id="tab-units" aria-current="page">Units</button><a href="/knowledge-map/teacher.html">Independent Graphs</a></div>
+<div class="v4-layout"><aside class="sl-card v4-library"><div class="v4-heading"><h2>My Units</h2><button id="new-unit" class="sl-btn" type="button">New Unit</button></div><button id="unit-from-template" class="sl-btn" type="button">Start from Discover template</button><div id="unit-list" class="kn-list"></div></aside>
+<div class="v4-workspace" id="unit-workspace" hidden>
+<header class="sl-card v4-workspace-head"><div><p class="sl-kicker">Unit Workspace</p><h2 id="unit-heading">Untitled Unit</h2><p id="draft-state" class="sl-small"></p></div><button id="save-unit" class="sl-btn sl-btn-main" type="button">Save draft</button></header>
+<div class="v4-editor-layout">
+<nav class="v4-steps" aria-label="Unit tasks"><button type="button" data-step="overview">Overview &amp; Sources</button><button type="button" data-step="analysis">AI Analysis</button><button type="button" data-step="directions">Directions</button><button type="button" data-step="graph">Graph Editor</button><button type="button" data-step="activities">Learning Activities</button><button type="button" data-step="publish">Review &amp; Publish</button></nav>
+<div class="v4-panel-stack">
+<div id="job-list" class="v4-risk" role="status" hidden></div>
+<div id="local-proposal" class="sl-card" hidden></div>
+
+<section class="sl-card" data-panel="overview"><h3>Unit overview</h3><form id="unit-form" class="v4-form"><label>Title <input name="title" maxlength="160" required></label><label>Teacher display name <input name="publisherName" maxlength="100" placeholder="Teacher"></label><label>Type <select name="type"><option value="open-source">Open-source breakdown</option><option value="case-study">Case study</option><option value="build-something">Build something</option><option value="knowledge-collection">Knowledge collection</option></select></label><label>Summary <textarea name="summary" maxlength="1200"></textarea></label><label>Core question <textarea name="guidingQuestion" maxlength="400"></textarea></label><label>Topics, separated by commas <input name="topics"></label></form>
+<h3>Sources</h3><p class="sl-small">Add a source you checked yourself, or submit a public URL for AI analysis. A URL alone does not mean the source was read.</p><div id="source-list"></div><form id="source-form" class="v4-inline-form"><label>Source title <input name="title" required></label><label>HTTPS URL <input name="url" type="url" required></label><button class="sl-btn" type="submit">Add checked source</button></form>
+<h3>Unit sections</h3><div id="section-list"></div><button id="add-section" class="sl-btn" type="button">Add section</button></section>
+
+<section class="sl-card" data-panel="analysis" hidden><h3>AI source analysis</h3><p>AI first proposes a Unit title, summary, core question and candidate Directions. You can also skip AI and write everything yourself.</p><form id="analysis-form" class="v4-form"><label>Public GitHub repository or article URL <input name="url" type="url" placeholder="https://…"></label><label>Or a teaching topic <textarea name="topic" placeholder="What should this Unit help learners explore?"></textarea></label><button class="sl-btn sl-btn-main" type="submit">Analyze and suggest Directions</button></form><p id="analysis-state" role="status"></p><div id="planning-proposal"></div></section>
+
+<section class="sl-card" data-panel="directions" hidden><h3>Direction Planning</h3><p>Select, edit, merge or add learning directions. Confirm the plan before generating graph content.</p><div id="direction-list"></div><div class="sl-actions"><button id="add-direction" class="sl-btn" type="button">Add Direction</button><button id="confirm-directions" class="sl-btn sl-btn-main" type="button">Confirm directions</button></div><p id="direction-state" role="status"></p><div class="v4-generate"><h4>Generate complete content</h4><p>Choose confirmed directions. AI proposes Unit narrative, graph concepts and relationships, explanations, and learning activities.</p><div id="generation-options"></div><button id="generate-content" class="sl-btn" type="button">Generate for selected Directions</button><p id="generation-state" role="status"></p><div id="generation-proposal"></div></div></section>
+
+<section class="sl-card" data-panel="graph" hidden><h3>Direction Graph Editor</h3><label>Direction <select id="graph-direction"></select></label><p id="graph-state" role="status"></p><details id="reuse-independent" class="v4-proposal-preview"><summary>Reuse a published Independent Graph</summary><p>Copy a fixed version into this Direction’s private Graph draft. Review its concepts and relationships before publishing.</p><div class="v4-inline-form"><label>My published Independent Graphs <select id="independent-graph-choice"></select></label><button id="copy-independent" class="sl-btn" type="button">Copy into this Direction</button></div><p id="copy-independent-state" role="status"></p></details><div class="v4-graph-layout"><div><div class="sl-actions"><button id="add-node" class="sl-btn" type="button">Add concept</button><button id="add-edge" class="sl-btn" type="button">Add relationship</button><button id="graph-zoom-in" class="sl-btn" type="button">Zoom in</button><button id="graph-zoom-out" class="sl-btn" type="button">Zoom out</button></div><div id="v4-canvas"></div><div id="v4-node-list" class="kn-list"></div><div id="v4-edge-list" class="kn-list"></div></div><aside class="sl-card v4-inspector"><h4>Concept Inspector</h4><div id="inspector-body">Select a concept or relationship to edit it.</div></aside></div><button id="save-graph" class="sl-btn sl-btn-main" type="button">Save Graph draft</button></section>
+
+<section class="sl-card" data-panel="activities" hidden><h3>Learning Activities</h3><div id="activity-list"></div><button id="add-activity" class="sl-btn" type="button">Add activity</button></section>
+
+<section class="sl-card" data-panel="publish" hidden><h3>Review &amp; Publish</h3><p>Review the Unit as a whole. Risks are shown here; no item-by-item review record is required.</p><div id="review-overview"></div><div id="preflight"></div><h4>Direction Graph versions</h4><div id="publish-refs"></div><p id="publish-state" role="status"></p><div class="sl-actions"><button id="publish-unit" class="sl-btn sl-btn-main" type="button">Publish Unit version</button><button id="withdraw-unit" class="sl-btn" type="button">Withdraw published Unit</button></div></section>
+</div></div></div></div></div></main></div></div></body></html>

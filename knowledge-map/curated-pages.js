@@ -13,6 +13,7 @@
     'build-something': 'Build something', 'knowledge-collection': 'Knowledge collection',
   };
   const make = K.make;
+  const reader = window.SkillLoopKnowledgeReader;
   const unitUrl = (unit, version) => `/knowledge-map/unit.html?${new URLSearchParams({ unit, ...(version ? { version } : {}) })}`;
   const directionUrl = (unit, version, direction) =>
     `/knowledge-map/direction.html?${new URLSearchParams({ unit, version, direction })}`;
@@ -77,17 +78,12 @@
     showNotice(unit, latestVersion);
     breadcrumbs.append(make('span', '', unit.title));
     content.replaceChildren();
-    const hero = make('header', 'kn-unit-hero');
-    hero.append(make('p', 'kn-eyebrow', `${typeLabels[unit.type]} · Curated Sample · ${unit.version}`),
-      make('h1', '', unit.title), make('p', 'kn-lead', unit.hook),
-      make('p', 'kn-guiding', unit.guidingQuestion),
-      make('p', 'kn-meta', `${unit.estimatedMinutes} min · ${unit.level} · reviewed ${unit.checkedAt}`));
-    const tags = make('div', 'kn-topic-row');
-    unit.topics.forEach((topic) => tags.append(make('span', 'kn-topic', topic)));
-    hero.append(tags);
-    content.append(hero);
-    const layout = make('div', 'kn-unit-layout');
-    const article = make('article', 'kn-unit-article');
+    content.append(reader.unitHero({ eyebrow: `${typeLabels[unit.type]} · Curated Sample · ${unit.version}`,
+      title: unit.title, lead: unit.hook, question: unit.guidingQuestion,
+      meta: `${unit.estimatedMinutes} min · ${unit.level} · reviewed ${unit.checkedAt}`,
+      topics: unit.topics }));
+    const { layout, article, aside } = reader.unitLayout(
+      'Each direction has its own verified, versioned local graph. Read this Unit first or open any direction now.');
     for (const section of unit.sections) {
       const block = make('section', 'sl-card kn-unit-section');
       block.id = section.id;
@@ -98,18 +94,12 @@
       }
       article.append(block);
     }
-    const aside = make('aside', 'sl-card kn-unit-aside');
-    aside.append(make('h2', '', 'Explore knowledge directions'),
-      make('p', '', 'Each direction has its own verified, versioned local graph. Read this Unit first or open any direction now.'));
     for (const direction of unit.directions) {
-      const card = make('div', 'kn-direction-card');
-      card.append(make('h3', '', direction.title), make('p', '', direction.summary),
-        make('p', 'kn-meta', `Pinned graph ${direction.graphId} ${direction.graphVersion}`),
-        anchor('Explore this direction', directionUrl(unit.id, unit.version, direction.id), 'sl-btn'));
-      aside.append(card);
+      aside.append(reader.directionCard({ title: direction.title, description: direction.summary,
+        meta: `Pinned graph ${direction.graphId} ${direction.graphVersion}`,
+        href: directionUrl(unit.id, unit.version, direction.id) }));
     }
     aside.append(disabledSave());
-    layout.append(article, aside);
     content.append(layout);
     const sources = make('section', 'sl-card kn-source-section');
     sources.append(make('h2', '', 'Original materials and review'),
@@ -156,16 +146,15 @@
     function selectNode(id) {
       const node = graph.nodes.find((item) => item.id === id);
       if (!node) return;
-      selected.replaceChildren(make('p', 'kn-eyebrow', 'Concept'), make('h3', '', node.title),
-        make('p', '', node.description));
+      reader.showSelection(selected, { kind: 'Concept', title: node.title, description: node.description });
       if (node.contextNote) selected.append(make('h4', '', 'In this context'), make('p', '', node.contextNote));
       selected.append(make('p', 'kn-source-label', 'Evidence'), sourceLinks(node.sources, true));
     }
     function selectEdge(edge) {
       const from = graph.nodes.find((item) => item.id === edge.source);
       const to = graph.nodes.find((item) => item.id === edge.target);
-      selected.replaceChildren(make('p', 'kn-eyebrow', basisLabel(edge.basis)),
-        make('h3', '', `${from.title} → ${edge.label} → ${to.title}`), make('p', '', edge.reason));
+      reader.showSelection(selected, { kind: basisLabel(edge.basis),
+        title: `${from.title} → ${edge.label} → ${to.title}`, description: edge.reason });
       if (edge.sources?.length) selected.append(make('p', 'kn-source-label', 'Related material'), sourceLinks(edge.sources, true));
     }
     const canvas = new K.Canvas(canvasHost, { onSelect: selectNode, onSelectEdge: selectEdge });

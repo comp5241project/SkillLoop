@@ -10,7 +10,7 @@
 | `/interview/`      | Module 3    |
 | `/correction-lab/` | Module 4    |
 
-`/knowledge-map/` opens the public Knowledge Home; `/knowledge-map/my.html` is the student account network and `/knowledge-map/teacher.html` is the teacher studio. Existing sessions do not redirect public pages. Existing links such as `/knowledge-map/?topic=software-testing` redirect to the corresponding sample knowledge page. New direct links use `/knowledge-map/graph.html?graph=<graphId>`, `/knowledge-map/concept.html?graph=<graphId>&topic=<conceptId>`, `/knowledge-map/question.html?graph=<graphId>&question=<questionId>` and `/knowledge-map/case.html?graph=<graphId>&case=<caseId>`. A `version=` parameter opens a historical publication. Unknown IDs show an unavailable page. No SPA router or catch-all rewrite is needed.
+`/knowledge-map/` opens the public Universe page; `/knowledge-map/my.html` is the student account network and `/knowledge-map/teacher.html` is the teacher studio. Existing sessions do not redirect public pages. Existing links such as `/knowledge-map/?topic=software-testing` redirect to the corresponding sample knowledge page. New direct links use `/knowledge-map/graph.html?graph=<graphId>`, `/knowledge-map/concept.html?graph=<graphId>&topic=<conceptId>`, `/knowledge-map/question.html?graph=<graphId>&question=<questionId>` and `/knowledge-map/case.html?graph=<graphId>&case=<caseId>`. A `version=` parameter opens a historical publication. Unknown IDs show an unavailable page. No SPA router or catch-all rewrite is needed.
 
 ## Concept IDs
 

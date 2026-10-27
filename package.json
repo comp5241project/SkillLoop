@@ -1,12 +1,20 @@
 {
   "name": "skillloop",
   "private": true,
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
     "test": "node scripts/check.cjs",
     "dev:interview": "node --env-file-if-exists=.env.local scripts/interview-dev.cjs",
     "test:interview": "node --test interview/*.test.cjs"
   },
-  "dependencies": { "ai": "7.0.151" }
+  "dependencies": {
+    "@vercel/queue": "^0.10.0",
+    "ai": "7.0.151"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.12"
+  }
 }
