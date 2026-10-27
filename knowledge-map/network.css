@@ -90,3 +90,19 @@
 @media(max-width:760px) { #skillloop-prototype .kn-studio-shell { display:block; } #skillloop-prototype .kn-studio-nav { position:static; } #skillloop-prototype .kn-studio-nav nav { display:none; } #skillloop-prototype .kn-studio-nav > label, #skillloop-prototype #teacher-task-select { display:block; width:100%; } #skillloop-prototype #teacher-task-select { padding:10px; } #skillloop-prototype .kn-studio-top > div, #skillloop-prototype .kn-studio-top label, #skillloop-prototype .kn-studio-top select { min-width:0; max-width:100%; } }
 @media(max-width:760px) { #skillloop-prototype .kn-canvas { height:360px; } #skillloop-prototype .kn-explorer-layout, #skillloop-prototype .kn-teacher-layout { grid-template-columns:1fr; } #skillloop-prototype .kn-context-panel { position:static; max-height:none; } #skillloop-prototype .sl-card { padding:14px; } #skillloop-prototype #kn-selected form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; } #skillloop-prototype #kn-selected form label { grid-column:1/-1; } #skillloop-prototype #kn-selected form input, #skillloop-prototype #kn-selected form textarea { width:100%; } }
 @media(max-width:760px) { body[data-module="knowledge-map"] #skillloop-prototype .sl-top { display:flex; } body[data-module="knowledge-map"] #skillloop-prototype .sl-top .sl-badge { display:none; } body[data-module="knowledge-map"] #skillloop-prototype .sl-head { padding-right:20px; } }
+#skillloop-prototype .kn-topbar-title {
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--sl-text);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  #skillloop-prototype .kn-topbar-title { color: var(--sl-side-text); }
+}
