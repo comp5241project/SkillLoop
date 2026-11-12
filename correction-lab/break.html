@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f5f1" />
+    <meta
+      name="description"
+      content="SkillLoop: break an AI-built app, fix its code and prove the fix with real tests."
+    />
+    <title>Break the app | SkillLoop</title>
+    <link rel="icon" href="/public/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/shared/styles.css" />
+    <link rel="stylesheet" href="/correction-lab/style.css" />
+    <script src="/shared/vendor/lucide.min.js" defer></script>
+    <script src="/shared/storage.js" defer></script>
+    <script src="/shared/navigation.js" defer></script>
+    <script src="/correction-lab/levels.js" defer></script>
+    <script src="/correction-lab/break.js" defer></script>
+  </head>
+  <body data-root="/" data-module="correction-lab">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div id="skillloop-prototype">
+      <header id="site-header" class="sl-head"></header>
+      <div class="sl-shell">
+        <aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside>
+        <main id="main-content" class="sl-main cl-main">
+          <div class="sl-kicker">Correction lab · Break the app</div>
+          <h1>The AI says it works. Prove it doesn't.</h1>
+          <p class="sl-intro">
+            Each app below was vibe-coded: the AI tried one happy path and called it done. Use the
+            app like a real user would not, find what breaks, then fix the code and pass the tests.
+          </p>
+          <div class="cl-summary">
+            <a href="/correction-lab/">Back to the correction lab</a>
+            <span id="bk-stars"></span>
+          </div>
+          <div class="cl-cases" id="bk-levels" role="group" aria-label="Levels"></div>
+
+          <article class="sl-card cl-case-card" aria-labelledby="bk-title">
+            <div class="cl-chips">
+              <span class="sl-chip">Playable app</span>
+              <span class="sl-chip" id="bk-source"></span>
+            </div>
+            <h2 id="bk-title" class="cl-title" tabindex="-1"></h2>
+            <div class="cl-question">
+              <span class="cl-who"><i data-lucide="user-round" aria-hidden="true"></i>Request to the AI</span>
+              <p id="bk-request"></p>
+            </div>
+            <div class="cl-question bk-claim">
+              <span class="cl-who"><i data-lucide="bot" aria-hidden="true"></i>AI agent</span>
+              <p id="bk-claim"></p>
+            </div>
+
+            <section class="cl-step" aria-labelledby="bk-step1">
+              <h3 id="bk-step1"><span class="sl-dot">1</span>Break it</h3>
+              <p class="cl-hint" id="bk-progress" aria-live="polite"></p>
+              <div class="bk-stage">
+                <iframe id="bk-app" class="bk-app" sandbox="allow-scripts" title="The app under test"></iframe>
+                <div class="bk-bugs" id="bk-bugs"></div>
+              </div>
+              <div class="cl-result" id="bk-toast" role="status" data-result="right" hidden></div>
+            </section>
+
+            <section class="cl-step" id="bk-step-fix" aria-labelledby="bk-step2" hidden>
+              <h3 id="bk-step2"><span class="sl-dot">2</span>Fix it</h3>
+              <p class="cl-hint">Edit the AI's code so it follows these rules. The tests really run in your browser.</p>
+              <ul class="bk-rules" id="bk-rules"></ul>
+              <label for="bk-code">The AI's code</label>
+              <textarea id="bk-code" class="bk-code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+              <div class="sl-row sl-spaced">
+                <button type="button" class="sl-btn sl-btn-main" id="bk-run">
+                  Run tests<i data-lucide="play" aria-hidden="true"></i>
+                </button>
+                <span>
+                  <button type="button" class="sl-text-button" id="bk-restore">Restore the AI's code</button>
+                  <button type="button" class="sl-text-button" id="bk-show-ref" hidden>Show a reference fix</button>
+                </span>
+              </div>
+              <div class="cl-result" id="bk-run-status" aria-live="polite" hidden></div>
+              <ul class="bk-tests" id="bk-tests"></ul>
+              <pre class="sl-code" id="bk-reference" hidden></pre>
+            </section>
+
+            <section class="cl-step" id="bk-step-lesson" aria-labelledby="bk-step3" hidden>
+              <h3 id="bk-step3"><span class="sl-dot">3</span>Brief the agent better</h3>
+              <p class="cl-apply-question" id="bk-lesson-question"></p>
+              <div class="cl-options" id="bk-lesson-options" role="group" aria-label="Answers"></div>
+              <div class="cl-result" id="bk-lesson-result" aria-live="polite" hidden></div>
+              <div class="sl-row sl-spaced" id="bk-end" hidden>
+                <a class="cl-link" id="bk-lesson-link" href="/knowledge-map/">Review the related lesson</a>
+                <button type="button" class="sl-btn sl-btn-main" id="bk-next">
+                  Next level<i data-lucide="arrow-right" aria-hidden="true"></i>
+                </button>
+              </div>
+            </section>
+
+            <div class="cl-footer">
+              <button type="button" class="sl-text-button" id="bk-reset">Start this level again</button>
+            </div>
+          </article>
+
+          <p class="cl-note sl-spaced">
+            The apps and their bugs are written by the team to match mistakes described in the course
+            lectures. Bugs are detected from what the app actually does, and fixes are checked by
+            running tests on your code. No AI grades you.
+          </p>
+        </main>
+      </div>
+    </div>
+    <noscript
+      >Please enable JavaScript to use the interactive exercises. <a href="/">Home</a></noscript
+    >
+  </body>
+</html>
