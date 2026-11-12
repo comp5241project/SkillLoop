@@ -1,0 +1,117 @@
+SkillLoop 四人开发材料：统一案例与输入输出
+
+这一份替代之前的复杂协议和单个 sample。大家只使用本包。
+本包确定的是内容与交接格式，不是已经实现的网站功能。四部分都需要接 AI；sample 用来开发与演示，不能冒充真实 AI 或实际测试结果。
+页面布局、对话形式、题目数量、提示和内部数据由各自设计，不在这里规定。
+
+一、最少需要看什么
+samples.json：三个案例和十二份完整输入输出，适合让 AI 阅读。
+samples.js：与 JSON 内容完全相同，适合直接在浏览器加载；不用同时加载两份。
+两者如需修改，以 samples.json 为准并同步生成 JS，不要各自维护不同版本。
+
+二、三个固定案例
+1. cart-checkout / QuizShop checkout
+   检查购物车的非法数量、折扣范围、空购物车。复用现有购物车练习。
+2. quiz-permissions / QuizHub permissions
+   检查隐藏删除按钮是否真正阻止无权限操作。复用现有 QuizHub 的权限部分。
+   本案例 admin 代表教师管理员、student 代表学生、null 代表未登录。只是练习角色，不修改平台登录系统。
+3. notes-save / Study notes: did it really save?
+   检查“保存成功”是否来自真实请求成功，以及失败后草稿能否保留并重试。这是新增练习。
+每个案例提供场景、需求、初始错误代码、参考代码、问题和验收测试说明。
+这些是教学案例，不宣称来自真实事故；第三个案例尚未在现有模块中实现。
+案例的 requirements 是正确行为的依据；AI 可以解释和提出方案，不能自行改写需求或验收口径。
+
+三、第一部分：能力诊断（沿用 learning-path 文件夹）
+Input：{ cases, background }
+cases 是三个案例的学生可见素材，含 caseId、title、scenario、aiClaim、requirements、topicIds、starterCode。
+background 只用 beginner / student / graduate，未知时用 beginner。
+学生先选一个案例，再回答 AI 提问。学生原始回答由本模块内部保存和传给 AI，不要求其他模块理解你的聊天格式。
+AI 分析发现问题、解释原因、提出要求、验证结果四个方面。
+Output：{ caseId, aiSource, assessment: { summary, skills, weakTopics } }
+summary：一句到两句、针对本次回答的分析，不作长期能力或就业结论。
+skills：固定四个键 detect / explain / instruct / verify。
+每个值只能是 shown / needs_practice / not_observed（本轮展示了 / 需要练习 / 尚未观察到）。缺证据不要自动判错。
+weakTopics：后面需要学习的知识点 ID 数组，可以为空。
+完成时要确定案例、产生四项判断和学习建议。具体提问轮数由负责人决定。
+
+四、第二部分：纠错学习（沿用 knowledge-map 文件夹）
+Input：{ case, assessment }
+case = cases[第一部分输出.caseId] 的学生可见素材。
+assessment = 第一部分输出.assessment，不要另起一套结构。
+用原知识图和短课结构，AI 根据 weakTopics 讲解、举例、出练习，并根据学生回答给反馈。
+Output：{ caseId, aiSource, learning: { studiedTopics, needsPractice, practiceFocus } }
+studiedTopics：本次实际学过的知识点 ID 数组。
+needsPractice：学完后仍需练习的知识点 ID 数组，可以为空。
+practiceFocus：给第三部分的具体练习重点，字符串数组，例如“要求检查修复是否影响正常订单”。
+若 weakTopics 为空，做案例相关的简短复习或挑战；不能显示空白页。
+看过内容不代表掌握；本输出不承诺能力分数。不要因为学生答错就无限卡住，允许带着问题进入对话。
+
+五、第三部分：对话纠错（沿用 interview 文件夹）
+Input：{ case, assessment, learning }
+assessment = 第一部分输出.assessment；learning = 第二部分输出.learning。
+AI 扮演开发助手，围绕案例给出修复提议；学生输入要求、质疑和追问；AI 给针对性的反馈。
+Output：{ caseId, aiSource, dialogue: { plan, feedback, confirmed } }
+plan 是修复项数组，每项格式固定：
+  { issueId, problem, changeRequest, checks: [ { testId, input, expected } ] }
+issueId 从该案例 issues 中选；problem 是学生描述的问题；changeRequest 是学生提出并确认的修改要求。
+checks 的 testId 从该案例 tests 中选，input 对应 action，expected 对应固定预期。学生可提出其他测试想法留在对话记录中；第一版可自动运行的交接项只用现有 testId。
+feedback：AI 对学生纠错沟通的简短反馈，不把它当作测试结果。
+confirmed：必须由学生点击确认才变成 true，不能由模型替学生确认。
+第一版在结束前整理该案例全部问题的计划；字段完整就可以确认，不强迫每个方案都正确。可以让错误方案在第四部分暴露。
+学生若坚持错误预期，保留其说法并继续指出它与需求不一致；不要把它写进标准测试的 expected。错误的修复要求可以保留在 changeRequest。
+Output 是修复要求，不是已经修复的程序；保留原对话和改写功能。
+
+六、第四部分：实战验证（沿用 correction-lab 文件夹）
+Input：{ case, dialogue, testSpecs }
+dialogue = 第三部分输出.dialogue，要求 confirmed=true。
+testSpecs = 案例固定 tests，由共享素材取得，不是 AI 临时编写。
+把 plan 显示为验收清单，保留现有找 bug、选择修复/手动编辑和测试机制。
+第一版由学生选择修复选项或编辑代码来落实方案，不要求把自然语言自动变成可执行代码。
+AI 根据实际操作和测试结果提供提示、解释和最终复盘；失败时可允许学生带着反馈重试。
+Output：{ caseId, aiSource, verification: { testSource, tests, outcome, aiReview, reviewTopics } }
+testSource：sample / runner，分别表示示例结果和实际测试运行。
+tests：本案例全部测试的结果数组，每项 { testId, status, actual }。
+status：pass / fail / error / not_run。actual 是结果说明；未运行可以是空字符串。
+outcome：有 fail → needs_revision；否则有 error 或 not_run → inconclusive；全部测试 pass → passed。
+aiReview：AI 根据真实结果做复盘，不能修改测试状态或独立宣布通过。
+reviewTopics：建议补学的知识点 ID 数组，通过时可为空。
+修改代码后必须重新跑测试；不能显示旧代码的通过结果。只有 sample 中的测试可以使用 testSource=sample。
+这些测试通过仅表示通过当前教学案例检查，不表示生产系统已经充分安全可靠。
+
+七、统一命名，避免合并时重写
+公共字段和英文 ID 按 sample，不随页面标题或语言改变。
+topicId 只使用本包 topics 中的六个 ID，与现有主要知识节点对应。
+issueId 和 testId 必须来自当前案例，不能把别的案例的结果接过来。
+所有数组用 [] 表示没有，不用 null 或字符串 "none"。布尔值用 true/false，不用 "yes"。
+所有完成输出必须包含样例中的字段，不要随意省略；显示语言可调整，页面默认英文。
+每份 Output 都保留相同 caseId。切换案例时，清空本轮后续输出，不继承上一个案例的学习和测试结果。
+aiSource 只用 sample / api。真正获得 AI 响应才能写 api；API 出错允许重试或明确进入 sample，不能静默伪装成功。
+每部分可以选自己的模型；API 密钥只放服务端。不要把案例参考答案和 API 密钥混成同一种“配置”。
+cases 中的 referenceCode、issues、tests 是教学准备材料，不应在诊断开场直接显示答案。第一版是练习，不是防作弊考试。
+示例 demoInteraction / demoLesson / demoConversation 只是方便做页面，不是输出字段，也不限制你的交互设计。
+
+八、每个人如何独立开始
+浏览器引入 samples.js 后：
+  const demo = SkillLoopSamples.samples['cart-checkout'];
+  // 第一部分：demo.part1.input；参考输出：demo.part1.output
+  // 第二部分：demo.part2.input；参考输出：demo.part2.output
+  // 第三部分：demo.part3.input；参考输出：demo.part3.output
+  // 第四部分：demo.part4.input；参考输出：demo.part4.output
+把 cart-checkout 换成 quiz-permissions 或 notes-save，就得到另一个完整案例。
+后端 Node 可以 require('./samples.js')；其他工具直接读 samples.json。
+AI 的结构化输出需要按上述字段检查：非法 ID、缺必填字段不能直接传下一步。校验失败保留用户输入并提示重试。
+四个模块内部怎么调用 AI、存聊天、排版都由自己决定；只保证交接 Output 符合格式。
+
+九、合并时只需要连接这些内容
+第一部分选定 caseId；之后一直取同一个 case。
+第二部分读 assessment；第三部分读 assessment + learning；第四部分读 dialogue + 固定 testSpecs。
+合并负责人负责统一保存与跳转；大家不要各自设计另一套共享存储字段。
+当前素材包不实现跨页保存，因此最后仍需要一层很小的保存/读取连接，不能只靠加载 sample 就宣称已经接通。
+如果重做前面的部分，就清空其后的本轮结果再继续；各模块自己的历史可以保留。
+最终需要跑通三个案例；每个案例至少验证输入正确接入、AI反馈、保存输出、跳到下一页，以及刷新/缺少前置数据时给出明确提示。
+不存在前一步真实结果时，正常流程提示返回，不暗中塞 sample；独立开发模式可明确加载 sample。
+
+十、后续上传案例的说法
+向老师表述为“计划支持教师按模板上传案例，AI辅助生成教学内容，教师审核后使用”。
+上传案例至少需要场景、需求、初始代码、参考修复、知识点和验证用例。任意上传代码不保证能直接运行在当前练习框架里；第一版先接三个既定练习模板。
+此功能是后续方向，当前包只提供三个固定案例素材。
