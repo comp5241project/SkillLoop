@@ -587,3 +587,100 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Break the app: report to the AI, review its change, explain the fix */
+#skillloop-prototype .bk-owner {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+#skillloop-prototype .bk-report-card {
+  margin: 0 0 12px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--sl-line);
+  border-radius: 10px;
+}
+#skillloop-prototype .bk-report-card legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+#skillloop-prototype .bk-report-card .cl-hint {
+  margin: 0;
+}
+#skillloop-prototype .bk-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+#skillloop-prototype .bk-facts dt {
+  color: var(--sl-sub);
+}
+#skillloop-prototype .bk-facts dd {
+  margin: 0;
+}
+#skillloop-prototype .cl-option[aria-pressed='true'] {
+  border-color: var(--sl-accent);
+  background: var(--sl-soft);
+  font-weight: 600;
+}
+#skillloop-prototype .bk-changes {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+#skillloop-prototype .bk-change {
+  border: 1px solid var(--sl-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+#skillloop-prototype .bk-change[data-result='right'] {
+  border-color: var(--cl-ok);
+}
+#skillloop-prototype .bk-change[data-result='wrong'] {
+  border-color: var(--sl-accent);
+}
+#skillloop-prototype .bk-change-head {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--sl-text);
+  font: inherit;
+  text-align: left;
+}
+#skillloop-prototype button.bk-change-head:hover {
+  background: var(--sl-bg);
+}
+#skillloop-prototype .bk-verdict {
+  margin: 0;
+  padding: 0 14px 12px;
+  font-weight: 600;
+}
+#skillloop-prototype .bk-diff {
+  padding: 0 14px 12px;
+  font-size: 13px;
+  color: var(--sl-sub);
+}
+#skillloop-prototype .bk-diff summary {
+  cursor: pointer;
+}
+#skillloop-prototype .bk-diff .sl-code {
+  margin: 8px 0 0;
+  white-space: pre;
+  overflow-x: auto;
+}
+#skillloop-prototype .bk-choice {
+  margin-bottom: 18px;
+}
+@media (max-width: 480px) {
+  #skillloop-prototype .bk-facts {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  #skillloop-prototype .bk-facts dd {
+    margin-bottom: 6px;
+  }
+}

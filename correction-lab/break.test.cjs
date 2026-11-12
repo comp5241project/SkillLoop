@@ -69,6 +69,44 @@ for (const level of levels) {
   });
 }
 
+for (const level of levels.filter((item) => item.repair)) {
+  const best = Object.fromEntries(level.bugs.map((bug) => [bug.id, bug.fixes.findIndex((fix) => fix.correct)]));
+  const failures = (choices) => {
+    const out = runner.runTests(runner.assemble(level, choices), level.fns, level.tests);
+    assert.equal(out.error, undefined, 'every combination must be valid code');
+    return out.results.filter((r) => !r.ok).length;
+  };
+
+  test(`${level.id}: a precise report gets a fix that passes every test`, () => {
+    assert.equal(failures(best), 0);
+  });
+
+  test(`${level.id}: each bug has exactly one correct fix and an explanation question`, () => {
+    for (const bug of level.bugs) {
+      assert.equal(bug.fixes.length, 3);
+      assert.equal(bug.fixes.filter((fix) => fix.correct).length, 1);
+      bug.fixes.filter((fix) => !fix.correct).forEach((fix) => assert.ok(fix.why));
+      assert.ok([0, 1, 2].includes(bug.explain2.answer));
+    }
+  });
+
+  test(`${level.id}: every vague or wrong report leaves a failing test`, () => {
+    for (const bug of level.bugs) {
+      bug.fixes.forEach((fix, index) => {
+        if (!fix.correct) assert.ok(failures({ ...best, [bug.id]: index }) > 0, `${bug.id} option ${index}`);
+      });
+    }
+  });
+
+  test(`${level.id}: a bug that was not reported stays broken`, () => {
+    for (const bug of level.bugs) {
+      const partial = { ...best };
+      delete partial[bug.id];
+      assert.ok(failures(partial) > 0, bug.id);
+    }
+  });
+}
+
 test('broken code reports a syntax error instead of crashing', () => {
   const out = runner.runTests('function (', ['x'], [{ name: 't', check: 'true' }]);
   assert.match(out.error, /./);

@@ -48,7 +48,18 @@
     }
   }
 
-  const api = { load, runTests, detects };
+  /**
+   * Build the code the AI "returns" for a report. choices maps a bug ID to the index of the
+   * chosen fix; a bug that was not reported keeps its slot empty, so it stays broken.
+   */
+  function assemble(level, choices) {
+    return level.bugs.reduce((code, bug) => {
+      const fix = bug.fixes && bug.fixes[choices[bug.id]];
+      return code.split(`/*${bug.id}*/\n`).join(fix ? `${fix.code}\n` : '');
+    }, level.repair.template);
+  }
+
+  const api = { load, runTests, detects, assemble };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.SkillLoopRunner = api;
 })(typeof self === 'object' ? self : globalThis);

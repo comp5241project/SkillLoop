@@ -18,19 +18,22 @@ Open `/correction-lab/`, or `/correction-lab/?case=agent-edits-test` to open one
 Open `/correction-lab/break.html`, or add `?level=quizhub-admin` for one level. Each level is a small working app whose logic is written the way a coding agent often leaves it: one happy path works and the rest was never checked.
 
 1. **Break it**: the app runs in a sandboxed frame. The learner uses it with inputs the AI never tried. A harness watches the app's real function calls and marks a bug as found when one shows it. Hints are optional.
-2. **Fix it**: the learner edits the AI's code to meet the stated rules and runs hidden tests. The tests really execute, in a Web Worker that is stopped after 3 seconds, so a loop that never ends cannot freeze the page. When they pass, the app reloads with the learner's code.
-3. **Brief the agent better**: one question about the request that would have prevented the bugs.
+2. **Report it to the AI**: no code is needed. For each bug found, the report shows what the learner did and what happened, and the learner chooses what should happen. Each choice is a real code change, so a vague report ("just fix it") produces a fix that only hides the symptom.
+3. **Review the AI's fix**: the AI's changes are listed in plain words, with the code available on request, and the hidden tests really run. If they fail, the learner taps the change that does not do what the owner wants, corrects the report and sends it again. The app reloads with the AI's fix each time, so a bad fix can be tried.
+4. **Explain the fix**: one question per change on why it is the right one.
 
-Up to three stars a level: all bugs without hints, tests passed without opening the reference fix, and the last question right first time. Nothing is graded by an AI and no server is involved.
+Learners who can code may switch to **edit it myself**, which opens the AI's code in an editor and runs the same tests. Tests run in a Web Worker that is stopped after 3 seconds, so a loop that never ends cannot freeze the page. A level without `repair` data uses the editor and ends with one question about briefing the agent.
+
+Up to three stars a level: all bugs without hints, tests passed on the first report (or by hand without opening the reference fix), and every explanation right first time. Nothing is graded by an AI and no server is involved. The AI's replies are authored in `levels.js`, one per report choice.
 
 | File | Purpose |
 | --- | --- |
-| `levels.js` | Levels: app shell, AI-written code, bugs with detectors, rules, hidden tests, reference fix |
+| `levels.js` | Levels: app shell, AI-written code, bugs with detectors, report choices and their code changes, rules, hidden tests, reference fix |
 | `break.html`, `break.js` | Page, sandbox harness, bug cards, editor, results |
 | `break-runner.js`, `break-worker.js` | Test runner shared by the worker and the Node tests |
 | `break.test.cjs` | Runs every level: the AI code fails, the reference passes, each bug can be triggered and is gone after the fix |
 
-Levels so far: **QuizShop checkout** (negative quantity, discount range, empty cart) and **QuizHub sign-in** (hidden button instead of an access check, password boundary, unlimited guesses). To add one, append to `levels.js` and add a trigger for each bug in `break.test.cjs`. Progress is stored under `break` in the `correction` key.
+Levels so far: **QuizShop checkout** (negative quantity, discount range, empty cart; with the report flow) and **QuizHub sign-in** (hidden button instead of an access check, password boundary, unlimited guesses; editor only for now). To add one, append to `levels.js` and add a trigger for each bug in `break.test.cjs`. For the report flow add `repair.template` with a `/*bug-id*/` slot per bug, three `fixes` per bug (exactly one correct) and an `explain2` question; the tests check that every wrong choice leaves a failing test. Progress is stored under `break` in the `correction` key.
 
 ## How a case works
 

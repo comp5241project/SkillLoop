@@ -8,6 +8,10 @@
  * - bugs: found when a call to `fn` makes `detect` true (args, result, error are in scope).
  * - rules: the behaviour the fix must have. tests: checked by really running the code;
  *   `api` holds the functions, `approx(a, b)` compares numbers, `throws(fn)` expects an error.
+ * - repair (optional): lets a learner fix the app without writing code. They report each bug
+ *   to the AI by choosing what should happen; each choice (bug.fixes) is a real code change
+ *   that fills that bug's slot in repair.template, so a vague report yields a fix that fails
+ *   the same hidden tests. bug.explain2 is the "why does this fix work" question.
  * Keep level and bug IDs stable: saved progress uses them. The inner code avoids backticks.
  */
 window.SkillLoopLevels = [
@@ -63,6 +67,42 @@ function averagePrice(items) {
         title: 'A negative quantity lowers the bill',
         explain:
           'The code multiplies whatever quantity it is given, so -3 notebooks subtract money. Invalid input should be rejected, which is what a negative test checks.',
+        did: 'Set the pen quantity to -3 and checked out.',
+        happened: 'The total went down, as if the shop owed me money.',
+        fixes: [
+          {
+            ask: 'Just fix it so the total cannot go down.',
+            say: 'Negative quantities are turned into positive ones, so the total can no longer go down.',
+            code: '  items = items.map(function (item) { return { price: item.price, qty: Math.abs(item.qty) }; });',
+            correct: false,
+            why: 'A shopper who typed -3 is now charged for 3 pens. The mistake is hidden instead of refused.',
+          },
+          {
+            ask: 'Refuse the order with a clear message unless every quantity is a whole number of 1 or more.',
+            say: 'Before adding anything up, each quantity is checked. If one is not a whole number of 1 or more, the checkout stops with a message.',
+            code: "  for (const item of items) {\n    if (!Number.isInteger(item.qty) || item.qty < 1) {\n      throw new Error('Quantity must be a whole number of 1 or more.');\n    }\n  }",
+            correct: true,
+          },
+          {
+            ask: 'Leave out any item whose quantity is below 1.',
+            say: 'Items with a quantity below 1 are quietly dropped from the cart before the total is calculated.',
+            code: '  items = items.filter(function (item) { return item.qty >= 1; });',
+            correct: false,
+            why: 'The owner wants bad quantities refused. Dropping the item silently means the shopper never learns their order changed.',
+          },
+        ],
+        explain2: {
+          question: 'Why refuse the order instead of turning -3 into 3?',
+          options: [
+            { text: 'Negative numbers make JavaScript crash.', why: 'They do not. The original code ran happily, which was the problem.' },
+            {
+              text: 'The app cannot know what the shopper meant, so guessing could charge them for something they never asked for.',
+              why: 'Refusing invalid input keeps the mistake visible so the shopper can correct it.',
+            },
+            { text: 'Converting numbers is too slow for a checkout.', why: 'Speed is not the issue. Correctness is.' },
+          ],
+          answer: 1,
+        },
       },
       {
         id: 'discount-range',
@@ -72,6 +112,42 @@ function averagePrice(items) {
         title: 'A discount over 100% pays the shopper',
         explain:
           'Nothing limits the discount to 0–100, so 150% gives a negative total and a negative discount raises the price. Boundaries need an explicit rule.',
+        did: 'Entered a discount of 150%.',
+        happened: 'The total became negative.',
+        fixes: [
+          {
+            ask: 'Refuse a discount outside 0 to 100 with a clear message.',
+            say: 'The discount is checked first. Anything below 0 or above 100 stops the checkout with a message.',
+            code: "  if (!(discountPercent >= 0 && discountPercent <= 100)) {\n    throw new Error('Discount must be between 0 and 100.');\n  }",
+            correct: true,
+          },
+          {
+            ask: 'Just fix it so the total is never negative.',
+            say: 'A discount above 100 is lowered to 100, so the total cannot drop below zero.',
+            code: '  if (discountPercent > 100) discountPercent = 100;',
+            correct: false,
+            why: 'A wrong code of 150 now makes the whole order free, and a discount of -5 still raises the price. Only one symptom was covered.',
+          },
+          {
+            ask: 'Adjust any discount so it stays between 0 and 100.',
+            say: 'Discounts are pulled back into range: below 0 becomes 0 and above 100 becomes 100.',
+            code: '  discountPercent = Math.min(100, Math.max(0, discountPercent));',
+            correct: false,
+            why: 'The owner wants an invalid code refused. Silently changing it gives away free orders and hides the error.',
+          },
+        ],
+        explain2: {
+          question: 'Why refuse a 150% discount instead of lowering it to 100%?',
+          options: [
+            {
+              text: 'An invalid code should be reported, not silently turned into a free order.',
+              why: 'Clamping looks safe but changes what the shopper pays without telling anyone.',
+            },
+            { text: 'The test runner only counts a pass when an error is thrown.', why: 'Tests check the rule the owner set. They do not prefer errors in general.' },
+            { text: 'Discounts of 100% are not allowed.', why: 'They are. The rule allows 0 to 100, and a test checks that 100% is free.' },
+          ],
+          answer: 0,
+        },
       },
       {
         id: 'empty-cart',
@@ -81,12 +157,69 @@ function averagePrice(items) {
         title: 'An empty cart shows $NaN',
         explain:
           'With no items the average divides 0 by 0. The empty case is the classic edge case: decide what should happen before writing the code.',
+        did: 'Set every quantity to 0 and checked out.',
+        happened: 'The average showed $NaN.',
+        fixes: [
+          {
+            ask: 'Refuse an empty cart with an error.',
+            say: 'If the cart has no items, the checkout stops with a message.',
+            code: "  if (items.length === 0) {\n    throw new Error('The cart is empty.');\n  }",
+            correct: false,
+            why: 'An empty cart is a normal situation, not a mistake. The owner wants it to show an average of 0.',
+          },
+          {
+            ask: 'Just fix it so it stops showing NaN.',
+            say: 'An empty cart now gives the text N/A instead of NaN.',
+            code: "  if (items.length === 0) return 'N/A';",
+            correct: false,
+            why: 'The page expects a number to format as money. Text breaks it in a new way: try the app again.',
+          },
+          {
+            ask: 'Show an average of 0 when the cart is empty.',
+            say: 'If the cart has no items, the average is 0 and nothing is divided.',
+            code: '  if (items.length === 0) return 0;',
+            correct: true,
+          },
+        ],
+        explain2: {
+          question: 'Why return 0 instead of an error or the text N/A?',
+          options: [
+            { text: '0 is what JavaScript returns by default.', why: 'It is not. Without the check the code returned NaN.' },
+            { text: 'Errors would make the page slower.', why: 'Speed is not the concern here.' },
+            {
+              text: 'An empty cart is normal, and the page needs a number it can display as money.',
+              why: 'The fix handles the edge case in the form the rest of the app expects.',
+            },
+          ],
+          answer: 2,
+        },
       },
     ],
+    repair: {
+      owner: 'What the shop owner wants',
+      template: `function cartTotal(items, discountPercent) {
+/*negative-quantity*/
+/*discount-range*/
+  let total = 0;
+  for (const item of items) {
+    total += item.price * item.qty;
+  }
+  return total - total * (discountPercent / 100);
+}
+
+function averagePrice(items) {
+/*empty-cart*/
+  let count = 0;
+  for (const item of items) {
+    count += item.qty;
+  }
+  return cartTotal(items, 0) / count;
+}`,
+    },
     rules: [
-      'A quantity must be a whole number of 1 or more. Otherwise throw an Error.',
-      'A discount must be between 0 and 100. Otherwise throw an Error.',
-      'The average price of an empty cart is 0.',
+      'A quantity must be a whole number of 1 or more. Otherwise the checkout refuses the order with a message (in code: throw an Error).',
+      'A discount must be between 0 and 100. Otherwise the checkout refuses it with a message (in code: throw an Error).',
+      'An empty cart is allowed, and its average price is 0.',
     ],
     tests: [
       {

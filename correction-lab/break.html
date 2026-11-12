@@ -16,6 +16,7 @@
     <script src="/shared/storage.js" defer></script>
     <script src="/shared/navigation.js" defer></script>
     <script src="/correction-lab/levels.js" defer></script>
+    <script src="/correction-lab/break-runner.js" defer></script>
     <script src="/correction-lab/break.js" defer></script>
   </head>
   <body data-root="/" data-module="correction-lab">
@@ -29,7 +30,7 @@
           <h1>The AI says it works. Prove it doesn't.</h1>
           <p class="sl-intro">
             Each app below was vibe-coded: the AI tried one happy path and called it done. Use the
-            app like a real user would not, find what breaks, then fix the code and pass the tests.
+            app like a real user would not, find what breaks, then get it fixed and prove the fix works.
           </p>
           <div class="cl-summary">
             <a href="/correction-lab/">Back to the correction lab</a>
@@ -63,23 +64,60 @@
             </section>
 
             <section class="cl-step" id="bk-step-fix" aria-labelledby="bk-step2" hidden>
-              <h3 id="bk-step2"><span class="sl-dot">2</span>Fix it</h3>
-              <p class="cl-hint">Edit the AI's code so it follows these rules. The tests really run in your browser.</p>
+              <h3 id="bk-step2"><span class="sl-dot">2</span><span id="bk-fix-title">Report it to the AI</span></h3>
+              <p class="bk-owner" id="bk-owner"></p>
               <ul class="bk-rules" id="bk-rules"></ul>
-              <label for="bk-code">The AI's code</label>
-              <textarea id="bk-code" class="bk-code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
-              <div class="sl-row sl-spaced">
-                <button type="button" class="sl-btn sl-btn-main" id="bk-run">
-                  Run tests<i data-lucide="play" aria-hidden="true"></i>
-                </button>
-                <span>
-                  <button type="button" class="sl-text-button" id="bk-restore">Restore the AI's code</button>
-                  <button type="button" class="sl-text-button" id="bk-show-ref" hidden>Show a reference fix</button>
-                </span>
+
+              <div id="bk-report-block">
+                <p class="cl-hint">
+                  No code needed. For each bug you found, tell the AI what should happen. A vague
+                  report gets a vague fix.
+                </p>
+                <div id="bk-report"></div>
+                <div class="sl-row sl-spaced">
+                  <button type="button" class="sl-btn sl-btn-main" id="bk-send">
+                    <span id="bk-send-label">Send to the AI</span><i data-lucide="send" aria-hidden="true"></i>
+                  </button>
+                  <button type="button" class="sl-text-button" id="bk-mode-code">I can code: edit it myself</button>
+                </div>
+                <div class="cl-result" id="bk-send-status" aria-live="polite" hidden></div>
               </div>
-              <div class="cl-result" id="bk-run-status" aria-live="polite" hidden></div>
-              <ul class="bk-tests" id="bk-tests"></ul>
-              <pre class="sl-code" id="bk-reference" hidden></pre>
+
+              <div id="bk-code-block" hidden>
+                <p class="cl-hint">Edit the AI's code so it follows the rules. The tests really run in your browser.</p>
+                <label for="bk-code">The AI's code</label>
+                <textarea id="bk-code" class="bk-code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+                <div class="sl-row sl-spaced">
+                  <button type="button" class="sl-btn sl-btn-main" id="bk-run">
+                    Run tests<i data-lucide="play" aria-hidden="true"></i>
+                  </button>
+                  <span>
+                    <button type="button" class="sl-text-button" id="bk-mode-report" hidden>Report to the AI instead</button>
+                    <button type="button" class="sl-text-button" id="bk-restore">Restore the AI's code</button>
+                    <button type="button" class="sl-text-button" id="bk-show-ref" hidden>Show a reference fix</button>
+                  </span>
+                </div>
+                <div class="cl-result" id="bk-run-status" aria-live="polite" hidden></div>
+                <ul class="bk-tests" id="bk-tests"></ul>
+                <pre class="sl-code" id="bk-reference" hidden></pre>
+              </div>
+            </section>
+
+            <section class="cl-step" id="bk-step-review" aria-labelledby="bk-step3r" hidden>
+              <h3 id="bk-step3r" tabindex="-1"><span class="sl-dot">3</span>Review the AI's fix</h3>
+              <div class="cl-question bk-claim">
+                <span class="cl-who"><i data-lucide="bot" aria-hidden="true"></i>AI agent</span>
+                <p id="bk-ai-reply"></p>
+              </div>
+              <div class="bk-changes" id="bk-changes"></div>
+              <div class="cl-result" id="bk-review-status" aria-live="polite"></div>
+              <ul class="bk-tests" id="bk-ai-tests"></ul>
+            </section>
+
+            <section class="cl-step" id="bk-step-explain" aria-labelledby="bk-step4e" hidden>
+              <h3 id="bk-step4e"><span class="sl-dot">4</span>Explain the fix</h3>
+              <p class="cl-hint">The tests pass. Now show you understand why each change is the right one.</p>
+              <div id="bk-explain"></div>
             </section>
 
             <section class="cl-step" id="bk-step-lesson" aria-labelledby="bk-step3" hidden>
@@ -87,13 +125,14 @@
               <p class="cl-apply-question" id="bk-lesson-question"></p>
               <div class="cl-options" id="bk-lesson-options" role="group" aria-label="Answers"></div>
               <div class="cl-result" id="bk-lesson-result" aria-live="polite" hidden></div>
-              <div class="sl-row sl-spaced" id="bk-end" hidden>
-                <a class="cl-link" id="bk-lesson-link" href="/knowledge-map/">Review the related lesson</a>
-                <button type="button" class="sl-btn sl-btn-main" id="bk-next">
-                  Next level<i data-lucide="arrow-right" aria-hidden="true"></i>
-                </button>
-              </div>
             </section>
+
+            <div class="sl-row sl-spaced" id="bk-end" hidden>
+              <a class="cl-link" id="bk-lesson-link" href="/knowledge-map/">Review the related lesson</a>
+              <button type="button" class="sl-btn sl-btn-main" id="bk-next">
+                Next level<i data-lucide="arrow-right" aria-hidden="true"></i>
+              </button>
+            </div>
 
             <div class="cl-footer">
               <button type="button" class="sl-text-button" id="bk-reset">Start this level again</button>
