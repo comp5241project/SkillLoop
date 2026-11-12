@@ -86,7 +86,9 @@ issueId 和 testId 必须来自当前案例，不能把别的案例的结果接�
 所有完成输出必须包含样例中的字段，不要随意省略；显示语言可调整，页面默认英文。
 每份 Output 都保留相同 caseId。切换案例时，清空本轮后续输出，不继承上一个案例的学习和测试结果。
 aiSource 只用 sample / api。真正获得 AI 响应才能写 api；API 出错允许重试或明确进入 sample，不能静默伪装成功。
-每部分可以选自己的模型；API 密钥只放服务端。不要把案例参考答案和 API 密钥混成同一种“配置”。
+四部分统一使用 server/ai.mjs 调用同一个 AI 服务和模型。提示词和字段校验仍由各模块维护，不再各自选择服务商或模型。
+统一变量为 AI_BASE_URL、AI_API_KEY、AI_MODEL；部署时放 Vercel 项目环境变量，本地放不提交的 .env.local。百炼等兼容接口可直接使用，具体接法见同目录 AI-SETUP.md。
+公共 helper 已实现，但各模块还需接入，旧接口不会自动切换。第四部分仍由实际测试决定通过与否，AI 只分析结果。API 密钥只放服务端。
 cases 中的 referenceCode、issues、tests 是教学准备材料，不应在诊断开场直接显示答案。第一版是练习，不是防作弊考试。
 示例 demoInteraction / demoLesson / demoConversation 只是方便做页面，不是输出字段，也不限制你的交互设计。
 

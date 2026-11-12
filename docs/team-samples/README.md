@@ -6,6 +6,7 @@ Start with the [team guide in Chinese](guide.zh-CN.txt). It replaces the earlier
 
 ## Files
 
+- [Shared AI setup](AI-SETUP.md): common calling code, file locations, Vercel configuration and Alibaba Cloud Bailian compatibility. The helper is implemented; module migration is still required.
 - [samples.json](samples.json): three cases and twelve complete module input/output examples, including starter code, reference repairs and test specifications.
 - [samples.js](samples.js): the same data, ready to load in a browser or Node.js. Use either format; keep them identical when updating the materials.
 - [guide.zh-CN.txt](guide.zh-CN.txt): module responsibilities, field meanings and integration rules. This is the document called `先读这个.txt` in the shared download.
