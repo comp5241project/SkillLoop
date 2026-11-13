@@ -1,9 +1,12 @@
 /** Vercel endpoint for the correction lab. All logic lives in correction-lab/server.cjs. */
 const service = require('../correction-lab/server.cjs');
 
-global.window = global.window || {};
-require('../correction-lab/cases.js');
-const example = global.window.SkillLoopCases[0];
+// Load browser-authored fixtures without polluting the shared Node process.
+const { readFileSync } = require('node:fs');
+const { runInNewContext } = require('node:vm');
+const fixtures = { window: {} };
+runInNewContext(readFileSync(require.resolve('../correction-lab/cases.js'), 'utf8'), fixtures);
+const example = fixtures.window.SkillLoopCases[0];
 
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');

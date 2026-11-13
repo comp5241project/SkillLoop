@@ -15,6 +15,13 @@ module.exports=async function handler(req,res) {
     const result=body.action==='sample'?service.sample(session):await service.generate(session);
     return res.status(200).json({result,aiSource:body.action==='sample'?'sample':'api'});
   } catch(error) {
-    return res.status(502).json({error: error.code==='TIMEOUT'?'AI timed out. Your reply is saved; retry without resending it.':'AI could not produce a valid reply. Your conversation is saved; please retry.'});
+    console.error('[dialogue] request failed:', error.code || error.name || 'UNKNOWN');
+    const messages = {
+      AUTH_FAILED: 'AI authentication failed. Check the API key, endpoint region and model access on the server. Your message is saved.',
+      RATE_LIMITED: 'AI is busy or its quota is exhausted. Your message is saved; retry later.',
+      NETWORK_ERROR: 'The AI service could not be reached. Your message is saved; please retry.',
+      TIMEOUT: 'AI timed out. Your reply is saved; retry without resending it.',
+    };
+    return res.status(502).json({error: messages[error.code] || 'AI could not produce a valid reply. Your conversation is saved; please retry.'});
   }
 };
