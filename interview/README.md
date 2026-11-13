@@ -1,4 +1,34 @@
-# Interview room — module 3
+# Repair dialogue — module 3
+
+The default page now lets students review an AI developer's delivery and discuss corrections. Maya responds to the conversation; students can question an explanation, reject a proposal, revise earlier requests and confirm a repair plan. There is no fixed turn count.
+
+## Run and connect
+
+Run `node scripts/dev.mjs` from the repository root, then open `/interview/`. Start a sample review, or use **Start with AI** after configuring the shared server variables `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL`. Optional `AI_ENABLE_THINKING` follows the shared helper. Keep credentials server-side and restart or redeploy after configuration changes.
+
+The new `/api/dialogue` endpoint calls `server/ai.mjs`. Sample mode uses labelled, keyword-based preset replies; it does not assess students. Failed live calls retain the submitted message for retry and never silently fall back to sample mode. Live provider behaviour still needs verification with the team's credentials.
+
+## Team handoff
+
+Use the unchanged definitions in `docs/team-samples`. Choose one of the three sample cases, or import the agreed `part3.input` object containing `case`, `assessment` and `learning`. Case requirements and starter code come from the shared catalogue.
+
+**Review plan** lets the student edit each request before **Confirm plan**. **Download part 3 output** exports the existing `{caseId, aiSource, dialogue}` contract, including canonical test IDs and expected results. No tests run in this module; requests can still be wrong. Automatic transfer to part 4 remains for integration.
+
+Conversations, drafts, rejected approaches and confirmed revisions use the separate `repairDialogue` browser-storage key. Refresh resumes the latest review; History opens earlier reviews. Export conversation saves a full local record. Browser storage is not a server backup.
+
+## Files
+
+- `index.html`, `dialogue.css`, `dialogue.js`: page and interaction.
+- `dialogue-model.js`: input validation, conversation state and exact output format.
+- `dialogue-server.cjs`, `../api/dialogue.js`: sample replies and shared AI requests.
+- `dialogue.test.cjs`: handoff, memory, validation and mocked API checks.
+- `legacy.html`: retained earlier interview page and its existing history.
+
+The following notes describe only the earlier interview implementation and its separate API configuration.
+
+---
+
+# Earlier interview implementation
 
 A course-linked mock interview inside the normal SkillLoop workspace. Opening the page starts or resumes the conversation. Maya asks one question at a time; the input box is always visible. Reply ideas add a short starter without replacing existing text or submitting an answer. Done ends the review and returns to SkillLoop; starting another conversation is a separate action.
 
@@ -34,7 +64,7 @@ No live provider request has been verified yet. The SDK and browser/API flows ha
 
 | File                                    | Purpose                                                              |
 | --------------------------------------- | -------------------------------------------------------------------- |
-| `index.html`, `style.css`, `script.js`  | Interview scene, input, notes, review and notebook                   |
+| `legacy.html`, `style.css`, `script.js`  | Interview scene, input, notes, review and notebook                   |
 | `story.js`                              | Shared conversation state, validation and demo scenarios             |
 | `server.cjs`                            | Server-only AI prompts, schemas and validation                       |
 | `../api/interview.js`                   | Vercel endpoint: configuration check and AI requests                 |

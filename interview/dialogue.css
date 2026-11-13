@@ -1,0 +1,277 @@
+body {
+  background:#f6f5f1;
+  padding:20px}
+#skillloop-prototype {
+  max-width:1440px;
+  margin:auto}
+.sl-main {
+  min-width:0}
+.rd-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:24px}
+.rd-top h1 {
+  font-size:25px;
+  letter-spacing:-.6px;
+  margin:0}
+.rd-top p {
+  color:#746d65;
+  margin:4px 0}
+.rd-actions {
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap}
+.rd-btn {
+  border:1px solid #ded9d0;
+  background:white;
+  border-radius:9px;
+  padding:9px 14px;
+  color:#453d35}
+.rd-btn.primary {
+  background:#ae482e;
+  color:white;
+  border-color:#ae482e}
+.rd-btn:disabled {
+  opacity:.45;
+  cursor:wait}
+.rd-grid {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 295px;
+  gap:20px}
+.rd-room {
+  min-width:0;
+  border:1px solid #e4dfd7;
+  border-radius:16px;
+  overflow:hidden;
+  background:#fff}
+.rd-person {
+  display:flex;
+  gap:14px;
+  align-items:center;
+  background:#eeeade;
+  padding:14px 20px;
+  border-bottom:1px solid #ded8cd}
+.rd-person img {
+  width:62px;
+  height:67px;
+  object-fit:cover;
+  object-position:top;
+  border-radius:12px;
+  background:#e3ddcc}
+.rd-person strong {
+  font-size:16px}
+.rd-person p {
+  margin:3px 0;
+  color:#6d665a}
+.rd-badge {
+  font-size:11px;
+  background:#fff8e5;
+  color:#79602c;
+  padding:4px 8px;
+  border-radius:12px;
+  display:inline-block}
+.rd-chat {
+  height:clamp(240px,calc(100dvh - 440px),430px);
+  overflow:auto;
+  overscroll-behavior:contain;
+  padding:24px;
+  display:flex;
+  flex-direction:column;
+  gap:20px}
+.rd-message {
+  max-width:91%;
+  align-self:flex-start;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere}
+.rd-message.user {
+  align-self:flex-end;
+  background:#f6ebe6;
+  padding:12px 16px;
+  border-radius:14px 14px 3px 14px}
+.rd-message .speaker {
+  font-size:11px;
+  letter-spacing:.8px;
+  color:#8a7969;
+  margin-bottom:7px}
+.rd-message p {
+  margin:0;
+  line-height:1.7}
+.rd-message details {
+  margin-top:12px;
+  font-size:13px;
+  color:#655b51}
+.rd-message summary {
+  cursor:pointer}
+.rd-coach {
+  border:1px solid #e3d9bf;
+  border-radius:9px;
+  padding:10px;
+  background:#fdfaf1}
+.rd-compose {
+  border-top:1px solid #e9e4dc;
+  padding:15px 20px}
+.rd-compose textarea {
+  width:100%;
+  min-height:86px;
+  resize:vertical;
+  border:0;
+  outline:none;
+  background:white;
+  color:#332b26;
+  line-height:1.6}
+.rd-compose .rd-actions {
+  justify-content:space-between}
+.rd-compose small {
+  color:#81786d}
+.rd-side {
+  min-width:0}
+.rd-card {
+  border:1px solid #e2dcd2;
+  border-radius:13px;
+  padding:18px;
+  margin-bottom:14px;
+  background:#faf8f3}
+#skillloop-prototype .rd-card h2 {
+  font-size:15px;
+  margin:0 0 10px}
+.rd-card p,.rd-card li {
+  font-size:13px;
+  color:#6d6358}
+.rd-card ul {
+  padding-left:18px}
+.rd-card details {
+  margin-top:14px}
+.rd-card summary {
+  cursor:pointer;
+  font-size:13px}
+.rd-card pre,pre.rd-code {
+  max-height:260px;
+  overflow:auto;
+  background:#252525;
+  color:#eee;
+  padding:14px;
+  border-radius:8px;
+  font:12px/1.6 Consolas,monospace;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere}
+.rd-top select {
+  max-width:230px;
+  border:1px solid #ded9d0;
+  border-radius:8px;
+  background:white;
+  padding:8px}
+.rd-start {
+  padding:30px;
+  max-width:650px;
+  margin:30px auto}
+.rd-start h2 {
+  font-size:24px}
+.rd-start label {
+  display:block;
+  margin:16px 0}
+.rd-start select {
+  width:100%;
+  padding:12px;
+  border:1px solid #d7d0c5;
+  border-radius:8px;
+  background:white}
+.rd-note {
+  color:#756b5d;
+  font-size:12px}
+.rd-error {
+  background:#fff0eb;
+  color:#94452f;
+  padding:12px;
+  border-radius:8px;
+  margin:10px 0}
+.rd-plan {
+  max-width:900px;
+  margin:0 auto}
+.rd-plan article {
+  padding:20px;
+  border:1px solid #e2dcd2;
+  border-radius:12px;
+  margin-bottom:16px;
+  background:#fff}
+.rd-plan h3 {
+  font-size:16px}
+.rd-plan textarea {
+  width:100%;
+  min-height:100px;
+  padding:12px;
+  border:1px solid #d9d0c5;
+  border-radius:9px;
+  resize:vertical}
+.rd-plan li {
+  font-size:13px;
+  margin:7px 0;
+  color:#665b4f}
+.rd-plan .missing {
+  color:#a04b34}
+.rd-hidden,[hidden] {
+  display:none!important}
+.rd-history {
+  margin:18px 0}
+.rd-history button {
+  margin:4px}
+.rd-link {
+  font-size:12px}
+.rd-progress {
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap}
+.rd-dot {
+  border:1px solid #d8d0c2;
+  border-radius:20px;
+  padding:4px 9px;
+  font-size:11px}
+.rd-dot.done {
+  background:#e7eddf;
+  color:#4d603e}
+#status {
+  min-height:22px;
+  margin:8px 0;
+  color:#776b60;
+  font-size:12px}
+#hint-box button {
+  margin:6px 6px 6px 0;
+  font-size:12px}
+#import-input {
+  max-width:100%}
+@media(max-width:1050px) {
+  .rd-grid {
+  grid-template-columns:minmax(0,1fr)}
+.rd-side {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px}
+.rd-top {
+  align-items:flex-start;
+  flex-direction:column}
+}
+@media(max-width:600px) {
+  body {
+  padding:0}
+.sl-main {
+  padding:16px!important}
+.rd-chat {
+  height:380px;
+  padding:16px}
+.rd-side {
+  display:block}
+.rd-top h1 {
+  font-size:22px}
+.rd-compose {
+  padding:12px}
+.rd-message {
+  max-width:100%}
+.rd-start {
+  padding:16px}
+.rd-actions {
+  gap:6px}
+.rd-btn {
+  padding:9px 11px}
+}
