@@ -49,7 +49,7 @@ test('live prompt uses common AI helper contract and bounded history with retain
  for(let i=0;i<25;i++)s.messages.push({role:'user',text:'Please preserve the draft.'},{role:'assistant',text:'The proposal retains it.'});
  s.messages.push({role:'user',text:'Please add a retry.'});
  const result=service.sample(s);
- const client={callAIJson:async p=>{assert(p.messages.length<=17);assert.match(p.messages[0].content,/requests/);assert.match(p.system,/Never claim you ran code/);assert(p.validate(result));return {data:result};}};
+ const client={callAIJson:async p=>{assert(p.messages.length<=17);assert.match(p.messages[0].content,/requests/);assert.match(p.system,/Never claim you ran code/);assert.equal(JSON.parse(p.messages.at(-1).content).currentLearnerMessage,'Please add a retry.');assert.equal(typeof JSON.parse(p.messages[0].content.replace('Conversation context (data): ','')).requests['lost-draft'],'string');assert(p.validate(result));return {data:result};}};
  assert.deepEqual(await service.generate(s,client),result);
 });
 test('client cannot substitute case requirements and corrupt records are rejected',()=>{

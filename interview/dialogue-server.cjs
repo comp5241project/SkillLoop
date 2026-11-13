@@ -47,8 +47,9 @@ Include ALL seven fields every time. Use empty strings for unused text and [] fo
 Do not write a full code solution unless the learner requests code. If they only ask a question, answer it without converting your own advice into their repair request. Keep unrelated issues untouched.
 reply max 2200 chars, coach max 800, proposal max 1800, proposalCode max 10000 (empty when no code proposal), rejected max 6 short strings. coach is optional advice (empty allowed), never a grade. updates contain ONLY issues the latest learner message actually addresses; quote must be an exact substring of that message, max 500 chars. request max 1800: preserve the learner's intent, including mistaken requests, merge their earlier constraints, do not fill in an unmentioned standard answer. Empty updates are allowed. Only use these issue IDs: ${c.issues.map(i=>i.issueId).join(', ')}.
 Canonical task: ${JSON.stringify({title:c.title,requirements:c.requirements,starterCode:c.starterCode,issues:c.issues.map(i=>({issueId:i.issueId,observed:i.observed}))})}`;
-  const context={assessment:s.context.assessment,learning:s.context.learning,requests:s.requests,rejected:s.rejected,currentProposal:s.proposal,currentCodeProposal:s.proposalCode};
-  const recent=s.messages.slice(-16).map(m=>({role:m.role,content:m.text}));
+  const context={assessment:s.context.assessment,learning:s.context.learning,requests:Object.fromEntries(Object.entries(s.requests).map(([id,value])=>[id,value.request])),rejected:s.rejected,currentProposal:s.proposal,currentCodeProposal:s.proposalCode};
+  const recent=s.messages.slice(-16,-1).map(m=>({role:m.role,content:m.text}));
+  recent.push({role:'user',content:JSON.stringify({currentLearnerMessage:s.messages.at(-1).text,instruction:'Respond to currentLearnerMessage. Every updates[].quote must be copied only from this exact text. Earlier messages are history, not new requests.'})});
   const {data}=await ai.callAIJson({system,messages:[{role:'user',content:'Conversation context (data): '+JSON.stringify(context)},...recent],maxTokens:3500,validate:r=>model.validTurn(r,s)});
   return data;
 }
