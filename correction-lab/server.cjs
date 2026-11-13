@@ -365,30 +365,48 @@ function validReview(data) {
   );
 }
 
+// Some models wrap the object in a Markdown fence or add a sentence; keep only the object.
+function readJson(text) {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start < 0 || end < start) return null;
+  try {
+    return JSON.parse(text.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Builds the part 4 handoff output. Test statuses and the outcome come from the submitted
- * runner results; the model only supplies aiReview and reviewTopics.
+ * runner results; the model only supplies aiReview and reviewTopics. Asks twice at most.
  */
-async function review(body, { callAIJson }) {
+async function review(body, { callAI, AIError = class extends Error { constructor(code, message) { super(message); this.code = code; } } }) {
   const { item, tests, plan } = readReview(body);
-  const result = await callAIJson({
-    system: reviewPrompt(item),
-    messages: [{ role: 'user', content: JSON.stringify({ repairRequests: plan, results: tests }) }],
-    validate: validReview,
-    // Models that think before answering spend output tokens on it; leave room for the JSON.
-    maxTokens: 2500,
-  });
-  return {
-    caseId: item.caseId,
-    aiSource: result.aiSource,
-    verification: {
-      testSource: 'runner',
-      tests,
-      outcome: runner.outcome(tests),
-      aiReview: result.data.aiReview.trim(),
-      reviewTopics: result.data.reviewTopics,
-    },
-  };
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const result = await callAI({
+      system: `${reviewPrompt(item)}\nReturn one JSON object only, starting with {. No Markdown fences or commentary.`,
+      messages: [{ role: 'user', content: JSON.stringify({ repairRequests: plan, results: tests }) }],
+      // Models that think before answering spend output tokens on it; leave room for the JSON.
+      maxTokens: 2500,
+    });
+    const data = readJson(result.text);
+    if (data && typeof data === 'object' && !Array.isArray(data) && validReview(data)) {
+      return {
+        caseId: item.caseId,
+        aiSource: result.aiSource,
+        verification: {
+          testSource: 'runner',
+          tests,
+          outcome: runner.outcome(tests),
+          aiReview: data.aiReview.trim(),
+          reviewTopics: data.reviewTopics,
+        },
+      };
+    }
+    console.error(`Correction review: unusable AI reply on attempt ${attempt + 1} (${result.text.length} chars)`);
+  }
+  throw new AIError('INVALID_OUTPUT', 'The AI reply did not match the review format twice. Try again, or show the labelled sample review.');
 }
 
 module.exports = {

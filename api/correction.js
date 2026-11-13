@@ -32,9 +32,9 @@ module.exports = async function handler(req, res) {
   }
   // Part 4: review real test results with the team's shared AI helper.
   if (body.action === 'review') {
-    const { callAIJson, AIError } = await import('../server/ai.mjs');
+    const { callAI, AIError } = await import('../server/ai.mjs');
     try {
-      return res.status(200).json(await service.review(body, { callAIJson }));
+      return res.status(200).json(await service.review(body, { callAI, AIError }));
     } catch (error) {
       if (!(error instanceof AIError)) console.error(`Correction review failed: ${error.name}`);
       const code = error instanceof AIError ? error.code : 'PROVIDER_ERROR';

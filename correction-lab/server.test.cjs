@@ -149,15 +149,18 @@ const reviewBody = (caseId, status = 'pass') => ({
   tests: shared.cases[caseId].tests.map((spec) => ({ testId: spec.testId, status, actual: 'x' })),
   plan: [{ issueId: shared.cases[caseId].issues[0].issueId, changeRequest: 'Reject it.' }],
 });
-const ai = (data) => async ({ validate }) => {
-  if (validate(data) !== true) throw Object.assign(new Error('invalid'), { code: 'INVALID_OUTPUT' });
-  return { data, model: 'm', aiSource: 'api' };
+// Fake shared helper: replies with each text in turn and counts the calls.
+const replies = (...texts) => {
+  const fn = async () => ({ text: texts[Math.min(fn.calls++, texts.length - 1)], model: 'm', aiSource: 'api' });
+  fn.calls = 0;
+  return fn;
 };
+const ai = (data) => replies(JSON.stringify(data));
 
 test('review output has the part 4 handoff shape and keeps the runner results', async () => {
   const body = reviewBody('cart-checkout');
   body.tests[4].status = 'fail';
-  const out = await service.review(body, { callAIJson: ai({ aiReview: 'Fractions are still accepted.', reviewTopics: ['edge-cases'] }) });
+  const out = await service.review(body, { callAI: ai({ aiReview: 'Fractions are still accepted.', reviewTopics: ['edge-cases'] }) });
   assert.deepEqual(Object.keys(out), ['caseId', 'aiSource', 'verification']);
   assert.deepEqual(Object.keys(out.verification), ['testSource', 'tests', 'outcome', 'aiReview', 'reviewTopics']);
   assert.equal(out.aiSource, 'api');
@@ -173,10 +176,24 @@ test('the model cannot add fields, invent topics or change the outcome', async (
     { aiReview: '', reviewTopics: [] },
     { aiReview: 'ok', reviewTopics: [], outcome: 'passed' },
   ]) {
-    await assert.rejects(service.review(body, { callAIJson: ai(bad) }));
+    await assert.rejects(service.review(body, { callAI: ai(bad) }), /twice/);
   }
-  const out = await service.review(body, { callAIJson: ai({ aiReview: 'All good!', reviewTopics: [] }) });
+  const out = await service.review(body, { callAI: ai({ aiReview: 'All good!', reviewTopics: [] }) });
   assert.equal(out.verification.outcome, 'needs_revision');
+});
+
+test('a fenced reply is read, and an unreadable one is asked again once', async () => {
+  const body = reviewBody('notes-save', 'fail');
+  const good = { aiReview: 'Saving still fails offline.', reviewTopics: ['edge-cases'] };
+  const fenced = replies('Here is the review:\n```json\n' + JSON.stringify(good) + '\n```');
+  assert.equal((await service.review(body, { callAI: fenced })).verification.aiReview, good.aiReview);
+  assert.equal(fenced.calls, 1);
+  const retry = replies('not json', JSON.stringify(good));
+  assert.equal((await service.review(body, { callAI: retry })).verification.reviewTopics[0], 'edge-cases');
+  assert.equal(retry.calls, 2);
+  const never = replies('not json');
+  await assert.rejects(service.review(body, { callAI: never }), /twice/);
+  assert.equal(never.calls, 2);
 });
 
 test('results from another case or with unknown statuses are refused', () => {
