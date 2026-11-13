@@ -51,8 +51,13 @@
               <h3 id="bk-noplan-title">No confirmed repair plan yet</h3>
               <p>
                 This part starts from the repair plan you confirm in the repair dialogue (part 3).
-                None was found for this case in this browser.
+                <span id="bk-noplan-none">None was found for this case in this browser.</span>
               </p>
+              <div class="cl-result" id="bk-noplan-problems" hidden>
+                <p>A plan from the dialogue was found, but it cannot be used yet:</p>
+                <ul id="bk-noplan-list"></ul>
+                <p>Go back to the repair dialogue to finish or confirm it.</p>
+              </div>
               <div class="sl-row">
                 <a class="sl-btn sl-btn-main" href="/interview/">Go to the repair dialogue</a>
                 <button type="button" class="sl-btn" id="bk-load-sample">Load the sample plan</button>

@@ -20,6 +20,36 @@ test('shared-samples.js is up to date with docs/team-samples/samples.json', () =
   assert.equal(fs.readFileSync(sync.targetFile, 'utf8'), sync.build(source), 'run: node correction-lab/sync-shared.cjs');
 });
 
+test('part 3 sample outputs pass the dialogue check; broken ones are refused with reasons', () => {
+  for (const [caseId, sample] of Object.entries(source.samples)) {
+    const item = source.cases[caseId];
+    const output = sample.part3.output;
+    const ok = runner.checkDialogue(output, item);
+    assert.deepEqual(ok.problems, [], caseId);
+    assert.equal(ok.dialogue.plan.length, item.issues.length);
+    const copy = () => JSON.parse(JSON.stringify(output));
+    const broken = [
+      [null, /no part 3/],
+      [{ ...copy(), caseId: 'other' }, /not "/],
+      [{ ...copy(), aiSource: 'model' }, /aiSource/],
+      [{ ...copy(), dialogue: { ...copy().dialogue, confirmed: false } }, /not confirmed/],
+      [{ ...copy(), dialogue: { ...copy().dialogue, plan: copy().dialogue.plan.slice(1) } }, /does not cover/],
+      [{ ...copy(), dialogue: { ...copy().dialogue, plan: [...copy().dialogue.plan, copy().dialogue.plan[0]] } }, /repeats/],
+    ];
+    const badTest = copy();
+    badTest.dialogue.plan[0].checks[0].testId = 'made-up';
+    broken.push([badTest, /unknown testId/]);
+    const noRequest = copy();
+    noRequest.dialogue.plan[0].changeRequest = ' ';
+    broken.push([noRequest, /no change request/]);
+    for (const [bad, reason] of broken) {
+      const result = runner.checkDialogue(bad, item);
+      assert.equal(result.dialogue, undefined, `${caseId} ${reason}`);
+      assert.match(result.problems.join(' '), reason);
+    }
+  }
+});
+
 test('the three shared cases are all runnable here', () => {
   assert.deepEqual(Object.keys(levels).sort(), Object.keys(source.cases).sort());
 });

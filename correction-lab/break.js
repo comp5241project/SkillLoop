@@ -27,9 +27,10 @@
    * The integration step will connect saving and navigation. Until then no confirmed plan
    * arrives from part 3, so the page says so and offers the labelled sample plan.
    * Replace these two functions when the shared store exists; nothing else reads or writes
-   * cross-part data.
+   * cross-part data. readPart3 returns part 3's whole output { caseId, aiSource, dialogue }
+   * as saved, or null; it is checked with runner.checkDialogue before use.
    */
-  function readDialogue(/* caseId */) {
+  function readPart3(/* caseId */) {
     return null;
   }
   function writeVerification(output) {
@@ -41,7 +42,7 @@
   const saved = app.read('correction', {});
   const stored = saved.verify && typeof saved.verify === 'object' ? saved.verify : {};
   const blank = (caseId) => ({
-    plan: null, // { source: 'sample' | 'dialogue', dialogue }
+    plan: null, // { source: 'sample' | 'dialogue', dialogue, key }
     reproduced: [],
     choices: {},
     mode: 'choices',
@@ -53,8 +54,20 @@
     output: null,
   });
   const progress = {};
+  const planProblems = {}; // caseId → why a part 3 output found for it cannot be used
+  let replanned = false;
   caseIds.forEach((caseId) => {
-    const entry = stored[caseId] && typeof stored[caseId] === 'object' ? stored[caseId] : {};
+    const found = readPart3(caseId);
+    const checked = found ? runner.checkDialogue(found, shared.cases[caseId]) : { problems: [] };
+    if (found && checked.problems.length) planProblems[caseId] = checked.problems;
+    const dialogue = checked.dialogue || null;
+    const key = dialogue ? JSON.stringify(dialogue) : '';
+    let entry = stored[caseId] && typeof stored[caseId] === 'object' ? stored[caseId] : {};
+    // A new or changed plan from part 3 starts this case again: earlier results were for another plan.
+    if (dialogue && !(entry.plan && entry.plan.source === 'dialogue' && entry.plan.key === key)) {
+      entry = {};
+      replanned = true;
+    }
     const issueIds = shared.cases[caseId].issues.map((issue) => issue.issueId);
     const list = (value) => (Array.isArray(value) ? value.filter((id) => issueIds.includes(id)) : []);
     const choices = {};
@@ -64,11 +77,10 @@
       const tries = entry.explain && Array.isArray(entry.explain[id]) ? entry.explain[id] : [];
       explain[id] = tries.filter((n) => [0, 1, 2].includes(n));
     });
-    const dialogue = readDialogue(caseId);
     progress[caseId] = {
       ...blank(caseId),
       plan: dialogue
-        ? { source: 'dialogue', dialogue }
+        ? { source: 'dialogue', dialogue, key }
         : entry.plan && entry.plan.source === 'sample'
           ? { source: 'sample', dialogue: shared.sampleDialogues[caseId] }
           : null,
@@ -87,6 +99,7 @@
   const requested = new URLSearchParams(location.search).get('case');
   let current = caseIds.includes(requested) ? requested : caseIds[0];
   let worker = null;
+  if (replanned) save();
 
   const item = () => shared.cases[current];
   const level = () => levels[current];
@@ -536,6 +549,10 @@ p { margin: 10px 0 0; } .tip { color: #6b675f; font-size: 13px; margin-top: 0; }
       })
     );
     $('#bk-noplan').hidden = Boolean(entry.plan);
+    const problems = planProblems[current] || [];
+    $('#bk-noplan-problems').hidden = !problems.length;
+    $('#bk-noplan-none').hidden = problems.length > 0;
+    $('#bk-noplan-list').replaceChildren(...problems.map((problem) => element('li', '', problem)));
     $('#bk-flow').hidden = !entry.plan;
     renderCases();
     if (!entry.plan) {
@@ -659,8 +676,9 @@ p { margin: 10px 0 0; } .tip { color: #6b675f; font-size: 13px; margin-top: 0; }
   $('#bk-reset').addEventListener('click', () => {
     if (!confirm('Start this case again? Your changes, results and review for it will be cleared.')) return;
     const explain = Object.fromEntries(item().issues.map((issue) => [issue.issueId, []]));
-    const dialogue = readDialogue(current);
-    progress[current] = { ...blank(current), explain, plan: dialogue ? { source: 'dialogue', dialogue } : null };
+    // Keep a plan that came from the dialogue; a sample plan is loaded again only on request.
+    const plan = state().plan && state().plan.source === 'dialogue' ? state().plan : null;
+    progress[current] = { ...blank(current), explain, plan };
     save();
     open(current);
   });
