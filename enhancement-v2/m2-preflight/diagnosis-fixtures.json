@@ -1,0 +1,262 @@
+{
+  "notice": "Synthetic deterministic fixtures, not real learner or AI observations.",
+  "fixtures": [
+    {
+      "fixtureId": "empty-cart-gap",
+      "caseId": "cart-checkout",
+      "caseVersion": 1,
+      "provenance": "synthetic-authored-diagnosis",
+      "record": {
+        "schemaVersion": 2,
+        "caseId": "cart-checkout",
+        "questionSource": "authored",
+        "learner": {
+          "background": "student",
+          "goal": "build"
+        },
+        "responses": [
+          {
+            "questionId": "cart-checkout-requirements",
+            "optionId": "best",
+            "explanation": ""
+          },
+          {
+            "questionId": "cart-checkout-code-reading",
+            "optionId": "partial",
+            "explanation": ""
+          },
+          {
+            "questionId": "cart-checkout-software-testing",
+            "optionId": "partial",
+            "explanation": ""
+          },
+          {
+            "questionId": "cart-checkout-edge-cases",
+            "optionId": "off",
+            "explanation": "I do not know what averagePrice([]) should return for an empty cart."
+          }
+        ],
+        "result": {
+          "caseId": "cart-checkout",
+          "overall": {
+            "level": "developing",
+            "summary": "You have a workable start on \"QuizShop checkout\", but the evidence is uneven across the four checks. Close the priority gaps before the correction task."
+          },
+          "dimensions": [
+            {
+              "conceptId": "requirements",
+              "level": "ready",
+              "evidence": "Reject invalid quantities with a clear message and preserve valid orders.",
+              "strength": "Included quantities must be integers of at least one. Reject invalid values instead of changing the order.",
+              "gap": "No gap flagged by this check. Confirm it with a hands-on task."
+            },
+            {
+              "conceptId": "code-reading",
+              "level": "developing",
+              "evidence": "It assumes all products have the same price.",
+              "strength": "Not yet evidenced. An empty cart gives total=0 and count=0. Dividing them does not produce the required numeric zero.",
+              "gap": "This checks part of the behavior but leaves a requirement unverified. Review the requirement and explain a check that exposes the defect."
+            },
+            {
+              "conceptId": "software-testing",
+              "level": "developing",
+              "evidence": "Check several valid orders only.",
+              "strength": "Not yet evidenced. A successful normal purchase is not enough. Check rejected inputs and preserve valid totals and weighted averages.",
+              "gap": "This checks part of the behavior but leaves a requirement unverified. Review the requirement and explain a check that exposes the defect."
+            },
+            {
+              "conceptId": "edge-cases",
+              "level": "foundation",
+              "evidence": "I do not know what averagePrice([]) should return for an empty cart.",
+              "strength": "Not yet evidenced. The discount range includes both endpoints. Values outside it must be rejected, not clamped.",
+              "gap": "Compare this with the stated requirement and observable behavior. Review the requirement and explain a check that exposes the defect."
+            }
+          ],
+          "priorities": [
+            "edge-cases",
+            "code-reading"
+          ],
+          "nextSteps": [
+            "Review the requirement and explain a check that exposes the defect.",
+            "Review the requirement and explain a check that exposes the defect.",
+            "Open the priority concept in the skill map, then bring this case to part 2."
+          ]
+        },
+        "source": "local",
+        "updatedAt": "2026-11-14T00:00:00.000Z"
+      }
+    },
+    {
+      "fixtureId": "discount-boundary-gap",
+      "caseId": "cart-checkout",
+      "caseVersion": 1,
+      "provenance": "synthetic-authored-diagnosis",
+      "record": {
+        "schemaVersion": 2,
+        "caseId": "cart-checkout",
+        "questionSource": "authored",
+        "learner": {
+          "background": "student",
+          "goal": "build"
+        },
+        "responses": [
+          {
+            "questionId": "cart-checkout-requirements",
+            "optionId": "best",
+            "explanation": ""
+          },
+          {
+            "questionId": "cart-checkout-code-reading",
+            "optionId": "best",
+            "explanation": ""
+          },
+          {
+            "questionId": "cart-checkout-software-testing",
+            "optionId": "partial",
+            "explanation": ""
+          },
+          {
+            "questionId": "cart-checkout-edge-cases",
+            "optionId": "partial",
+            "explanation": "An empty cart should return numeric 0, but I would test discount 0 and 100 only."
+          }
+        ],
+        "result": {
+          "caseId": "cart-checkout",
+          "overall": {
+            "level": "ready",
+            "summary": "Your answers give consistent evidence across the four checks in \"QuizShop checkout\". Use the correction task to defend the same decisions against a flawed AI answer."
+          },
+          "dimensions": [
+            {
+              "conceptId": "requirements",
+              "level": "ready",
+              "evidence": "Reject invalid quantities with a clear message and preserve valid orders.",
+              "strength": "Included quantities must be integers of at least one. Reject invalid values instead of changing the order.",
+              "gap": "No gap flagged by this check. Confirm it with a hands-on task."
+            },
+            {
+              "conceptId": "code-reading",
+              "level": "ready",
+              "evidence": "It assumes the total quantity is nonzero; an empty cart needs an explicit zero result.",
+              "strength": "An empty cart gives total=0 and count=0. Dividing them does not produce the required numeric zero.",
+              "gap": "No gap flagged by this check. Confirm it with a hands-on task."
+            },
+            {
+              "conceptId": "software-testing",
+              "level": "developing",
+              "evidence": "Check several valid orders only.",
+              "strength": "Not yet evidenced. A successful normal purchase is not enough. Check rejected inputs and preserve valid totals and weighted averages.",
+              "gap": "This checks part of the behavior but leaves a requirement unverified. Review the requirement and explain a check that exposes the defect."
+            },
+            {
+              "conceptId": "edge-cases",
+              "level": "developing",
+              "evidence": "An empty cart should return numeric 0, but I would test discount 0 and 100 only.",
+              "strength": "Not yet evidenced. The discount range includes both endpoints. Values outside it must be rejected, not clamped.",
+              "gap": "This checks part of the behavior but leaves a requirement unverified. Review the requirement and explain a check that exposes the defect."
+            }
+          ],
+          "priorities": [
+            "software-testing",
+            "edge-cases"
+          ],
+          "nextSteps": [
+            "Review the requirement and explain a check that exposes the defect.",
+            "Review the requirement and explain a check that exposes the defect.",
+            "Open the priority concept in the skill map, then bring this case to part 2."
+          ]
+        },
+        "source": "local",
+        "updatedAt": "2026-11-14T00:00:00.000Z"
+      }
+    }
+  ],
+  "reviewedVariants": [
+    {
+      "fixtureId": "empty-cart-variant",
+      "caseId": "cart-checkout",
+      "caseVersion": 1,
+      "provenance": "synthetic-authored-diagnosis",
+      "record": {
+        "schemaVersion": 2,
+        "caseId": "cart-checkout",
+        "questionSource": "authored",
+        "learner": {
+          "background": "student",
+          "goal": "build"
+        },
+        "responses": [
+          {
+            "questionId": "cart-checkout-requirements",
+            "optionId": "best",
+            "explanation": ""
+          },
+          {
+            "questionId": "cart-checkout-code-reading",
+            "optionId": "partial",
+            "explanation": ""
+          },
+          {
+            "questionId": "cart-checkout-software-testing",
+            "optionId": "partial",
+            "explanation": ""
+          },
+          {
+            "questionId": "cart-checkout-edge-cases",
+            "optionId": "off",
+            "explanation": "I am unsure whether an empty cart needs a numeric zero or a blank average."
+          }
+        ],
+        "result": {
+          "caseId": "cart-checkout",
+          "overall": {
+            "level": "developing",
+            "summary": "You have a workable start on \"QuizShop checkout\", but the evidence is uneven across the four checks. Close the priority gaps before the correction task."
+          },
+          "dimensions": [
+            {
+              "conceptId": "requirements",
+              "level": "ready",
+              "evidence": "Reject invalid quantities with a clear message and preserve valid orders.",
+              "strength": "Included quantities must be integers of at least one. Reject invalid values instead of changing the order.",
+              "gap": "No gap flagged by this check. Confirm it with a hands-on task."
+            },
+            {
+              "conceptId": "code-reading",
+              "level": "developing",
+              "evidence": "It assumes all products have the same price.",
+              "strength": "Not yet evidenced. An empty cart gives total=0 and count=0. Dividing them does not produce the required numeric zero.",
+              "gap": "This checks part of the behavior but leaves a requirement unverified. Review the requirement and explain a check that exposes the defect."
+            },
+            {
+              "conceptId": "software-testing",
+              "level": "developing",
+              "evidence": "Check several valid orders only.",
+              "strength": "Not yet evidenced. A successful normal purchase is not enough. Check rejected inputs and preserve valid totals and weighted averages.",
+              "gap": "This checks part of the behavior but leaves a requirement unverified. Review the requirement and explain a check that exposes the defect."
+            },
+            {
+              "conceptId": "edge-cases",
+              "level": "foundation",
+              "evidence": "I am unsure whether an empty cart needs a numeric zero or a blank average.",
+              "strength": "Not yet evidenced. The discount range includes both endpoints. Values outside it must be rejected, not clamped.",
+              "gap": "Compare this with the stated requirement and observable behavior. Review the requirement and explain a check that exposes the defect."
+            }
+          ],
+          "priorities": [
+            "edge-cases",
+            "code-reading"
+          ],
+          "nextSteps": [
+            "Review the requirement and explain a check that exposes the defect.",
+            "Review the requirement and explain a check that exposes the defect.",
+            "Open the priority concept in the skill map, then bring this case to part 2."
+          ]
+        },
+        "source": "local",
+        "updatedAt": "2026-11-14T00:00:00.000Z"
+      }
+    }
+  ]
+}

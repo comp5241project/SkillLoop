@@ -42,7 +42,7 @@ Work in an isolated worktree and `feature/enhancement-v2` (or another approved n
 - M2-01: Select one existing case, one concept and two contrasting valid diagnosis records.
 - M2-02: Define `GeneratedLearningCard` schema and permitted case facts/references.
 - M2-03: Generate explanation plus exercise through existing server-side AI architecture.
-- M2-04: Reject malformed output, invented requirements, prompt injection and unauthorized private data.
+- M2-04: Isolated student-delivery projection, synthetic review gate, narrow factual checks, malicious-content tests and bounded timeout/cancellation. Human quality scores, real-model injection behavior and production authorization remain pending.
 - M2-05: Show two different relevant teaching experiences and safe fallback to fixed cards.
 - M2-06: Record real API latency, success, retries, cost where available and human teaching-quality assessment.
 
