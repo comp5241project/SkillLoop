@@ -13,27 +13,34 @@ Work mainly in this folder.
 
 Open `/correction-lab/`, or `/correction-lab/?case=agent-edits-test` to open one case. Unknown case IDs fall back to the first case.
 
-## Break the vibe-coded app
+## Part 4: AI-assisted verification
 
-Open `/correction-lab/break.html`, or add `?level=quizhub-admin` for one level. Each level is a small working app whose logic is written the way a coding agent often leaves it: one happy path works and the rest was never checked.
+Open `/correction-lab/break.html`, or add `?case=quiz-permissions` or `?case=notes-save`. This is part 4 of the team flow described in [docs/team-samples](../docs/team-samples/README.md): the learner applies the repair plan they confirmed in the repair dialogue and verifies it with real tests.
 
-1. **Break it**: the app runs in a sandboxed frame. The learner uses it with inputs the AI never tried. A harness watches the app's real function calls and marks a bug as found when one shows it. Hints are optional.
-2. **Report it to the AI**: no code is needed. For each bug found, the report shows what the learner did and what happened, and the learner chooses what should happen. Each choice is a real code change, so a vague report ("just fix it") produces a fix that only hides the symptom.
-3. **Review the AI's fix**: the AI's changes are listed in plain words, with the code available on request, and the hidden tests really run. If they fail, the learner taps the change that does not do what the owner wants, corrects the report and sends it again. The app reloads with the AI's fix each time, so a bad fix can be tried.
-4. **Explain the fix**: one question per change on why it is the right one.
+**Input** `{ case, dialogue, testSpecs }`. The case and its fixed tests come from the shared materials. The dialogue is the confirmed plan from part 3. Cross-part saving is not connected yet, so no plan arrives: the page says so and offers the labelled sample plan. `readDialogue` and `writeVerification` at the top of `break.js` are the only two places to connect.
 
-Learners who can code may switch to **edit it myself**, which opens the AI's code in an editor and runs the same tests. Tests run in a Web Worker that is stopped after 3 seconds, so a loop that never ends cannot freeze the page. A level without `repair` data uses the editor and ends with one question about briefing the agent.
+**Flow**
 
-Up to three stars a level: all bugs without hints, tests passed on the first report (or by hand without opening the reference fix), and every explanation right first time. Nothing is graded by an AI and no server is involved. The AI's replies are authored in `levels.js`, one per report choice.
+1. **Your repair plan**: the plan as an acceptance checklist, with each check's live status.
+2. **Try the app**: the app runs in a sandboxed frame; an issue is marked as reproduced when the learner really triggers it.
+3. **Apply the plan**: for each issue the learner chooses the change that does what they asked for, or switches to editing the code. A wrong request leads to a wrong change, which the tests expose.
+4. **Test results**: every shared test runs in a Web Worker (stopped after 3 seconds) and reports `pass`, `fail`, `error` or `not_run` with an actual result. `fail` means the behaviour is wrong; `error` means the code could not load or finish. Any change to the code makes earlier results `not_run`.
+5. **AI review**: `POST /api/correction` with `action: "review"` sends the real results to the shared helper `server/ai.mjs`. The model returns only `aiReview` and `reviewTopics`; statuses and the outcome stay as the runner produced them. Without AI configuration, or after an error, the learner can show a labelled sample review built from the same results.
+6. **Explain the fix**: one question per issue once every test passes.
+
+**Output** `{ caseId, aiSource, verification: { testSource, tests, outcome, aiReview, reviewTopics } }`, shown on the page and stored under `verify` in the `correction` key. `testSource` is always `runner` here; `aiSource` is `api` only when the AI service answered. `outcome` follows the team rule: any fail is `needs_revision`, otherwise any error or not_run is `inconclusive`, otherwise `passed`.
 
 | File | Purpose |
 | --- | --- |
-| `levels.js` | Levels: app shell, AI-written code, bugs with detectors, report choices and their code changes, rules, hidden tests, reference fix |
-| `break.html`, `break.js` | Page, sandbox harness, bug cards, editor, results |
-| `break-runner.js`, `break-worker.js` | Test runner shared by the worker and the Node tests |
-| `break.test.cjs` | Runs every level: the AI code fails, the reference passes, each bug can be triggered and is gone after the fix |
+| `shared-samples.js` | Derived copy of the shared cases, tests and sample plans (`docs/` is not deployed). Regenerate with `node correction-lab/sync-shared.cjs`; a test fails when it is out of date |
+| `levels.js` | What is needed to run each case here: app shell, issue detectors, an executable check per test ID, repair choices and questions |
+| `break.html`, `break.js` | Page, sandbox harness, plan, results, review and output |
+| `break-runner.js`, `break-worker.js` | Test runner, outcome rule and repair assembly, shared by the worker, the API and the Node tests |
+| `break.test.cjs` | IDs match the shared materials; starter code needs revision; the shared reference passes; every wrong repair leaves a failing test |
 
-Levels so far: **QuizShop checkout** (negative quantity, discount range, empty cart; with the report flow) and **QuizHub sign-in** (hidden button instead of an access check, password boundary, unlimited guesses; editor only for now). To add one, append to `levels.js` and add a trigger for each bug in `break.test.cjs`. For the report flow add `repair.template` with a `/*bug-id*/` slot per bug, three `fixes` per bug (exactly one correct) and an `explain2` question; the tests check that every wrong choice leaves a failing test. Progress is stored under `break` in the `correction` key.
+AI configuration for the review uses the team variables `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` (see [AI setup](../docs/team-samples/AI-SETUP.md)). Teacher drafting below still uses its earlier provider settings until it is migrated. The review endpoint needs no teacher code, so the project owner should watch the shared quota.
+
+The earlier reading cases and the teacher studio below remain as extra practice outside the four-part flow.
 
 ## How a case works
 
