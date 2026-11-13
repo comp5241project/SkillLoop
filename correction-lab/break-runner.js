@@ -168,7 +168,30 @@
     };
   }
 
-  const api = { load, runTests, outcome, detects, assemble, checkDialogue, helpers };
+  /**
+   * Part 3 keeps its reviews in the `codeReview` store: an array of sessions, each with
+   * `output` once the learner confirms the plan. Returns the output of the most recently
+   * confirmed session for this case, or null. checkDialogue still decides whether it is usable.
+   */
+  function latestPart3(records, caseId) {
+    if (!Array.isArray(records)) return null;
+    const confirmedAt = (session) => {
+      const last = Array.isArray(session.revisions) ? session.revisions[session.revisions.length - 1] : null;
+      const time = last ? Date.parse(last.at) : NaN;
+      return Number.isNaN(time) ? 0 : time;
+    };
+    let best = null;
+    records.forEach((session, index) => {
+      if (!session || session.confirmed !== true || session.pending === true) return;
+      const output = session.output;
+      if (!output || typeof output !== 'object' || output.caseId !== caseId) return;
+      const rank = [confirmedAt(session), index];
+      if (!best || rank[0] > best.rank[0] || (rank[0] === best.rank[0] && rank[1] > best.rank[1])) best = { rank, output };
+    });
+    return best ? best.output : null;
+  }
+
+  const api = { load, runTests, outcome, detects, assemble, checkDialogue, latestPart3, helpers };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.SkillLoopRunner = api;
 })(typeof self === 'object' ? self : globalThis);

@@ -24,14 +24,13 @@
   };
 
   /* ---- Handoff with the other parts -------------------------------------------------
-   * The integration step will connect saving and navigation. Until then no confirmed plan
-   * arrives from part 3, so the page says so and offers the labelled sample plan.
-   * Replace these two functions when the shared store exists; nothing else reads or writes
-   * cross-part data. readPart3 returns part 3's whole output { caseId, aiSource, dialogue }
-   * as saved, or null; it is checked with runner.checkDialogue before use.
+   * readPart3 returns part 3's output { caseId, aiSource, dialogue } for this case: the most
+   * recently confirmed review in part 3's `codeReview` store, or null. It is checked with
+   * runner.checkDialogue before use; without a usable plan the page says so and offers the
+   * labelled sample plan. Nothing else reads or writes cross-part data.
    */
-  function readPart3(/* caseId */) {
-    return null;
+  function readPart3(caseId) {
+    return runner.latestPart3(app.read('codeReview', []), caseId);
   }
   function writeVerification(output) {
     state().output = output;
