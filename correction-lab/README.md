@@ -108,7 +108,7 @@ State uses the `correction` key. The top-level `{draft, revealed, nextSeen, case
 
 Apart from one new file, this branch only changes `correction-lab/`.
 
-- **`api/correction.js`** (new, about 30 lines): Vercel only runs functions from the root `api/` folder, so this thin endpoint calls `correction-lab/server.cjs`. It follows the same pattern as `api/interview.js` and needs no npm packages.
+- **`api/correction.js`** (new, about 30 lines): Vercel only runs functions from the root `api/` folder, so this thin endpoint calls `correction-lab/server.cjs`. It follows the same pattern as `api/dialogue.js` and needs no npm packages.
 - **AI provider**: the interview branch uses Vercel AI Gateway and the knowledge-map branch uses an OpenAI key. This module uses OpenRouter for the demo. Each module may retain its own provider and model.
 
 These shared edits are proposed for whoever merges:
