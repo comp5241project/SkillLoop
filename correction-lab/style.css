@@ -684,3 +684,57 @@
     margin-bottom: 6px;
   }
 }
+
+/* Part 4 verification: test statuses, plan checks and the record */
+#skillloop-prototype .bk-test[data-status='pass'] {
+  background: var(--cl-ok-bg);
+}
+#skillloop-prototype .bk-test[data-status='fail'] {
+  background: var(--sl-soft);
+}
+#skillloop-prototype .bk-test[data-status='error'] {
+  background: var(--cl-warn-bg);
+}
+#skillloop-prototype .bk-test[data-status='not_run'] {
+  background: var(--sl-bg);
+}
+#skillloop-prototype .bk-test {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+#skillloop-prototype .bk-mark[data-status='pass'] {
+  color: var(--cl-ok);
+}
+#skillloop-prototype .bk-mark[data-status='fail'] {
+  color: var(--sl-accent);
+}
+#skillloop-prototype .bk-mark[data-status='error'] {
+  color: var(--cl-warn);
+}
+#skillloop-prototype .bk-mark[data-status='not_run'] {
+  color: var(--sl-sub);
+}
+#skillloop-prototype .bk-test-body {
+  display: grid;
+  gap: 1px;
+}
+#skillloop-prototype .bk-test-body .cl-line-note {
+  grid-column: auto;
+  overflow-wrap: anywhere;
+}
+#skillloop-prototype .bk-report-card .bk-tests {
+  margin-top: 8px;
+}
+#skillloop-prototype .bk-topics {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+#skillloop-prototype #bk-output {
+  margin: 8px 0 0;
+  white-space: pre;
+  overflow-x: auto;
+  font-size: 12px;
+}
+#skillloop-prototype .bk-diff p {
+  margin: 6px 0 0;
+  color: var(--sl-text);
+}

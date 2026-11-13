@@ -140,3 +140,78 @@ test('a missing model gets a specific message', async () => {
 test('short notes are rejected', () => {
   assert.throws(() => service.readRequest({ action: 'draft', request: { notes: 'hi' } }), /lecture notes/);
 });
+
+/* ---- Part 4 review ---- */
+const shared = require('./shared-samples.js');
+const reviewBody = (caseId, status = 'pass') => ({
+  action: 'review',
+  caseId,
+  tests: shared.cases[caseId].tests.map((spec) => ({ testId: spec.testId, status, actual: 'x' })),
+  plan: [{ issueId: shared.cases[caseId].issues[0].issueId, changeRequest: 'Reject it.' }],
+});
+const ai = (data) => async ({ validate }) => {
+  if (validate(data) !== true) throw Object.assign(new Error('invalid'), { code: 'INVALID_OUTPUT' });
+  return { data, model: 'm', aiSource: 'api' };
+};
+
+test('review output has the part 4 handoff shape and keeps the runner results', async () => {
+  const body = reviewBody('cart-checkout');
+  body.tests[4].status = 'fail';
+  const out = await service.review(body, { callAIJson: ai({ aiReview: 'Fractions are still accepted.', reviewTopics: ['edge-cases'] }) });
+  assert.deepEqual(Object.keys(out), ['caseId', 'aiSource', 'verification']);
+  assert.deepEqual(Object.keys(out.verification), ['testSource', 'tests', 'outcome', 'aiReview', 'reviewTopics']);
+  assert.equal(out.aiSource, 'api');
+  assert.equal(out.verification.testSource, 'runner');
+  assert.equal(out.verification.outcome, 'needs_revision');
+  assert.deepEqual(out.verification.tests, body.tests);
+});
+
+test('the model cannot add fields, invent topics or change the outcome', async () => {
+  const body = reviewBody('quiz-permissions', 'fail');
+  for (const bad of [
+    { aiReview: 'ok', reviewTopics: ['security'] },
+    { aiReview: '', reviewTopics: [] },
+    { aiReview: 'ok', reviewTopics: [], outcome: 'passed' },
+  ]) {
+    await assert.rejects(service.review(body, { callAIJson: ai(bad) }));
+  }
+  const out = await service.review(body, { callAIJson: ai({ aiReview: 'All good!', reviewTopics: [] }) });
+  assert.equal(out.verification.outcome, 'needs_revision');
+});
+
+test('results from another case or with unknown statuses are refused', () => {
+  const mixed = reviewBody('cart-checkout');
+  mixed.caseId = 'notes-save';
+  assert.throws(() => service.readReview(mixed), /one result for each test/);
+  const odd = reviewBody('notes-save');
+  odd.tests[0].status = 'passed';
+  assert.throws(() => service.readReview(odd), /one result for each test/);
+  assert.throws(() => service.readReview({ action: 'review', caseId: 'nope', tests: [] }), /Unknown case/);
+});
+
+test('the review prompt is built from the shared case, not from the request', () => {
+  const prompt = service.reviewPrompt(shared.cases['notes-save']);
+  assert.match(prompt, /Show saved only after the request confirms success/);
+  assert.match(prompt, /Never say a test passed or failed differently/);
+});
+
+test('the endpoint creates no global window, so the shared AI helper can run', () => {
+  const { execFileSync } = require('node:child_process');
+  const out = execFileSync(process.execPath, ['-e', "require('./api/correction.js'); console.log(typeof window)"], {
+    cwd: require('node:path').join(__dirname, '..'),
+    encoding: 'utf8',
+  });
+  assert.equal(out.trim(), 'undefined');
+});
+
+test('without AI configuration the review endpoint answers NOT_CONFIGURED', () => {
+  const { execFileSync } = require('node:child_process');
+  const script = `
+    const handler = require('./api/correction.js');
+    const res = { setHeader() {}, status(c) { this.c = c; return this; }, json(v) { console.log(this.c, v.code); } };
+    handler({ method: 'POST', headers: {}, body: ${JSON.stringify(JSON.stringify(reviewBody('cart-checkout')))} }, res);`;
+  const env = { ...process.env };
+  ['AI_BASE_URL', 'AI_API_KEY', 'AI_MODEL'].forEach((name) => delete env[name]);
+  const out = execFileSync(process.execPath, ['-e', script], { cwd: require('node:path').join(__dirname, '..'), encoding: 'utf8', env });
+  assert.equal(out.trim(), '503 NOT_CONFIGURED');
+});

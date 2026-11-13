@@ -302,4 +302,95 @@ function demo(request) {
   };
 }
 
-module.exports = { provider, configured, readRequest, prompt, parse, draft, demo };
+/* ---- Part 4: AI review of real test results (shared AI helper, server/ai.mjs) ---- */
+
+const shared = require('./shared-samples.js');
+const runner = require('./break-runner.js');
+const STATUSES = ['pass', 'fail', 'error', 'not_run'];
+const TOPIC_IDS = shared.topics.map((topic) => topic.topicId);
+
+function reviewConfigured(env = process.env) {
+  return Boolean(env.AI_BASE_URL && env.AI_API_KEY && env.AI_MODEL);
+}
+
+/** Accepts only this case's test IDs and issue IDs, so another case's results cannot be reviewed. */
+function readReview(body) {
+  const item = body && shared.cases[body.caseId];
+  if (!body || body.action !== 'review' || !item) throw new Error('Unknown case.');
+  const ids = item.tests.map((spec) => spec.testId);
+  const tests = Array.isArray(body.tests) ? body.tests : [];
+  const valid =
+    tests.length === ids.length &&
+    tests.every(
+      (t, i) => t && t.testId === ids[i] && STATUSES.includes(t.status) && typeof t.actual === 'string' && t.actual.length <= 400
+    );
+  if (!valid) throw new Error('Send one result for each test of this case.');
+  const issueIds = item.issues.map((issue) => issue.issueId);
+  const plan = (Array.isArray(body.plan) ? body.plan : [])
+    .filter((step) => step && issueIds.includes(step.issueId) && typeof step.changeRequest === 'string')
+    .slice(0, issueIds.length)
+    .map((step) => ({ issueId: step.issueId, changeRequest: step.changeRequest.slice(0, 500) }));
+  return { item, tests: tests.map(({ testId, status, actual }) => ({ testId, status, actual })), plan };
+}
+
+function reviewPrompt(item) {
+  return `You are a coach reviewing a learner's repair of AI-written code in a software engineering course.
+You are given the case requirements, the fixed tests, the learner's repair requests and the ACTUAL results of running the tests.
+
+Rules:
+- The test results are facts. Never say a test passed or failed differently from the results, and never declare the repair passed or failed yourself.
+- Explain in plain English what the results show, which requirement each failure relates to, and what to check next. Do not write code.
+- If every test passed, say what the evidence shows and one thing these tests do not prove.
+- Address the learner as "you". 2 to 4 sentences, at most 600 characters.
+
+Return JSON with exactly two fields:
+- "aiReview": string.
+- "reviewTopics": array of topic IDs the learner should revise, chosen only from ${JSON.stringify(TOPIC_IDS)}. Use [] when every test passed.
+
+Case: ${item.title}
+Requirements: ${JSON.stringify(item.requirements)}
+Issues: ${JSON.stringify(item.issues.map(({ issueId, title, topicIds }) => ({ issueId, title, topicIds })))}
+Tests: ${JSON.stringify(item.tests)}`;
+}
+
+function validReview(data) {
+  return (
+    Object.keys(data).length === 2 &&
+    typeof data.aiReview === 'string' &&
+    data.aiReview.trim().length > 0 &&
+    data.aiReview.length <= 900 &&
+    Array.isArray(data.reviewTopics) &&
+    data.reviewTopics.every((id) => TOPIC_IDS.includes(id)) &&
+    new Set(data.reviewTopics).size === data.reviewTopics.length
+  );
+}
+
+/**
+ * Builds the part 4 handoff output. Test statuses and the outcome come from the submitted
+ * runner results; the model only supplies aiReview and reviewTopics.
+ */
+async function review(body, { callAIJson }) {
+  const { item, tests, plan } = readReview(body);
+  const result = await callAIJson({
+    system: reviewPrompt(item),
+    messages: [{ role: 'user', content: JSON.stringify({ repairRequests: plan, results: tests }) }],
+    validate: validReview,
+    maxTokens: 700,
+  });
+  return {
+    caseId: item.caseId,
+    aiSource: result.aiSource,
+    verification: {
+      testSource: 'runner',
+      tests,
+      outcome: runner.outcome(tests),
+      aiReview: result.data.aiReview.trim(),
+      reviewTopics: result.data.reviewTopics,
+    },
+  };
+}
+
+module.exports = {
+  provider, configured, readRequest, prompt, parse, draft, demo,
+  reviewConfigured, readReview, reviewPrompt, validReview, review,
+};

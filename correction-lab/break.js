@@ -1,82 +1,99 @@
 /**
- * "Break the vibe-coded app": the learner uses a small app in a sandboxed frame and bugs are
- * detected from the app's real calls. To fix it they report each bug to the AI (no code needed)
- * and review the change that comes back, or edit the code themselves. Either way the fix is
- * verified by running hidden tests in a Web Worker. Nothing here is graded by an AI.
+ * Part 4, AI-assisted verification. Input is { case, dialogue, testSpecs }: the shared case,
+ * the repair plan the learner confirmed in part 3, and the case's fixed tests. The learner
+ * applies the plan (by choosing changes or editing code), the tests really run in a Web
+ * Worker, and AI reviews the results. Output is
+ * { caseId, aiSource, verification: { testSource, tests, outcome, aiReview, reviewTopics } }.
+ * Test statuses and the outcome always come from the runner, never from the AI.
  */
 (function () {
   const app = window.SkillLoop;
+  const shared = window.SkillLoopShared;
   const levels = window.SkillLoopLevels;
   const runner = window.SkillLoopRunner;
   const $ = (selector) => document.querySelector(selector);
+  const caseIds = Object.keys(shared.cases);
   const frame = $('#bk-app');
   const editor = $('#bk-code');
   editor.maxLength = 5000;
+  const WORDS = { pass: 'Pass', fail: 'Fail', error: 'Error', not_run: 'Not run' };
+  const OUTCOMES = {
+    passed: 'All tests pass for this case.',
+    needs_revision: 'Needs revision: at least one test fails.',
+    inconclusive: 'Inconclusive: some tests could not run.',
+  };
+
+  /* ---- Handoff with the other parts -------------------------------------------------
+   * The integration step will connect saving and navigation. Until then no confirmed plan
+   * arrives from part 3, so the page says so and offers the labelled sample plan.
+   * Replace these two functions when the shared store exists; nothing else reads or writes
+   * cross-part data.
+   */
+  function readDialogue(/* caseId */) {
+    return null;
+  }
+  function writeVerification(output) {
+    state().output = output;
+    save();
+    document.dispatchEvent(new CustomEvent('skillloop:verification', { detail: output }));
+  }
 
   const saved = app.read('correction', {});
-  const stored = saved.break && typeof saved.break === 'object' ? saved.break : {};
-  const ids = (value, allowed) =>
-    Array.isArray(value) ? [...new Set(value.filter((id) => allowed.includes(id)))] : [];
-  // A map from bug ID to an option index (0-2), dropping anything else.
-  const picks = (value, bugIds) =>
-    Object.fromEntries(
-      Object.entries(value && typeof value === 'object' ? value : {}).filter(
-        ([id, n]) => bugIds.includes(id) && [0, 1, 2].includes(n)
-      )
-    );
-  const blank = (data) => ({
-    found: [],
+  const stored = saved.verify && typeof saved.verify === 'object' ? saved.verify : {};
+  const blank = (caseId) => ({
+    plan: null, // { source: 'sample' | 'dialogue', dialogue }
+    reproduced: [],
+    choices: {},
+    mode: 'choices',
+    code: shared.cases[caseId].starterCode,
+    run: null, // { code, tests } for the code the tests last ran on
+    review: null, // { key, aiSource, aiReview, reviewTopics }
     hints: [],
-    code: data.code,
-    passed: false,
-    runs: 0,
-    refShown: false,
-    lessonTries: [],
-    mode: data.repair ? 'report' : 'code',
-    report: {},
-    sent: null,
-    sends: 0,
-    firstPass: false,
-    flagged: [],
     explain: {},
+    output: null,
   });
   const progress = {};
-  levels.forEach((data) => {
-    const entry = stored[data.id] && typeof stored[data.id] === 'object' ? stored[data.id] : {};
-    const bugIds = data.bugs.map((bug) => bug.id);
+  caseIds.forEach((caseId) => {
+    const entry = stored[caseId] && typeof stored[caseId] === 'object' ? stored[caseId] : {};
+    const issueIds = shared.cases[caseId].issues.map((issue) => issue.issueId);
+    const list = (value) => (Array.isArray(value) ? value.filter((id) => issueIds.includes(id)) : []);
+    const choices = {};
     const explain = {};
-    bugIds.forEach((id) => {
-      explain[id] = ids(entry.explain && entry.explain[id], [0, 1, 2]);
+    issueIds.forEach((id) => {
+      if (entry.choices && [0, 1, 2].includes(entry.choices[id])) choices[id] = entry.choices[id];
+      const tries = entry.explain && Array.isArray(entry.explain[id]) ? entry.explain[id] : [];
+      explain[id] = tries.filter((n) => [0, 1, 2].includes(n));
     });
-    progress[data.id] = {
-      ...blank(data),
-      found: ids(entry.found, bugIds),
-      hints: ids(entry.hints, bugIds),
-      code: typeof entry.code === 'string' ? entry.code.slice(0, 5000) : data.code,
-      passed: entry.passed === true,
-      runs: Number.isInteger(entry.runs) ? entry.runs : 0,
-      refShown: entry.refShown === true,
-      lessonTries: ids(entry.lessonTries, [0, 1, 2]),
-      mode: data.repair && entry.mode !== 'code' ? 'report' : 'code',
-      report: picks(entry.report, bugIds),
-      sent: data.repair && entry.sent ? picks(entry.sent, bugIds) : null,
-      sends: Number.isInteger(entry.sends) ? entry.sends : 0,
-      firstPass: entry.firstPass === true,
-      flagged: ids(entry.flagged, bugIds),
+    const dialogue = readDialogue(caseId);
+    progress[caseId] = {
+      ...blank(caseId),
+      plan: dialogue
+        ? { source: 'dialogue', dialogue }
+        : entry.plan && entry.plan.source === 'sample'
+          ? { source: 'sample', dialogue: shared.sampleDialogues[caseId] }
+          : null,
+      reproduced: list(entry.reproduced),
+      choices,
+      mode: entry.mode === 'code' ? 'code' : 'choices',
+      code: typeof entry.code === 'string' ? entry.code.slice(0, 5000) : shared.cases[caseId].starterCode,
+      run: entry.run && typeof entry.run.code === 'string' && Array.isArray(entry.run.tests) ? entry.run : null,
+      review: entry.review && typeof entry.review.aiReview === 'string' ? entry.review : null,
+      hints: list(entry.hints),
       explain,
+      output: entry.output && entry.output.verification ? entry.output : null,
     };
   });
 
-  const requested = new URLSearchParams(location.search).get('level');
-  let current = Math.max(0, levels.findIndex((data) => data.id === requested));
-  let results = null; // Last test results for the code now shown in the app.
+  const requested = new URLSearchParams(location.search).get('case');
+  let current = caseIds.includes(requested) ? requested : caseIds[0];
   let worker = null;
 
+  const item = () => shared.cases[current];
   const level = () => levels[current];
-  const state = () => progress[level().id];
+  const state = () => progress[current];
   function save() {
     // Other pages share the `correction` key, so keep whatever they stored.
-    app.write('correction', { ...app.read('correction', {}), break: progress });
+    app.write('correction', { ...app.read('correction', {}), verify: progress });
   }
   function element(tag, className, content) {
     const node = document.createElement(tag);
@@ -84,53 +101,50 @@
     if (content !== undefined) node.textContent = content;
     return node;
   }
-  const solved = (tries, answer) => tries.includes(answer);
-  const explained = (data, entry) => data.bugs.every((bug) => solved(entry.explain[bug.id], bug.explain2.answer));
-  const complete = (data) => {
-    const entry = progress[data.id];
-    if (!entry.passed) return false;
-    return data.repair ? explained(data, entry) : solved(entry.lessonTries, data.lesson.answer);
-  };
-  function stars(data) {
-    const entry = progress[data.id];
-    const fixedWell = entry.passed && (entry.sent ? entry.firstPass : !entry.refShown);
-    const understood = data.repair
-      ? entry.passed && data.bugs.every((bug) => entry.explain[bug.id][0] === bug.explain2.answer)
-      : entry.lessonTries[0] === data.lesson.answer;
-    return (
-      Number(entry.found.length === data.bugs.length && entry.hints.length === 0) +
-      Number(fixedWell) +
-      Number(understood)
-    );
-  }
-  // The code the app and the tests use: the AI's reply to the last report, the learner's own
-  // edit once it passes, or the original.
+
+  // The code the tests and the app use right now.
   function activeCode() {
     const entry = state();
-    if (entry.sent) return runner.assemble(level(), entry.sent);
-    return entry.passed ? entry.code : level().code;
+    return entry.mode === 'code' ? entry.code : runner.assemble(level(), entry.choices);
   }
+  // Results count only for the exact code they ran on; after any change they are not_run.
+  function tests() {
+    const entry = state();
+    if (entry.run && entry.run.code === activeCode()) return entry.run.tests;
+    return item().tests.map((spec) => ({ testId: spec.testId, status: 'not_run', actual: '' }));
+  }
+  const hasRun = () => tests().some((result) => result.status !== 'not_run');
+  const reviewKey = () => JSON.stringify(tests());
+  const review = () => (state().review && state().review.key === reviewKey() ? state().review : null);
+  const solved = (tries, answer) => tries.includes(answer);
 
   /**
    * The app runs in a sandboxed frame with no access to this page or its storage. A small
-   * harness wraps the level's functions and reports when a real call shows a bug.
+   * harness reports when a real call shows one of the case's issues.
    */
   function loadApp() {
     const data = level();
+    const entry = state();
+    // Hand-edited code runs in the app only after the worker has shown that it finishes.
+    const safeToRun = entry.mode !== 'code' || (hasRun() && tests().every((result) => result.status !== 'error'));
+    const code = safeToRun ? activeCode() : item().starterCode;
     const safe = (source) => source.replace(/<\/script/gi, '<\\/script');
+    const watch = Object.entries(data.detectors).map(([id, d]) => ({ id, fn: d.fn, detect: d.detect }));
     const harness = `(function () {
-  var bugs = ${JSON.stringify(data.bugs.map(({ id, fn, detect }) => ({ id, fn, detect })))};
+  var caseId = ${JSON.stringify(current)};
+  window.__report = function (issueId) { parent.postMessage({ skillloop: 'issue', caseId: caseId, issueId: issueId }, '*'); };
+  var watch = ${JSON.stringify(watch)};
   ${JSON.stringify(data.fns)}.forEach(function (name) {
     var original = window[name];
     if (typeof original !== 'function') return;
     window[name] = function () {
       var args = Array.prototype.slice.call(arguments), result, error = null;
       try { result = original.apply(this, args); } catch (thrown) { error = thrown; }
-      bugs.forEach(function (bug) {
-        if (bug.fn !== name) return;
+      watch.forEach(function (w) {
+        if (w.fn !== name) return;
         var hit = false;
-        try { hit = !!new Function('args', 'result', 'error', 'return (' + bug.detect + ');')(args, result, error); } catch (_) {}
-        if (hit) parent.postMessage({ skillloop: 'bug', level: ${JSON.stringify(data.id)}, bug: bug.id }, '*');
+        try { hit = !!new Function('args', 'result', 'error', 'return (' + w.detect + ');')(args, result, error); } catch (_) {}
+        if (hit) window.__report(w.id);
       });
       if (error) throw error;
       return result;
@@ -144,13 +158,14 @@
 body { margin: 0; padding: 16px; font: 15px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #1c1b19; background: #fff; }
 h2 { margin: 0 0 12px; font-size: 17px; }
 label { display: block; margin: 10px 0 0; font-size: 14px; }
-input { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 9px 10px; border: 1px solid #d8d3c8; border-radius: 8px; font: inherit; }
-button { margin-top: 12px; padding: 9px 14px; border: 1px solid #b4472a; border-radius: 8px; background: #b4472a; color: #fff; font: inherit; cursor: pointer; }
-fieldset { margin: 0 0 12px; padding: 10px 12px 12px; border: 1px solid #e5e1d8; border-radius: 10px; }
+input, textarea { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 9px 10px; border: 1px solid #d8d3c8; border-radius: 8px; font: inherit; }
+button { margin: 12px 6px 0 0; padding: 9px 14px; border: 1px solid #b4472a; border-radius: 8px; background: #b4472a; color: #fff; font: inherit; cursor: pointer; }
+button:disabled { opacity: 0.45; cursor: default; }
+fieldset { margin: 12px 0 0; padding: 10px 12px 12px; border: 1px solid #e5e1d8; border-radius: 10px; }
 legend { padding: 0 6px; font-weight: 600; font-size: 14px; }
 p { margin: 10px 0 0; } .tip { color: #6b675f; font-size: 13px; margin-top: 0; }
 [role=status] { font-weight: 600; min-height: 1.5em; overflow-wrap: anywhere; }
-</style></head><body>${data.html}<script>${safe(activeCode())}</script><script>${harness}</script><script>${safe(data.wire)}</script></body></html>`;
+</style></head><body>${data.html}<script>${safe(code)}</script><script>${harness}</script><script>${safe(data.wire)}</script></body></html>`;
   }
 
   window.addEventListener('message', (event) => {
@@ -159,445 +174,493 @@ p { margin: 10px 0 0; } .tip { color: #6b675f; font-size: 13px; margin-top: 0; }
     if (message.skillloop === 'size' && Number.isFinite(message.height)) {
       frame.style.height = `${Math.min(1200, Math.max(180, Math.ceil(message.height) + 2))}px`;
     }
-    if (message.skillloop !== 'bug' || message.level !== level().id) return;
+    if (message.skillloop !== 'issue' || message.caseId !== current) return;
     const entry = state();
-    const bug = level().bugs.find((item) => item.id === message.bug);
-    if (!bug || entry.passed || entry.found.includes(bug.id)) return;
-    entry.found.push(bug.id);
+    if (!item().issues.some((issue) => issue.issueId === message.issueId)) return;
+    if (entry.reproduced.includes(message.issueId)) return;
+    entry.reproduced.push(message.issueId);
     save();
-    render();
-    const toast = $('#bk-toast');
-    toast.hidden = false;
-    toast.textContent = `Bug found: ${bug.title}.`;
-    if (entry.found.length === level().bugs.length) {
-      app.appendEvent({ module: 'correction-lab', type: 'bugs-found', conceptId: level().conceptId, caseId: level().id });
-    }
+    renderIssues();
   });
 
-  /** Run the hidden tests off the page; code that never finishes is stopped after 3 seconds. */
+  /** Run the fixed tests off the page; code that never finishes is stopped after 3 seconds. */
   function runTests(code) {
     return new Promise((resolve) => {
-      const data = level();
+      const checks = level().checks;
       worker = new Worker('/correction-lab/break-worker.js');
-      const done = (outcome) => {
+      const done = (results) => {
         clearTimeout(timer);
         worker.terminate();
         worker = null;
-        resolve(outcome);
+        resolve(results);
       };
+      const stuck = (actual) => checks.map((check) => ({ testId: check.testId, status: 'error', actual }));
       const timer = setTimeout(
-        () => done({ error: 'it did not finish within 3 seconds. Check for a loop that never ends.' }),
+        () => done(stuck('The code did not finish within 3 seconds. Check for a loop or a request that never ends.')),
         3000
       );
       worker.onmessage = (event) => done(event.data);
-      worker.onerror = () => done({ error: 'the test runner could not start.' });
-      worker.postMessage({ code, fns: data.fns, tests: data.tests });
+      worker.onerror = () => done(stuck('The test runner could not start.'));
+      worker.postMessage({ code, fns: level().fns, checks });
     });
   }
-  function markPassed() {
+  async function runNow() {
+    if (worker) return;
     const entry = state();
-    if (entry.passed) return;
-    entry.passed = true;
-    app.appendEvent({ module: 'correction-lab', type: 'fix-verified', conceptId: level().conceptId, caseId: level().id });
-  }
-
-  function choiceGroup(question, tries, onPick) {
-    const wrap = element('div', 'bk-choice');
-    const done = solved(tries, question.answer);
-    const box = element('div', 'cl-options');
-    box.setAttribute('role', 'group');
-    question.options.forEach((option, index) => {
-      const button = element('button', 'cl-option', option.text);
-      button.type = 'button';
-      if (tries.includes(index)) button.dataset.result = index === question.answer ? 'right' : 'wrong';
-      button.disabled = done || tries.includes(index);
-      button.addEventListener('click', () => onPick(index));
-      box.append(button);
-    });
-    wrap.append(box);
-    const last = tries[tries.length - 1];
-    if (last !== undefined) {
-      const right = last === question.answer;
-      const result = element('div', 'cl-result', `${right ? 'Correct.' : 'Not quite.'} ${question.options[last].why}`);
-      result.dataset.result = right ? 'right' : 'wrong';
-      wrap.append(result);
+    const code = activeCode();
+    entry.run = null;
+    entry.review = null;
+    entry.output = null;
+    $('#bk-send').disabled = true;
+    $('#bk-run').disabled = true;
+    const box = $('#bk-outcome');
+    box.dataset.result = '';
+    box.textContent = 'Running the tests…';
+    const results = await runTests(code);
+    entry.run = { code, tests: results };
+    save();
+    loadApp();
+    render();
+    $('#bk-step4').scrollIntoView({ block: 'start' });
+    $('#bk-step4').focus({ preventScroll: true });
+    if (runner.outcome(results) === 'passed') {
+      app.appendEvent({ module: 'correction-lab', type: 'fix-verified', conceptId: item().topicIds[0], caseId: current });
     }
-    return wrap;
   }
 
-  function renderLevels() {
+  function renderCases() {
     const list = $('#bk-levels');
     list.replaceChildren();
-    levels.forEach((data, index) => {
+    caseIds.forEach((caseId) => {
+      const entry = progress[caseId];
       const button = element('button', 'sl-btn cl-case');
       button.type = 'button';
-      button.setAttribute('aria-pressed', String(index === current));
-      const count = stars(data);
-      const meta = element('span', 'cl-case-meta');
-      meta.append(
-        element('span', 'cl-stars', '★'.repeat(count) + '☆'.repeat(3 - count)),
-        element('span', '', complete(data) ? 'Complete' : `${progress[data.id].found.length} of ${data.bugs.length} bugs`)
+      button.setAttribute('aria-pressed', String(caseId === current));
+      const out = entry.output && entry.output.verification.outcome;
+      const label = out ? { passed: 'Passed', needs_revision: 'Needs revision', inconclusive: 'Inconclusive' }[out] : entry.plan ? 'In progress' : 'Not started';
+      button.append(
+        element('span', 'cl-case-name', shared.cases[caseId].title),
+        element('span', 'cl-case-meta', label)
       );
-      meta.firstChild.setAttribute('aria-label', `${count} of 3 stars`);
-      button.append(element('span', 'cl-case-name', data.name), meta);
-      button.addEventListener('click', () => open(index));
+      button.addEventListener('click', () => open(caseId));
       list.append(button);
     });
-    const total = levels.reduce((sum, data) => sum + stars(data), 0);
-    $('#bk-stars').textContent = `★ ${total} / ${levels.length * 3}`;
   }
 
-  function renderBugs() {
-    const data = level();
+  function statusMark(status) {
+    const mark = element('span', 'bk-mark', WORDS[status]);
+    mark.dataset.status = status;
+    return mark;
+  }
+
+  // Step 1: the confirmed plan as an acceptance checklist.
+  function renderPlan() {
+    const entry = state();
+    const data = item();
+    const results = tests();
+    $('#bk-plan-source').textContent =
+      entry.plan.source === 'sample'
+        ? 'Sample plan (fictional example data, not your own dialogue).'
+        : 'The plan you confirmed in the repair dialogue.';
+    $('#bk-rules').replaceChildren(...data.requirements.map((rule) => element('li', '', rule)));
+    const box = $('#bk-plan');
+    box.replaceChildren();
+    entry.plan.dialogue.plan.forEach((step) => {
+      const issue = data.issues.find((candidate) => candidate.issueId === step.issueId);
+      const card = element('fieldset', 'bk-report-card');
+      card.append(element('legend', '', issue ? issue.title : step.issueId));
+      const facts = element('dl', 'bk-facts');
+      facts.append(
+        element('dt', '', 'Problem'),
+        element('dd', '', step.problem),
+        element('dt', '', 'Change requested'),
+        element('dd', '', step.changeRequest)
+      );
+      card.append(facts);
+      const checks = element('ul', 'bk-tests');
+      step.checks.forEach((check) => {
+        const result = results.find((r) => r.testId === check.testId) || { status: 'not_run' };
+        const row = element('li', 'bk-test');
+        row.dataset.status = result.status;
+        row.append(statusMark(result.status), element('span', '', `${check.input} → ${check.expected}`));
+        checks.append(row);
+      });
+      card.append(checks);
+      box.append(card);
+    });
+    $('#bk-plan-feedback').textContent = entry.plan.dialogue.feedback
+      ? `Feedback from the dialogue step: ${entry.plan.dialogue.feedback}`
+      : '';
+  }
+
+  // Step 2: which issues the learner has seen for themselves in the running app.
+  function renderIssues() {
     const entry = state();
     const list = $('#bk-bugs');
     list.replaceChildren();
-    data.bugs.forEach((bug, index) => {
-      const found = entry.found.includes(bug.id);
+    item().issues.forEach((issue) => {
+      const seen = entry.reproduced.includes(issue.issueId);
       const card = element('div', 'bk-bug');
-      card.dataset.found = String(found);
-      card.append(element('strong', '', found ? bug.title : `Bug ${index + 1} · not found yet`));
-      if (found) card.append(element('p', '', bug.explain));
-      else if (entry.hints.includes(bug.id)) card.append(element('p', '', `Hint: ${bug.hint}`));
-      else {
-        const hint = element('button', 'sl-text-button', 'Show a hint');
-        hint.type = 'button';
-        hint.setAttribute('aria-label', `Show a hint for bug ${index + 1}`);
-        hint.addEventListener('click', () => {
-          entry.hints.push(bug.id);
-          save();
-          render();
-        });
-        card.append(hint);
-      }
+      card.dataset.found = String(seen);
+      card.append(element('strong', '', issue.title));
+      card.append(element('p', '', seen ? `Reproduced: ${issue.observed}` : 'Not reproduced in the app yet.'));
       list.append(card);
     });
-    $('#bk-progress').textContent = entry.passed
-      ? 'Fixed. The app below runs the fixed code, so try to break it again.'
-      : entry.sent
-        ? `The app below now runs the AI's fix. Try it. Bugs found: ${entry.found.length} of ${data.bugs.length}.`
-        : `Use the app with inputs the AI never tried. Bugs found: ${entry.found.length} of ${data.bugs.length}.`;
   }
 
-  function renderTests(list, items) {
-    list.replaceChildren();
-    (items || []).forEach((result) => {
-      const row = element('li', 'bk-test', result.name);
-      row.dataset.ok = String(result.ok);
-      row.prepend(element('span', 'bk-mark', result.ok ? 'Pass' : 'Fail'));
-      if (result.error) row.append(element('span', 'cl-line-note', `Error: ${result.error}`));
-      list.append(row);
-    });
-  }
-
-  // Step 2 without code: a bug report per found bug. The learner chooses what should happen.
-  function renderReport() {
-    const data = level();
+  // Step 3 without code: one card per issue; the learner chooses the change that matches
+  // what they asked for. A wrong request leads to a wrong change, and the tests show it.
+  function renderChoices() {
     const entry = state();
+    const data = item();
+    const results = tests();
+    const ran = hasRun();
     const box = $('#bk-report');
     box.replaceChildren();
-    data.bugs.forEach((bug, index) => {
+    data.issues.forEach((issue) => {
+      const step = entry.plan.dialogue.plan.find((candidate) => candidate.issueId === issue.issueId);
+      const fixes = level().repair.fixes[issue.issueId];
       const card = element('fieldset', 'bk-report-card');
-      if (!entry.found.includes(bug.id)) {
-        card.append(element('legend', '', `Bug ${index + 1}`), element('p', 'cl-hint', 'Find this bug in the app before you can report it.'));
-        box.append(card);
-        return;
-      }
-      card.append(element('legend', '', bug.title));
+      card.append(element('legend', '', issue.title));
       const facts = element('dl', 'bk-facts');
       facts.append(
-        element('dt', '', 'What I did'),
-        element('dd', '', bug.did),
-        element('dt', '', 'What happened'),
-        element('dd', '', bug.happened),
-        element('dt', '', 'What should happen')
+        element('dt', '', 'You asked for'),
+        element('dd', '', step ? step.changeRequest : 'Nothing: this issue is not in your plan.')
       );
       card.append(facts);
       const options = element('div', 'cl-options');
       options.setAttribute('role', 'group');
-      options.setAttribute('aria-label', `What should happen for: ${bug.title}`);
-      bug.fixes.forEach((fix, n) => {
-        const button = element('button', 'cl-option', fix.ask);
+      options.setAttribute('aria-label', `Change for: ${issue.title}`);
+      fixes.forEach((fix, index) => {
+        const button = element('button', 'cl-option', fix.label);
         button.type = 'button';
-        button.setAttribute('aria-pressed', String(entry.report[bug.id] === n));
-        button.disabled = entry.passed;
+        button.setAttribute('aria-pressed', String(entry.choices[issue.issueId] === index));
         button.addEventListener('click', () => {
-          entry.report[bug.id] = n;
+          // Choosing again leaves the issue unchanged, so a learner can undo a change.
+          if (entry.choices[issue.issueId] === index) delete entry.choices[issue.issueId];
+          else entry.choices[issue.issueId] = index;
+          entry.hints = entry.hints.filter((id) => id !== issue.issueId);
+          entry.output = null;
           save();
+          loadApp();
           render();
         });
         options.append(button);
       });
       card.append(options);
+
+      const chosen = fixes[entry.choices[issue.issueId]];
+      const own = data.tests.filter((spec) => spec.issueId === issue.issueId).map((spec) => spec.testId);
+      const failed = results.filter((r) => own.includes(r.testId) && r.status === 'fail').length;
+      if (ran && chosen) {
+        const details = element('details', 'bk-diff');
+        details.append(element('summary', '', 'What this change does, and its code'), element('p', '', chosen.say));
+        details.append(element('pre', 'sl-code', Object.values(chosen.parts).join('\n') || '(This change removes the line that cleared the draft.)'));
+        card.append(details);
+      }
+      if (ran && failed) {
+        if (entry.hints.includes(issue.issueId)) {
+          card.append(
+            element(
+              'p',
+              'bk-verdict',
+              chosen ? (chosen.correct ? 'This change meets the requirement. Look at the other items.' : chosen.why) : `No change is applied for this issue yet. ${issue.observed}`
+            )
+          );
+        } else {
+          const hint = element('button', 'sl-text-button', `${failed} test${failed === 1 ? '' : 's'} for this item fail. Show a hint`);
+          hint.type = 'button';
+          hint.addEventListener('click', () => {
+            entry.hints.push(issue.issueId);
+            save();
+            render();
+          });
+          card.append(hint);
+        }
+      }
       box.append(card);
     });
-    const ready = entry.found.length > 0 && entry.found.every((id) => entry.report[id] !== undefined);
-    const changed = !entry.sent || entry.found.some((id) => entry.sent[id] !== entry.report[id]);
-    $('#bk-send').disabled = !ready || !changed || entry.passed || Boolean(worker);
-    $('#bk-send-label').textContent = entry.sent ? 'Send the updated report' : 'Send to the AI';
   }
 
-  // Step 3: what the AI changed, in plain words, with the real test results.
-  function renderReview() {
-    const data = level();
-    const entry = state();
-    $('#bk-step-review').hidden = !entry.sent;
-    if (!entry.sent) return;
-    const reported = data.bugs.filter((bug) => entry.sent[bug.id] !== undefined);
-    const failing = (results || []).some((result) => !result.ok);
-    $('#bk-ai-reply').textContent = `Thanks for the report. I made ${reported.length} change${reported.length === 1 ? '' : 's'} and I am confident it is fixed now.`;
-    const list = $('#bk-changes');
+  // Step 4: every test of the case with its real status.
+  function renderResults() {
+    const data = item();
+    const results = tests();
+    const out = runner.outcome(results);
+    const box = $('#bk-outcome');
+    if (!hasRun()) {
+      box.dataset.result = '';
+      box.textContent = state().run
+        ? 'The code changed since the last run, so the earlier results no longer apply. Run the tests again.'
+        : 'The tests have not run on this code yet.';
+    } else {
+      box.dataset.result = { passed: 'right', needs_revision: 'partial', inconclusive: 'wrong' }[out];
+      const passed = results.filter((r) => r.status === 'pass').length;
+      box.textContent = `${OUTCOMES[out]} ${passed} of ${results.length} pass.`;
+    }
+    const list = $('#bk-tests');
     list.replaceChildren();
-    reported.forEach((bug, index) => {
-      const fix = bug.fixes[entry.sent[bug.id]];
-      const flagged = entry.flagged.includes(bug.id);
-      const card = element('div', 'bk-change');
-      const head = element(failing && !flagged ? 'button' : 'div', 'bk-change-head');
-      head.append(element('strong', '', `Change ${index + 1} · ${bug.title}`), element('span', '', fix.say));
-      if (head.tagName === 'BUTTON') {
-        head.type = 'button';
-        head.addEventListener('click', () => {
-          entry.flagged.push(bug.id);
-          save();
-          render();
+    results.forEach((result) => {
+      const spec = data.tests.find((candidate) => candidate.testId === result.testId);
+      const row = element('li', 'bk-test');
+      row.dataset.status = result.status;
+      const body = element('span', 'bk-test-body');
+      body.append(
+        element('strong', '', spec.action),
+        element('span', 'cl-line-note', `Expected: ${spec.expected}`),
+        element('span', 'cl-line-note', result.actual ? `Actual: ${result.actual}` : 'Actual: not run yet.')
+      );
+      row.append(statusMark(result.status), body);
+      list.append(row);
+    });
+  }
+
+  /** Labelled fallback when the AI is not connected: built only from the real results. */
+  function sampleReview() {
+    const data = item();
+    const results = tests();
+    const failing = results.filter((r) => r.status !== 'pass');
+    if (!failing.length) {
+      return {
+        aiReview: `Sample review (AI not connected): all ${results.length} tests pass on the current code. That shows the stated requirements hold for these inputs; it does not show the app is safe or complete beyond this teaching case.`,
+        reviewTopics: [],
+      };
+    }
+    const first = failing[0];
+    const spec = data.tests.find((candidate) => candidate.testId === first.testId);
+    const topics = new Set();
+    failing.forEach((r) => {
+      const issue = data.issues.find((candidate) => candidate.issueId === data.tests.find((t) => t.testId === r.testId).issueId);
+      (issue ? issue.topicIds : ['software-testing']).forEach((id) => topics.add(id));
+    });
+    return {
+      aiReview: `Sample review (AI not connected): ${failing.length} of ${results.length} tests do not pass. For example, "${spec.action}" expected "${spec.expected}" but the result was: ${first.actual} Compare the change with the requirement, adjust it and run the tests again.`,
+      reviewTopics: [...topics],
+    };
+  }
+  function buildOutput(aiSource, aiReview, reviewTopics) {
+    const results = tests();
+    return {
+      caseId: current,
+      aiSource,
+      verification: { testSource: 'runner', tests: results, outcome: runner.outcome(results), aiReview, reviewTopics },
+    };
+  }
+  function setReview(aiSource, aiReview, reviewTopics) {
+    state().review = { key: reviewKey(), aiSource, aiReview, reviewTopics };
+    writeVerification(buildOutput(aiSource, aiReview, reviewTopics));
+    app.appendEvent({ module: 'correction-lab', type: 'verification-reviewed', conceptId: item().topicIds[0], caseId: current });
+    render();
+  }
+
+  // Step 5: AI explains the results; step 6 and the record follow.
+  function renderReview() {
+    const ran = hasRun();
+    const current_ = review();
+    $('#bk-step-review').hidden = !ran;
+    $('#bk-review').hidden = !current_;
+    $('#bk-review-actions').hidden = Boolean(current_);
+    if (current_) {
+      $('#bk-review-label').textContent = current_.aiSource === 'api' ? 'AI review' : 'Sample review';
+      $('#bk-review-text').textContent = current_.aiReview;
+      const topics = $('#bk-review-topics');
+      topics.replaceChildren();
+      if (current_.reviewTopics.length) {
+        topics.append('Topics to revise: ');
+        current_.reviewTopics.forEach((topicId, index) => {
+          const topic = shared.topics.find((candidate) => candidate.topicId === topicId);
+          const link = element('a', '', topic ? topic.title : topicId);
+          link.href = `/knowledge-map/?topic=${encodeURIComponent(topicId)}`;
+          if (index) topics.append(', ');
+          topics.append(link);
         });
       }
-      card.append(head);
-      if (flagged) {
-        card.dataset.result = fix.correct ? 'right' : 'wrong';
-        card.append(
-          element(
-            'p',
-            'bk-verdict',
-            fix.correct
-              ? 'This change does what the owner wants. Look at the others.'
-              : `${fix.why} Change this part of your report above and send it again.`
-          )
-        );
-      }
-      const details = element('details', 'bk-diff');
-      details.append(element('summary', '', 'Show the code the AI added'), element('pre', 'sl-code', fix.code));
-      card.append(details);
-      list.append(card);
-    });
-    const status = $('#bk-review-status');
-    const wrong = reported.some((bug) => !bug.fixes[entry.sent[bug.id]].correct);
-    if (!results) {
-      status.dataset.result = '';
-      status.textContent = 'Running the tests…';
-    } else if (!failing) {
-      status.dataset.result = 'right';
-      status.textContent = `★ All ${results.length} tests pass. The AI's fix matches what the owner wants.`;
-    } else if (wrong) {
-      status.dataset.result = 'partial';
-      status.textContent = 'The AI says it is fixed, but tests fail. Read each change and tap the one that does not do what the owner wants.';
-    } else {
-      status.dataset.result = 'partial';
-      status.textContent = 'These changes are right, but tests still fail: there is a bug you have not found and reported yet. Keep breaking the app.';
     }
-    renderTests($('#bk-ai-tests'), results);
+    const output = current_ && state().output;
+    $('#bk-step-output').hidden = !output;
+    if (output) {
+      $('#bk-output-note').textContent =
+        `Outcome: ${output.verification.outcome}. Tests ran in your browser (testSource: runner); the review is from ${output.aiSource === 'api' ? 'the AI service' : 'a labelled sample'} (aiSource: ${output.aiSource}).`;
+      $('#bk-output').textContent = JSON.stringify(output, null, 2);
+    }
   }
 
-  // Step 4: why each change is the right one.
   function renderExplain() {
-    const data = level();
     const entry = state();
-    $('#bk-step-explain').hidden = !(data.repair && entry.passed);
+    const passed = hasRun() && runner.outcome(tests()) === 'passed';
+    $('#bk-step-explain').hidden = !passed;
     const box = $('#bk-explain');
     box.replaceChildren();
-    if (!data.repair || !entry.passed) return;
-    data.bugs.forEach((bug) => {
-      const tries = entry.explain[bug.id];
-      box.append(
-        element('p', 'cl-apply-question', bug.explain2.question),
-        choiceGroup(bug.explain2, tries, (index) => {
+    if (!passed) return;
+    item().issues.forEach((issue) => {
+      const question = level().explain[issue.issueId];
+      const tries = entry.explain[issue.issueId];
+      const done = solved(tries, question.answer);
+      const options = element('div', 'cl-options');
+      options.setAttribute('role', 'group');
+      question.options.forEach((option, index) => {
+        const button = element('button', 'cl-option', option.text);
+        button.type = 'button';
+        if (tries.includes(index)) button.dataset.result = index === question.answer ? 'right' : 'wrong';
+        button.disabled = done || tries.includes(index);
+        button.addEventListener('click', () => {
           tries.push(index);
           save();
-          if (explained(data, entry)) {
-            app.appendEvent({ module: 'correction-lab', type: 'level-completed', conceptId: data.conceptId, caseId: data.id });
-          }
-          render();
-        })
-      );
-    });
-  }
-
-  function renderLesson() {
-    const data = level();
-    const entry = state();
-    $('#bk-step-lesson').hidden = Boolean(data.repair) || !entry.passed;
-    if (data.repair) return;
-    $('#bk-lesson-question').textContent = data.lesson.question;
-    const group = choiceGroup(data.lesson, entry.lessonTries, (index) => {
-      entry.lessonTries.push(index);
-      save();
-      if (index === data.lesson.answer) {
-        app.appendEvent({ module: 'correction-lab', type: 'level-completed', conceptId: data.conceptId, caseId: data.id });
+          renderExplain();
+        });
+        options.append(button);
+      });
+      const wrap = element('div', 'bk-choice');
+      wrap.append(options);
+      const last = tries[tries.length - 1];
+      if (last !== undefined) {
+        const right = last === question.answer;
+        const result = element('div', 'cl-result', `${right ? 'Correct.' : 'Not quite.'} ${question.options[last].why}`);
+        result.dataset.result = right ? 'right' : 'wrong';
+        wrap.append(result);
       }
-      render();
+      box.append(element('p', 'cl-apply-question', question.question), wrap);
     });
-    $('#bk-lesson-options').replaceChildren(...group.querySelector('.cl-options').children);
-    const result = $('#bk-lesson-result');
-    const feedback = group.querySelector('.cl-result');
-    result.hidden = !feedback;
-    if (feedback) {
-      result.dataset.result = feedback.dataset.result;
-      result.textContent = feedback.textContent;
-    }
   }
 
   function render() {
-    const data = level();
+    const data = item();
     const entry = state();
-    $('#bk-title').textContent = data.name;
-    $('#bk-source').textContent = `Lecture: ${data.source}`;
-    $('#bk-request').textContent = data.request;
-    $('#bk-claim').textContent = data.claim;
-    renderBugs();
-
-    $('#bk-step-fix').hidden = entry.found.length === 0 && !entry.passed;
-    const reporting = entry.mode === 'report';
-    $('#bk-fix-title').textContent = reporting ? 'Report it to the AI' : 'Fix it';
-    $('#bk-owner').textContent = (data.repair && data.repair.owner) || 'What the fix must do';
-    $('#bk-rules').replaceChildren(...data.rules.map((rule) => element('li', '', rule)));
-    $('#bk-report-block').hidden = !reporting;
-    $('#bk-code-block').hidden = reporting;
-    $('#bk-mode-report').hidden = !data.repair;
-    if (reporting) renderReport();
+    $('#bk-title').textContent = data.title;
+    $('#bk-scenario').textContent = data.scenario;
+    $('#bk-claim').textContent = data.aiClaim;
+    $('#bk-topics').replaceChildren(
+      ...data.topicIds.map((topicId) => {
+        const topic = shared.topics.find((candidate) => candidate.topicId === topicId);
+        return element('span', 'sl-chip', topic ? topic.title : topicId);
+      })
+    );
+    $('#bk-noplan').hidden = Boolean(entry.plan);
+    $('#bk-flow').hidden = !entry.plan;
+    renderCases();
+    if (!entry.plan) {
+      app.icons();
+      return;
+    }
+    renderPlan();
+    $('#bk-try').textContent = level().tryIt;
+    renderIssues();
+    const choosing = entry.mode === 'choices';
+    $('#bk-fix-title').textContent = choosing ? 'Apply the plan' : 'Edit the code';
+    $('#bk-report-block').hidden = !choosing;
+    $('#bk-code-block').hidden = choosing;
+    if (choosing) renderChoices();
     if (editor.value !== entry.code) editor.value = entry.code;
-    $('#bk-show-ref').hidden = entry.runs === 0 && !entry.refShown;
-    $('#bk-reference').hidden = !entry.refShown;
-    $('#bk-reference').textContent = data.reference;
-    renderTests($('#bk-tests'), entry.sent ? null : results);
-
+    $('#bk-send').disabled = Boolean(worker);
+    $('#bk-run').disabled = Boolean(worker);
+    renderResults();
     renderReview();
     renderExplain();
-    renderLesson();
-    $('#bk-end').hidden = !complete(data);
-    $('#bk-lesson-link').href = `/knowledge-map/?topic=${data.conceptId}`;
-    renderLevels();
     app.icons();
   }
 
-  function status(box, message, result) {
-    box.hidden = !message;
-    box.textContent = message || '';
-    box.dataset.result = result || '';
-  }
-
-  async function open(index) {
-    current = index;
-    results = null;
-    $('#bk-toast').hidden = true;
-    status($('#bk-run-status'), '');
-    status($('#bk-send-status'), '');
+  function open(caseId) {
+    current = caseId;
     const url = new URL(location.href);
-    url.searchParams.set('level', level().id);
+    url.searchParams.set('case', current);
     history.replaceState(null, '', url);
-    loadApp();
+    $('#bk-review-status').hidden = true;
+    if (state().plan) loadApp();
     render();
-    // Results are not stored; run the tests again for a fix that was sent or passed earlier.
-    const opened = current;
-    if ((state().sent || state().passed) && !worker) {
-      const outcome = await runTests(activeCode());
-      if (opened !== current) return;
-      results = outcome.results || null;
-      render();
-    }
   }
 
-  $('#bk-send').addEventListener('click', async () => {
-    if (worker) return;
-    const entry = state();
-    entry.sent = Object.fromEntries(entry.found.map((id) => [id, entry.report[id]]));
-    entry.sends += 1;
-    entry.flagged = [];
-    results = null;
+  $('#bk-load-sample').addEventListener('click', () => {
+    state().plan = { source: 'sample', dialogue: shared.sampleDialogues[current] };
     save();
     loadApp();
     render();
-    status($('#bk-send-status'), 'The AI is changing the code…');
-    const outcome = await runTests(activeCode());
-    results = outcome.results || [];
-    if (results.length && results.every((result) => result.ok)) {
-      if (entry.sends === 1) entry.firstPass = true;
-      markPassed();
-    }
-    save();
-    status($('#bk-send-status'), '');
-    render();
-    $('#bk-step3r').scrollIntoView({ block: 'start' });
-    $('#bk-step3r').focus({ preventScroll: true });
   });
+  $('#bk-send').addEventListener('click', runNow);
+  $('#bk-run').addEventListener('click', runNow);
   $('#bk-mode-code').addEventListener('click', () => {
     const entry = state();
-    // Start from whatever the app runs now, so an AI fix can be finished by hand.
-    if (entry.sent) entry.code = activeCode();
-    entry.sent = null;
+    // Start from the chosen changes, so a partly correct repair can be finished by hand.
+    entry.code = runner.assemble(level(), entry.choices);
     entry.mode = 'code';
-    results = null;
+    entry.output = null;
     save();
     loadApp();
     render();
   });
   $('#bk-mode-report').addEventListener('click', () => {
-    state().mode = 'report';
-    save();
-    render();
-  });
-
-  $('#bk-run').addEventListener('click', async () => {
-    if (worker) return;
-    const entry = state();
-    const box = $('#bk-run-status');
-    $('#bk-run').disabled = true;
-    status(box, 'Running the tests…');
-    const outcome = await runTests(editor.value);
-    $('#bk-run').disabled = false;
-    entry.runs += 1;
-    if (outcome.error) {
-      results = null;
-      entry.passed = false;
-      status(box, `Your code could not run: ${outcome.error}`, 'wrong');
-    } else {
-      results = outcome.results;
-      const failed = results.filter((result) => !result.ok).length;
-      if (failed) {
-        entry.passed = false;
-        status(box, `${failed} of ${results.length} tests fail. Read the rules again and keep going.`, 'partial');
-      } else {
-        status(box, `★ All ${results.length} tests pass. The app now runs your code.`, 'right');
-        markPassed();
-      }
-    }
+    state().mode = 'choices';
+    state().output = null;
     save();
     loadApp();
     render();
   });
   editor.addEventListener('input', () => {
     state().code = editor.value;
+    state().output = null;
     save();
+    renderCases();
+    renderPlan();
+    renderResults();
+    renderReview();
+    renderExplain();
   });
   $('#bk-restore').addEventListener('click', () => {
-    if (!confirm("Replace your edits with the AI's original code?")) return;
-    state().code = level().code;
+    if (!confirm('Replace your edits with the starter code?')) return;
+    state().code = item().starterCode;
     save();
+    loadApp();
     render();
   });
-  $('#bk-show-ref').addEventListener('click', () => {
-    state().refShown = true;
-    save();
-    render();
+
+  $('#bk-ask-ai').addEventListener('click', async () => {
+    const entry = state();
+    const box = $('#bk-review-status');
+    const button = $('#bk-ask-ai');
+    const key = reviewKey();
+    button.disabled = true;
+    box.hidden = false;
+    box.dataset.result = '';
+    box.textContent = 'Asking the AI to review the results…';
+    try {
+      const response = await fetch('/api/correction/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'review',
+          caseId: current,
+          tests: tests(),
+          plan: entry.plan.dialogue.plan.map(({ issueId, changeRequest }) => ({ issueId, changeRequest })),
+        }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw Object.assign(new Error(body.error || 'The AI review failed.'), { code: body.code });
+      // Ignore a reply for results that have since changed.
+      if (key !== reviewKey()) return;
+      box.hidden = true;
+      setReview('api', body.verification.aiReview, body.verification.reviewTopics);
+    } catch (error) {
+      box.dataset.result = 'wrong';
+      box.textContent =
+        error.code === 'NOT_CONFIGURED'
+          ? 'The AI service is not connected on this site yet. You can show the labelled sample review instead.'
+          : error instanceof TypeError
+            ? 'The review service could not be reached. Try again, or show the labelled sample review.'
+            : `${error.message} Try again, or show the labelled sample review.`;
+    } finally {
+      button.disabled = false;
+    }
   });
-  $('#bk-next').addEventListener('click', () => {
-    open((current + 1) % levels.length);
-    $('#bk-title').scrollIntoView({ block: 'start' });
-    $('#bk-title').focus({ preventScroll: true });
+  $('#bk-sample-review').addEventListener('click', () => {
+    const sample = sampleReview();
+    $('#bk-review-status').hidden = true;
+    setReview('sample', sample.aiReview, sample.reviewTopics);
   });
+
   $('#bk-reset').addEventListener('click', () => {
-    if (!confirm('Start this level again? Found bugs, your answers and stars for it will be cleared.')) return;
-    const data = level();
-    progress[data.id] = { ...blank(data), explain: Object.fromEntries(data.bugs.map((bug) => [bug.id, []])) };
+    if (!confirm('Start this case again? Your changes, results and review for it will be cleared.')) return;
+    const explain = Object.fromEntries(item().issues.map((issue) => [issue.issueId, []]));
+    const dialogue = readDialogue(current);
+    progress[current] = { ...blank(current), explain, plan: dialogue ? { source: 'dialogue', dialogue } : null };
     save();
     open(current);
   });
