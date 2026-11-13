@@ -284,7 +284,7 @@
       }
     });
     $('#sl-case-end').hidden = !solved(entry.applyTries, data.apply.answer);
-    $('#sl-lesson-link').href = `/knowledge-map/?topic=${data.conceptId}`;
+    $('#sl-lesson-link').href = `/knowledge-map/concept.html?graph=software-development&topic=${encodeURIComponent(data.conceptId)}`;
     renderList();
     app.icons();
   }

@@ -483,7 +483,7 @@ p { margin: 10px 0 0; } .tip { color: #6b675f; font-size: 13px; margin-top: 0; }
         current_.reviewTopics.forEach((topicId, index) => {
           const topic = shared.topics.find((candidate) => candidate.topicId === topicId);
           const link = element('a', '', topic ? topic.title : topicId);
-          link.href = `/knowledge-map/?topic=${encodeURIComponent(topicId)}`;
+          link.href = `/knowledge-map/concept.html?graph=software-development&topic=${encodeURIComponent(topicId)}`;
           if (index) topics.append(', ');
           topics.append(link);
         });
