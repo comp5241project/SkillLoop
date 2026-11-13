@@ -64,3 +64,36 @@ test('HTTP sample path works without a provider and malformed body never trigger
  assert.equal(res.code,200);assert.equal(res.body.aiSource,'sample');assert(model.validTurn(res.body.result,s));
  await handler({method:'POST',headers:{},body:{action:'sample',session:{}}},res);assert.equal(res.code,400);
 });
+
+test('live opening uses the upstream handoff instead of a predefined first question', async()=>{
+ const s=session('notes-save','api');
+ s.context.learning.practiceFocus=['Explain what the user sees while saving is pending.'];
+ assert.deepEqual(s.messages,[]);assert.equal(s.pending,true);
+ const result={reply:'I drafted note saving. What should the page show while the save is pending?',code:s.context.case.starterCode.slice(0,80)};
+ const client={callAIJson:async p=>{
+   const handoff=JSON.parse(p.messages[0].content);
+   assert.deepEqual(handoff.learning,s.context.learning);
+   assert.deepEqual(handoff.assessment,s.context.assessment);
+   assert.equal(handoff.case.starterCode,s.context.case.starterCode);
+   assert.equal(handoff.case.aiClaim,undefined);
+   assert.equal(handoff.case.referenceCode,undefined);
+   assert(p.validate(result));return {data:result};
+ }};
+ model.applyOpening(s,await service.opening(s,client));
+ assert.equal(s.pending,false);assert.deepEqual(s.requests,{});
+ assert.throws(()=>model.handoff(s),/Finish/);
+ s.messages.push({role:'user',text:'Explain the pending state.'});
+ await service.generate(s,{callAIJson:async p=>{
+   assert(p.messages.some(m=>m.role==='assistant'&&m.content===result.reply));
+   return {data:service.sample(s)};
+ }});
+});
+test('unfinished openings survive reload, reject fabricated code and cannot overwrite a started chat',()=>{
+ const s=session('cart-checkout','api');
+ assert.equal(model.restore([s],catalog)[0].pending,true);
+ assert(service.read({action:'open',session:s}));
+ assert(!model.validOpening({reply:'Review this.',code:'inventedCode()'},s));
+ model.applyOpening(s,{reply:'Review the current checkout logic.',code:''});
+ assert.throws(()=>service.read({action:'open',session:s}),/Invalid conversation/);
+ assert.throws(()=>service.read({action:'open',session:session()}));
+});

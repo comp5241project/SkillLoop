@@ -10,9 +10,9 @@ module.exports=async function handler(req,res) {
     if(JSON.stringify(body).length>250000) return res.status(413).json({error:'Conversation too large. Export it and start a new review.'});
     session=service.read(body);
   } catch {return res.status(400).json({error:'The conversation input could not be read. Keep your draft and reload the task.'});}
-  if(body.action==='reply'&&!service.configured()) return res.status(503).json({error:'Live AI is not configured. Your reply is saved; retry after configuration.'});
+  if(body.action!=='sample'&&!service.configured()) return res.status(503).json({error:'Live AI is not configured. Your reply is saved; retry after configuration.'});
   try {
-    const result=body.action==='sample'?service.sample(session):await service.generate(session);
+    const result=body.action==='sample'?service.sample(session):body.action==='open'?await service.opening(session):await service.generate(session);
     return res.status(200).json({result,aiSource:body.action==='sample'?'sample':'api'});
   } catch(error) {
     console.error('[dialogue] request failed:', error.code || error.name || 'UNKNOWN');

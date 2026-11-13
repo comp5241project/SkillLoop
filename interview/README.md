@@ -1,6 +1,6 @@
 # Repair dialogue — module 3
 
-The default page now lets students review an AI developer's delivery and discuss corrections. Maya responds to the conversation; students can question an explanation, reject a proposal, revise earlier requests and confirm a repair plan. There is no fixed turn count.
+The default page now lets students review an AI developer's delivery and discuss corrections. Maya responds to the conversation; students can question an explanation, reject a proposal, revise earlier requests and confirm a repair plan. There is no fixed turn count. Live AI generates the opening from the case, assessment and learning handoff: task context, actual implementation and one focused review question. No fixed question is selected by case ID. Failed openings remain retryable; sample mode retains a labelled authored opening.
 
 ## Run and connect
 

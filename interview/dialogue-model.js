@@ -16,8 +16,18 @@
   function create(raw, catalog, mode, sampleInput = true) {
     const context = input(raw,catalog);
     if (!['sample','api'].includes(mode)) throw Error('Choose Sample or Live AI.');
-    return {id: globalThis.crypto.randomUUID(), mode, sampleInput, context, draft:'', messages:[{role:'assistant',text:context.case.aiClaim, opening:true}],
-      requests:{}, rejected:[], proposal:'', proposalCode:'', feedback:'', pending:false, confirmed:false, output:null, revisions:[]};
+    return {id: globalThis.crypto.randomUUID(), mode, sampleInput, context, draft:'', messages:mode==='api'?[]:[{role:'assistant',text:context.case.aiClaim, opening:true}],
+      requests:{}, rejected:[], proposal:'', proposalCode:'', feedback:'', pending:mode==='api', confirmed:false, output:null, revisions:[]};
+  }
+  function validOpening(result, session) {
+    return session.mode === 'api' && session.messages.length === 0 &&
+      text(result?.reply, 1400) && typeof result.code === 'string' && result.code.length <= 1600 &&
+      (!result.code || session.context.case.starterCode.includes(result.code));
+  }
+  function applyOpening(session, result) {
+    if (!validOpening(result, session)) throw Error('The opening did not match the case.');
+    session.messages.push({role:'assistant', text:result.reply, sourceCode:result.code, opening:true});
+    session.pending=false;
   }
   function validTurn(r, session) {
     const last = session.messages.at(-1);
@@ -59,13 +69,13 @@
         s.rejected=Array.isArray(s.rejected)?s.rejected.filter(x=>text(x,400)).slice(-30):[];
         s.draft=typeof s.draft==='string'?s.draft.slice(0,2000):'';
         s.revisions=Array.isArray(s.revisions)?s.revisions.slice(-20):[];
-        s.pending=s.messages.at(-1)?.role==='user';
+        s.pending=(s.mode==='api'&&s.messages.length===0)||s.messages.at(-1)?.role==='user';
         if(s.confirmed&&!s.pending) s.output=handoff(s); else {s.confirmed=false;s.output=null;}
         records.push(s);
       } catch { /* Preserve other readable sessions; never fabricate a completed record. */ }
     }
     return records.slice(-20);
   }
-  const api={input,create,validTurn,apply,handoff,restore};
+  const api={input,create,validOpening,applyOpening,validTurn,apply,handoff,restore};
   if(typeof module!=='undefined'&&module.exports) module.exports=api; else root.SkillLoopDialogue=api;
 })(globalThis);
