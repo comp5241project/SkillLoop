@@ -1,10 +1,23 @@
-'use strict';
-const stages=[
- {role:'Your starting point',title:'Find the gaps worth working on.',copy:'Choose a software case and answer short checks. AI uses your answers to identify the knowledge you need to practise.',outcome:'You leave with a diagnosis and priority topics.',path:'learning-path/',label:'A look at diagnosis',html:'<p class="speaker">A quick check</p><h4>The AI says the feature is finished.<br>What would you inspect first?</h4><p class="example-answer">Compare the code with the requirement, then try an input that might break it.</p><p class="demo-note">Your answers guide the next learning activity.</p>'},
- {role:'Practice with a purpose',title:'Work on the gap, in context.',copy:'Study a short explanation, try a case-based exercise and use AI feedback to refine your understanding.',outcome:'You leave with learning progress and a focus for further practice.',path:'knowledge-map/',label:'A look at guided learning',html:'<p class="speaker">A boundary worth checking</p><h4>What should happen when a cart is empty?</h4><pre class="code">return total / count;</pre><p class="example-answer">Check what count can be before trusting the division.</p>'},
- {role:'You review. The AI responds.',title:'Challenge the proposed solution.',copy:'Ask the AI developer to explain its work. Point out a problem, request a change and follow up until the repair plan says what you mean.',outcome:'You leave with a repair plan you have reviewed and confirmed.',path:'interview/',label:'A look at correction dialogue',html:'<p class="speaker">You</p><p class="example-answer">Only allow admins to delete quizzes. Keep the quiz list unchanged when access is denied.</p><p class="speaker">AI developer</p><p>I will check the role at the delete action and preserve the list for blocked users.</p><p class="demo-note">A promise to fix the code still needs verification.</p>'},
- {role:'Evidence for your decision',title:'Put the fix to the test.',copy:'Try the small app, apply a repair and run the case tests. Use the actual results and AI reflection to decide what needs another pass.',outcome:'You leave with test results and topics to revisit.',path:'correction-lab/',label:'Try a tiny test',html:'<p class="speaker">Requirement: only admins may delete</p><pre class="code">function canDelete(role) {\n  return true;\n}</pre><button class="demo-action" id="test-example">Test as a student</button><p class="test-result" id="test-result" role="status">Would this permission check refuse a student?</p><p class="demo-note">This small example runs locally. Open the app for the full verification activity.</p>'}
-];
-const tabs=[...document.querySelectorAll('[role="tab"]')];
-function activate(index){const s=stages[index];tabs.forEach((t,i)=>{t.setAttribute('aria-selected',String(i===index));t.tabIndex=i===index?0:-1});document.querySelector('#stage').setAttribute('aria-labelledby',tabs[index].id);for(const [id,value] of [['stage-role',s.role],['stage-title',s.title],['stage-copy',s.copy],['stage-outcome',s.outcome],['demo-label',s.label]])document.getElementById(id).textContent=value;document.getElementById('stage-link').href='https://skillloop-sigma.vercel.app/'+s.path;document.getElementById('demo-body').innerHTML=s.html;const test=document.getElementById('test-example');if(test)test.addEventListener('click',()=>{function canDelete(role){return true}const actual=canDelete('student');document.getElementById('test-result').textContent=actual?'Fail: expected false, received true. A student can still delete.':'Pass';test.textContent='Run again'});}
-tabs.forEach((tab,index)=>{tab.addEventListener('click',()=>activate(index));tab.addEventListener('keydown',event=>{let next=index;if(event.key==='ArrowRight')next=(index+1)%4;else if(event.key==='ArrowLeft')next=(index+3)%4;else if(event.key==='Home')next=0;else if(event.key==='End')next=3;else return;event.preventDefault();activate(next);tabs[next].focus()})});
+// Add final public submission links here. Never publish personal passwords or API keys.
+const resources = { video: null, report: null, slides: null, accessNote: 'App login details: to be confirmed.' };
+const modal = document.getElementById('resource-dialog');
+const content = document.getElementById('dialog-content');
+document.getElementById('access-note').textContent = resources.accessNote;
+function show(title, entries) {
+  document.getElementById('dialog-title').textContent = title;
+  content.replaceChildren();
+  entries.forEach(([label, url]) => {
+    const item = document.createElement(url ? 'a' : 'p');
+    item.textContent = url ? label : label + ': coming soon.';
+    if (url) { item.href = url; item.target = '_blank'; item.rel = 'noopener'; }
+    content.append(item);
+  });
+  modal.showModal();
+}
+const videoButton = document.getElementById('video-button');
+const documentsButton = document.getElementById('documents-button');
+if(resources.video) videoButton.querySelector('.description').textContent = '6–10 minute app overview';
+if(resources.report && resources.slides) documentsButton.querySelector('.description').textContent = 'Final report and presentation';
+videoButton.addEventListener('click', () => show('Overview video', [['6–10 minute overview', resources.video]]));
+documentsButton.addEventListener('click', () => show('Report & slides', [['Final report', resources.report], ['Presentation slides', resources.slides]]));
+document.getElementById('close-dialog').addEventListener('click', () => modal.close());
