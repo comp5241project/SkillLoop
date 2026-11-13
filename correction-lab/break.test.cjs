@@ -50,6 +50,21 @@ test('part 3 sample outputs pass the dialogue check; broken ones are refused wit
   }
 });
 
+test('plan text may be up to 1000 characters; longer text is reported as too long, not missing', () => {
+  const item = source.cases['quiz-permissions'];
+  const withRequest = (changeRequest) => {
+    const output = JSON.parse(JSON.stringify(source.samples['quiz-permissions'].part3.output));
+    output.dialogue.plan[0].changeRequest = changeRequest;
+    return runner.checkDialogue(output, item);
+  };
+  assert.equal(runner.TEXT_LIMIT, 1000);
+  assert.deepEqual(withRequest('x'.repeat(1000)).problems, []);
+  const long = withRequest('x'.repeat(1001)).problems.join(' ');
+  assert.match(long, /change request is too long \(1001 characters, at most 1000\)/);
+  assert.doesNotMatch(long, /no change request/);
+  assert.match(withRequest('').problems.join(' '), /has no change request/);
+});
+
 test("part 3's codeReview store gives the most recently confirmed plan for the case", () => {
   const output = (caseId, tag) => ({ caseId, aiSource: 'api', dialogue: { tag } });
   const session = (caseId, tag, at, extra = {}) => ({

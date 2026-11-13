@@ -329,7 +329,7 @@ function readReview(body) {
   const plan = (Array.isArray(body.plan) ? body.plan : [])
     .filter((step) => step && issueIds.includes(step.issueId) && typeof step.changeRequest === 'string')
     .slice(0, issueIds.length)
-    .map((step) => ({ issueId: step.issueId, changeRequest: step.changeRequest.slice(0, 500) }));
+    .map((step) => ({ issueId: step.issueId, changeRequest: step.changeRequest.slice(0, runner.TEXT_LIMIT) }));
   return { item, tests: tests.map(({ testId, status, actual }) => ({ testId, status, actual })), plan };
 }
 
