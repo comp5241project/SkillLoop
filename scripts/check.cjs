@@ -10,7 +10,7 @@ function run(command, args) {
   if (result.status !== 0) process.exit(result.status || 1);
 }
 run(python, ['scripts/check_site.py']);
-const tests = ['api', 'tests', 'interview', 'correction-lab'].flatMap((folder) =>
+const tests = ['api', 'tests', 'interview', 'correction-lab', 'knowledge-map'].flatMap((folder) =>
   readdirSync(path.join(root, folder))
     .filter((name) => /\.test\.(cjs|mjs)$/.test(name))
     .map((name) => `${folder}/${name}`)

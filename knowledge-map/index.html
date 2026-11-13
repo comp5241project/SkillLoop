@@ -1,15 +1,16 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Explore knowledge | SkillLoop</title><link rel="icon" href="/public/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/shared/styles.css"><link rel="stylesheet" href="/knowledge-map/network.css">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Case learning | SkillLoop</title><link rel="icon" href="/public/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/shared/styles.css"><link rel="stylesheet" href="/knowledge-map/learning.css">
 <script src="/shared/vendor/lucide.min.js" defer></script><script src="/shared/storage.js" defer></script><script src="/shared/navigation.js" defer></script>
-<script src="/knowledge-map/data.js" defer></script><script src="/knowledge-map/network-core.js?v=7" defer></script><script src="/knowledge-map/account-entry.js?v=2" defer></script><script src="/knowledge-map/home.js?v=1" defer></script></head>
+<script src="/knowledge-map/learning-samples.js" defer></script><script src="/knowledge-map/learning-contract.js" defer></script><script src="/knowledge-map/learning-part1-adapter.js" defer></script><script src="/knowledge-map/learning-content.js" defer></script><script src="/knowledge-map/learning-feedback.js" defer></script><script src="/knowledge-map/learning.js" defer></script></head>
 <body data-root="/" data-module="knowledge-map"><a class="skip-link" href="#main-content">Skip to content</a><div id="skillloop-prototype">
 <header id="site-header" class="sl-head"></header><div class="sl-shell"><aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside>
-<main id="main-content" class="sl-main"><div class="sl-kicker">Knowledge</div><h1>Explore ideas. Follow their connections.</h1>
-<p class="sl-intro">Browse published knowledge graphs, read concepts, and try learning activities. Sign in when you want to keep ideas in your own network.</p>
-<nav class="kn-page-nav" aria-label="Knowledge pages"><a href="/knowledge-map/" aria-current="page">Knowledge Home</a><a href="/knowledge-map/explore.html">All public graphs</a></nav>
-<section class="sl-card"><h2>Discover a concept</h2><label for="home-search">Search the curated software development graph</label><input id="home-search" type="search" autocomplete="off" placeholder="Search concepts"><div id="home-concepts" class="kn-directory"></div></section>
-<section class="sl-card"><h2>Featured graphs</h2><p id="home-status" role="status">Loading published resources…</p><div id="home-graphs" class="kn-directory"></div><a class="sl-btn" href="/knowledge-map/explore.html">View full public directory</a></section>
-<section class="sl-card"><h2>Explore relationships and practice</h2><p>Open the sample graph to see how concepts connect, then follow a concept to its questions, cases and learning activities.</p><a class="sl-btn sl-btn-main" href="/knowledge-map/graph.html?graph=software-development">Explore the sample graph</a></section>
-</main></div></div></body></html>
+<main id="main-content" class="sl-main"><div class="sl-kicker">Module 2 · AI-assisted learning</div><h1>Learn through your case</h1>
+<p class="sl-intro">Review your assessment, study a short lesson, and apply it to the code before continuing.</p>
+<p id="learning-mode" class="learning-mode" role="status"></p>
+<section id="sample-picker" class="sl-card" hidden><h2>Standalone Sample mode</h2><p>These fictional diagnoses and teaching responses are samples, not Part 1 results or live AI feedback.</p><label for="sample-case">Case</label><select id="sample-case"></select><label for="learning-mode-select">Teaching mode</label><select id="learning-mode-select"><option value="sample">Sample</option><option value="api">Live AI</option></select></section>
+<div id="learning-error" class="sl-card" role="alert" hidden><p id="learning-error-message"></p><button id="open-sample-mode" class="sl-btn" type="button">Open standalone Sample mode</button></div><div id="learning-session" hidden>
+<section class="sl-card"><p class="learning-eyebrow">Your case</p><h2 id="case-title"></h2><p id="case-scenario"></p><h3>Diagnosis summary</h3><p id="assessment-summary"></p><h3>Priority topics</h3><div id="weak-topics" class="learning-tags"></div></section>
+<section class="sl-card"><h2>Learning cards</h2><p id="learning-intro"></p><div id="learning-cards" class="learning-cards"></div></section>
+<section id="learning-summary" class="sl-card" hidden><h2>Learning summary</h2><p id="summary-state"></p><div id="summary-content"></div><p id="ai-reflection"></p><button id="reflection-retry" class="sl-btn" type="button" hidden>Retry AI reflection</button><h3>Module 2 output</h3><pre id="learning-output" class="learning-output"></pre><p>No cross-module save or navigation is connected.</p></section>
+</div></main></div></div></body></html>

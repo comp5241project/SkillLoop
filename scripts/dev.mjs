@@ -4,8 +4,12 @@ import { readFile, stat } from 'node:fs/promises';
 import { dirname, extname, resolve, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import knowledge from '../api/knowledge.mjs';
+import knowledgeLearning from '../api/knowledge-learning.mjs';
 import interview from '../api/interview.js';
 import correction from '../api/correction.js';
+// The legacy correction endpoint creates a browser-shaped global while importing fixtures.
+// Clear it after import so the shared AI client can enforce its server-only guard.
+delete globalThis.window;
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.env.PORT || 8765);
@@ -15,7 +19,7 @@ createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
     const route = url.pathname.replace(/\/$/, '');
-    if (['/api/knowledge', '/api/interview', '/api/correction'].includes(route)) {
+    if (['/api/knowledge', '/api/knowledge-learning', '/api/interview', '/api/correction'].includes(route)) {
       const chunks = [];
       let size = 0;
       for await (const chunk of req) {
@@ -24,8 +28,8 @@ createServer(async (req, res) => {
         chunks.push(chunk);
       }
       const body = Buffer.concat(chunks);
-      if (route === '/api/knowledge') {
-        const response = await knowledge.fetch(new Request(url, {
+      if (route === '/api/knowledge' || route === '/api/knowledge-learning') {
+        const response = await (route === '/api/knowledge' ? knowledge : knowledgeLearning).fetch(new Request(url, {
           method: req.method, headers: req.headers,
           ...(body.length ? { body } : {}),
         }));
