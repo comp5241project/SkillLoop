@@ -42,21 +42,20 @@
 <div id="history" class="rd-history" hidden>
 </div>
 <section id="start" class="rd-start rd-card">
-<h2>Your next code review</h2>
-<p>Review Maya’s code and ask for changes.</p>
-<label for="case-select">Choose a delivery</label>
+<h2>Choose a case</h2>
+<p>Read the delivery, discuss changes, then review your plan.</p>
+<label for="case-select">Case</label>
 <select id="case-select">
 </select>
 <details>
-<summary>Use input from part 2</summary>
-<p>Import the agreed part 3 input JSON: case, assessment and learning.</p>
+<summary>Import learning record</summary>
+<p>Continue with your previous learning results.</p>
 <input id="import-input" type="file" accept=".json,application/json" aria-label="Import part 3 input">
-<button id="reset-input" class="rd-btn">Use sample input</button>
+<button id="reset-input" class="rd-btn">Clear import</button>
 </details>
-<p id="input-label" class="rd-note">Sample input</p>
+<p id="input-label" class="rd-note" hidden></p>
 <div class="rd-actions">
-<button id="start-sample" class="rd-btn primary" disabled>Start sample review</button>
-<button id="start-live" class="rd-btn" disabled>Start with AI</button>
+<button id="start-live" class="rd-btn primary" disabled>Start review</button>
 </div>
 <p id="connection" class="rd-note">
 </p>
@@ -69,8 +68,7 @@
 <div>
 <strong>Maya</strong>
 <p>AI developer</p>
-<span id="mode" class="rd-badge">
-</span>
+
 </div>
 </header>
 <div id="chat" class="rd-chat" role="log" aria-label="Review conversation">
@@ -149,9 +147,9 @@
 <p class="rd-note">Checks are from the case. Tests have not run.</p>
 <div class="rd-actions">
 <button id="confirm-plan" class="rd-btn primary">Confirm plan</button>
-<button id="download-output" class="rd-btn" hidden>Download part 3 output</button>
+<button id="download-output" class="rd-btn" hidden>Export plan</button>
 </div>
-<p class="rd-note">Export for part 4. Automatic transfer is not connected yet.</p>
+<p class="rd-note">Export this plan to continue in Correction lab.</p>
 </section>
 </main>
 </div>

@@ -3,7 +3,7 @@
   let catalog,available=false,session=null,busy=false,records=[], imported=null;
   const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
   const say=text=>{$('status').textContent=text;};
-  function save(){const ok=app.write('repairDialogue',records);$('storage-note').hidden=ok;if(!ok)say('Storage is unavailable. Export your record before leaving.');return ok;}
+  function save(){const ok=app.write('codeReview',records);$('storage-note').hidden=ok;if(!ok)say('Storage is unavailable. Export your record before leaving.');return ok;}
   function download(data,name){const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=el('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function lock(value){busy=value;document.querySelectorAll('button,select,input,textarea').forEach(n=>n.disabled=value);$('reply').disabled=value||session?.pending;$('send').disabled=value||session?.pending;$('start-live').disabled=value||!available;$('case-select').disabled=value||Boolean(imported);$('retry').hidden=!session?.pending;$('retry').textContent=session?.messages.length===0?'Retry opening':'Retry reply';$('review-plan').disabled=value||session?.pending;}
   function persistEdit(){if(!session)return;session.draft=$('reply').value;save();}
@@ -11,8 +11,7 @@
     if(!session)return;
     $('start').hidden=true;$('workspace').hidden=false;$('plan').hidden=true;
     $('task-title').textContent=session.context.case.title;
-    $('mode').textContent=(session.mode==='api'?'Live AI':'Sample · preset replies')+(session.sampleInput?' · sample input':'');
-    $('focus').textContent=session.context.learning.practiceFocus.join(' ');
+    $('focus').textContent=session.context.learning.practiceFocus.join(' ');$('focus').closest('details').hidden=!session.context.learning.practiceFocus.length;
     $('requirements').replaceChildren(...session.context.case.requirements.map(t=>el('li',t)));
     $('code').textContent=session.context.case.starterCode;
     $('chat').replaceChildren();
@@ -20,7 +19,6 @@
       const item=el('article',undefined,'rd-message '+(message.role==='user'?'user':''));
       item.append(el('div',message.role==='user'?'You':'Maya','speaker'),el('p',message.text));
       if(message.sourceCode)item.append(el('pre',message.sourceCode,'rd-code'));
-      if(message.opening)item.append(el('small','Simulated delivery · untested','rd-note'));
       if(message.coach){const d=el('details',undefined,'rd-coach');d.append(el('summary','✧ AI Coach'),el('p',message.coach));item.append(d);}
       if(message.proposal||message.code){const d=el('details');d.append(el('summary','Proposed change · untested'),el('p',message.proposal||''));if(message.code)d.append(el('pre',message.code,'rd-code'));item.append(d);}
       $('chat').append(item);
@@ -31,25 +29,25 @@
     $('memory').replaceChildren(...Object.values(session.requests).map(r=>el('li',r.request)),...session.rejected.map(r=>el('li','Rejected: '+r)));
     $('confirmed-note').hidden=!session.confirmed;
     lock(busy);
-    if(scroll)$('chat').scrollTop=$('chat').scrollHeight;
+    if(scroll)$('chat').scrollTop=session.messages.length<=1?0:$('chat').scrollHeight;
   }
   async function getReply(){
     if(busy||!session?.pending)return;
     const opening=session.mode==='api'&&session.messages.length===0;
-    lock(true);say(opening?'Maya is preparing your review…':session.mode==='api'?'Maya is reviewing your message…':'Preparing a sample response…');
+    lock(true);say(opening?'Maya is preparing your review…':'Maya is reviewing your message…');
     try {
-      const response=await fetch('/api/dialogue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:opening?'open':session.mode==='api'?'reply':'sample',session}),signal:AbortSignal.timeout(60000)});
+      const response=await fetch('/api/dialogue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:opening?'open':'reply',session}),signal:AbortSignal.timeout(60000)});
       const data=await response.json();if(!response.ok)throw Error(data.error||'The request failed.');
       if(data.aiSource!==session.mode)throw Error('Reply source mismatch.');
       if(opening)M.applyOpening(session,data.result);else M.apply(session,data.result);save();say('');
-    }catch(error){say(error.name==='TimeoutError'?'Request timed out. Your message is saved. Use Retry reply.':error.message);}
+    }catch(error){say(error.name==='TimeoutError'?(opening?'Request timed out. Select Retry opening.':'Request timed out. Your message is saved. Select Retry reply.'):error.message);}
     finally{lock(false);render();}
   }
   $('compose').addEventListener('submit',event=>{
     event.preventDefault();if(busy||!session||session.pending)return;
     const text=$('reply').value.trim();if(!text)return;
     session.messages.push({role:'user',text,assisted:session.assisted||false});session.assisted=false;
-    session.draft='';session.pending=true;session.confirmed=false;session.output=null;save();render();getReply();
+    session.draft='';session.pending=true;session.confirmed=false;session.output=null;save();render();$('main-content').scrollIntoView({block:'start'});getReply();
   });
   $('reply').addEventListener('input',persistEdit);
   $('reply').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){$('compose').requestSubmit();}});
@@ -58,23 +56,22 @@
   for(const text of ['Show me how the delivered code handles…','The requirement says… but this change…','Please preserve… and verify it with…']){
     const b=el('button',text,'rd-btn');b.type='button';b.onclick=()=>{const box=$('reply');box.value+=(box.value?'\n':'')+text;session.assisted=true;persistEdit();box.focus();};$('hint-box').append(b);
   }
-  function start(mode){
-    const raw=imported||catalog.samples[$('case-select').value].part3.input;
-    session=M.create(raw,catalog,mode,!imported);records.push(session);records=records.slice(-20);save();render();if(mode==='api')getReply();else $('reply').focus();
+  function start(){
+    const raw=imported||M.freshInput($('case-select').value,catalog);
+    session=M.create(raw,catalog,'api',false);records.push(session);records=records.slice(-20);save();render();$('main-content').scrollIntoView({block:'start'});getReply();
   }
-  $('start-sample').onclick=()=>start('sample');
-  $('start-live').onclick=()=>{if(!available){say('Configure the shared AI service first, or explicitly choose Sample.');return;}start('api');};
-  $('new-task').onclick=()=>{if(busy)return;$('workspace').hidden=true;$('plan').hidden=true;$('start').hidden=false;session=null;say('Choose a case or import the agreed input. Existing conversations remain in History.');showHistory();};
+  $('start-live').onclick=()=>{if(!available){say('AI is unavailable. Please try again later.');return;}start();};
+  $('new-task').onclick=()=>{if(busy)return;$('workspace').hidden=true;$('plan').hidden=true;$('start').hidden=false;session=null;say('');showHistory();};
   function showHistory(){
     $('history').replaceChildren();
-    for(const s of [...records].reverse()) {const b=el('button',s.context.case.title+' · '+s.mode+' · '+s.messages.filter(m=>m.role==='user').length+' replies','rd-btn');b.onclick=()=>{session=s;render();say(s.pending?'A response is pending. Select Retry to continue.':'');};$('history').append(b);}
+    for(const s of [...records].reverse()) {const b=el('button',s.context.case.title+' · '+s.messages.filter(m=>m.role==='user').length+' replies','rd-btn');b.onclick=()=>{session=s;render();say(s.pending?'A response is pending. Select Retry to continue.':'');};$('history').append(b);}
   }
   $('history-toggle').onclick=()=>{$('history').hidden=!$('history').hidden;showHistory();};
   $('import-input').onchange=async e=>{
-    try{const file=e.target.files[0];if(!file)return;if(file.size>100000)throw Error('Input file is too large.');const raw=JSON.parse(await file.text());M.input(raw,catalog);imported=raw;$('case-select').value=raw.case.caseId;$('case-select').disabled=true;$('input-label').textContent='Imported part 3 input';say('Input loaded. Choose Sample or Live AI.');}
+    try{const file=e.target.files[0];if(!file)return;if(file.size>100000)throw Error('Input file is too large.');const raw=JSON.parse(await file.text());M.input(raw,catalog);imported=raw;$('case-select').value=raw.case.caseId;$('case-select').disabled=true;$('input-label').hidden=false;$('input-label').textContent='Learning record imported';say('');}
     catch(error){say(error.message);e.target.value='';}
   };
-  $('reset-input').onclick=()=>{imported=null;$('case-select').disabled=false;$('input-label').textContent='Sample input';$('import-input').value='';};
+  $('reset-input').onclick=()=>{imported=null;$('case-select').disabled=false;$('input-label').hidden=true;$('input-label').textContent='';$('import-input').value='';};
   $('export-record').onclick=()=>download(session,'skillloop-dialogue-record.json');
   $('review-plan').onclick=()=>{
     if(!session||busy||session.pending)return;
@@ -92,14 +89,14 @@
     $('download-output').hidden=!session.confirmed;$('confirm-plan').disabled=false;$('plan-title').focus();$('plan').scrollIntoView({behavior:'smooth',block:'start'});
   };
   $('back-chat').onclick=()=>{$('plan').hidden=true;$('reply').focus();$('compose').scrollIntoView({behavior:'smooth',block:'center'});};
-  $('confirm-plan').onclick=()=>{try{const output=M.handoff(session);session.output=output;session.confirmed=true;session.revisions.push({at:new Date().toISOString(),output});session.revisions=session.revisions.slice(-20);const ok=save();$('download-output').hidden=false;$('confirm-plan').disabled=true;say(ok?'Plan saved. Export it for part 4; automatic handoff is not connected yet.':'Plan confirmed for this visit. Download it before leaving.');}catch(error){say(error.message);}};
+  $('confirm-plan').onclick=()=>{try{const output=M.handoff(session);session.output=output;session.confirmed=true;session.revisions.push({at:new Date().toISOString(),output});session.revisions=session.revisions.slice(-20);const ok=save();$('download-output').hidden=false;$('confirm-plan').disabled=true;say(ok?'Plan saved. Export it to continue in Correction lab.':'Plan confirmed for this visit. Download it before leaving.');}catch(error){say(error.message);}};
   $('download-output').onclick=()=>download(session.output,'skillloop-part3-output.json');
   try {
     const response=await fetch('/api/dialogue');if(!response.ok)throw Error('Could not load the cases.');const data=await response.json();catalog=data.catalog;available=data.available;
     for(const c of Object.values(catalog.cases)){const o=el('option',c.title);o.value=c.caseId;$('case-select').append(o);}
     const selected=new URLSearchParams(location.search).get('case');if(catalog.cases[selected])$('case-select').value=selected;
-    records=M.restore(app.read('repairDialogue',[]),catalog);$('start-sample').disabled=false;$('start-live').disabled=!available;
-    $('connection').textContent=available?'Shared AI configured. Choose your mode.':'Live AI unavailable. Sample uses labelled preset replies.';showHistory();say('');
+    records=M.restore(app.read('codeReview',[]),catalog);$('start-live').disabled=!available;
+    $('connection').textContent=available?'':'AI is unavailable. Please try again later.';showHistory();say('');
     if(records.length&&!selected){session=records.at(-1);render();if(session.pending)say('A response is pending. Select Retry to continue.');}
-  }catch(error){say(error.message+' Start the common Node dev server, then reload.');}
+  }catch(error){say(error.message+' Please reload to try again.');}
 })();

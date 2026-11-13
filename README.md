@@ -23,7 +23,7 @@ Open [http://127.0.0.1:8765](http://127.0.0.1:8765). The server runs all three A
 | --- | --- | --- |
 | Knowledge map | `knowledge-map/` | Explore concept graphs, mini-courses, questions and sourced cases. Supabase supports accounts and teacher publishing; optional AI helps teachers find sources. |
 | Learning path | `learning-path/` | Assess prior knowledge and recommend courses using background, goals and quiz results. Recommendations are rule-based. |
-| AI dialogue | `interview/` | Review an AI delivery through continuous conversation, revise repair requests and export a confirmed plan. A labelled sample is available without AI configuration. |
+| AI dialogue | `interview/` | Review an AI delivery through continuous conversation, revise repair requests and export a confirmed plan. Requires a configured AI provider. |
 | Correction lab | `correction-lab/` | Find errors in authored answers, explain and fix them, then try a related question. Teachers can request AI case drafts and review them before browser-local publication. |
 
 See each folder's README for its workflow. Shared navigation, styles and browser-storage helpers live in `shared/`; server endpoints live in `api/`. Knowledge database migrations are in `supabase/migrations/`.

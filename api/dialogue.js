@@ -1,19 +1,20 @@
 const service=require('../interview/dialogue-server.cjs');
 module.exports=async function handler(req,res) {
   res.setHeader('Cache-Control','no-store');
-  if(req.method==='GET') return res.status(200).json({available:service.configured(),catalog:service.catalog});
+  if(req.method==='GET') return res.status(200).json({available:service.configured(),catalog:{cases:service.catalog.cases,topics:service.catalog.topics}});
   if(req.method!=='POST') return res.status(405).json({error:'Use GET or POST.'});
   let body,session;
   try {
     if(Number(req.headers?.['content-length'])>250000) return res.status(413).json({error:'Conversation too large. Export it and start a new review.'});
     body=typeof req.body==='string'?JSON.parse(req.body):req.body;
     if(JSON.stringify(body).length>250000) return res.status(413).json({error:'Conversation too large. Export it and start a new review.'});
+    if(!['open','reply'].includes(body?.action)) throw Error('Unsupported action.');
     session=service.read(body);
   } catch {return res.status(400).json({error:'The conversation input could not be read. Keep your draft and reload the task.'});}
-  if(body.action!=='sample'&&!service.configured()) return res.status(503).json({error:'Live AI is not configured. Your reply is saved; retry after configuration.'});
+  if(!service.configured()) return res.status(503).json({error:'Live AI is not configured. Your reply is saved; retry after configuration.'});
   try {
-    const result=body.action==='sample'?service.sample(session):body.action==='open'?await service.opening(session):await service.generate(session);
-    return res.status(200).json({result,aiSource:body.action==='sample'?'sample':'api'});
+    const result=body.action==='open'?await service.opening(session):await service.generate(session);
+    return res.status(200).json({result,aiSource:'api'});
   } catch(error) {
     console.error('[dialogue] request failed:', error.code || error.name || 'UNKNOWN');
     const messages = {

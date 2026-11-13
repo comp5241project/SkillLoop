@@ -13,6 +13,12 @@
     // Never trust a client-supplied replacement for the case requirements or code.
     return {case: clone(c), assessment: clone(raw.assessment), learning: clone(raw.learning)};
   }
+  function freshInput(caseId, catalog) {
+    if (!catalog.cases[caseId]) throw Error('Choose a case.');
+    return {case:catalog.cases[caseId],
+      assessment:{summary:'No prior assessment was supplied. Do not assume the learner knows the implementation or has completed a diagnosis.',skills:{detect:'not_observed',explain:'not_observed',instruct:'not_observed',verify:'not_observed'},weakTopics:[]},
+      learning:{studiedTopics:[],needsPractice:[],practiceFocus:[]}};
+  }
   function create(raw, catalog, mode, sampleInput = true) {
     const context = input(raw,catalog);
     if (!['sample','api'].includes(mode)) throw Error('Choose Sample or Live AI.');
@@ -76,6 +82,6 @@
     }
     return records.slice(-20);
   }
-  const api={input,create,validOpening,applyOpening,validTurn,apply,handoff,restore};
+  const api={input,freshInput,create,validOpening,applyOpening,validTurn,apply,handoff,restore};
   if(typeof module!=='undefined'&&module.exports) module.exports=api; else root.SkillLoopDialogue=api;
 })(globalThis);

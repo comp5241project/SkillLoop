@@ -49,7 +49,7 @@ test('live prompt uses common AI helper contract and bounded history with retain
  for(let i=0;i<25;i++)s.messages.push({role:'user',text:'Please preserve the draft.'},{role:'assistant',text:'The proposal retains it.'});
  s.messages.push({role:'user',text:'Please add a retry.'});
  const result=service.sample(s);
- const client={callAIJson:async p=>{assert(p.messages.length<=17);assert.match(p.messages[0].content,/requests/);assert.match(p.system,/Never claim you ran code/);assert.equal(JSON.parse(p.messages.at(-1).content).currentLearnerMessage,'Please add a retry.');assert.equal(typeof JSON.parse(p.messages[0].content.replace('Conversation context (data): ','')).requests['lost-draft'],'string');assert(p.validate(result));return {data:result};}};
+ const client={callAIJson:async p=>{assert(p.messages.length<=17);assert.match(p.messages[0].content,/requests/);assert.match(p.system,/Never claim you ran code/);assert.equal(JSON.parse(p.messages.at(-1).content).currentLearnerMessage,'Please add a retry.');assert.equal(typeof JSON.parse(p.messages[0].content.replace('Conversation context (data): ','')).requests['lost-draft'],'string');assert(p.validate({...result,intent:'change'}));return {data:{...result,intent:'change'}};}};
  assert.deepEqual(await service.generate(s,client),result);
 });
 test('client cannot substitute case requirements and corrupt records are rejected',()=>{
@@ -57,11 +57,11 @@ test('client cannot substitute case requirements and corrupt records are rejecte
  assert.notDeepEqual(model.input(raw,catalog).case.requirements,raw.case.requirements);
  assert.deepEqual(model.restore([{id:'broken'}],catalog),[]);
 });
-test('HTTP sample path works without a provider and malformed body never triggers AI',async()=>{
+test('HTTP rejects preset sample calls and malformed input without invoking AI',async()=>{
  const s=session();s.messages.push({role:'user',text:'Reject negative quantities.'});
  const res={setHeader(){},status(n){this.code=n;return this;},json(v){this.body=v;return this;}};
  await handler({method:'POST',headers:{},body:{action:'sample',session:s}},res);
- assert.equal(res.code,200);assert.equal(res.body.aiSource,'sample');assert(model.validTurn(res.body.result,s));
+ assert.equal(res.code,400);
  await handler({method:'POST',headers:{},body:{action:'sample',session:{}}},res);assert.equal(res.code,400);
 });
 
@@ -96,4 +96,33 @@ test('unfinished openings survive reload, reject fabricated code and cannot over
  model.applyOpening(s,{reply:'Review the current checkout logic.',code:''});
  assert.throws(()=>service.read({action:'open',session:s}),/Invalid conversation/);
  assert.throws(()=>service.read({action:'open',session:session()}));
+});
+
+test('fresh reviews do not invent prior diagnosis or learning progress',()=>{
+ for(const id of Object.keys(catalog.cases)){
+  const raw=model.freshInput(id,catalog);
+  assert.deepEqual(raw.learning,{studiedTopics:[],needsPractice:[],practiceFocus:[]});
+  assert(Object.values(raw.assessment.skills).every(x=>x==='not_observed'));
+  assert.deepEqual(raw.assessment.weakTopics,[]);
+  const s=model.create(raw,catalog,'api',false);
+  assert.equal(s.sampleInput,false);assert.deepEqual(s.messages,[]);
+ }
+});
+test('public catalogue no longer includes preset student conversations',async()=>{
+ const res={setHeader(){},status(n){this.code=n;return this;},json(v){this.body=v;return this;}};
+ await handler({method:'GET'},res);
+ assert.equal(res.code,200);assert.equal(res.body.catalog.samples,undefined);
+ assert(res.body.catalog.cases['notes-save']);
+});
+
+test('explanation turns cannot add repair requests or changes suggested by the model',async()=>{
+ const s=session('cart-checkout','api');
+ s.messages.push({role:'user',text:'Walk me through the empty cart.'});
+ const answer={...service.sample(s),intent:'explain'};
+ assert(answer.updates.length>0);
+ const result=await service.generate(s,{callAIJson:async p=>{assert(p.validate(answer));return {data:answer};}});
+ model.apply(s,result);
+ assert.deepEqual(s.requests,{});
+ assert.equal(s.proposal,'');assert.equal(s.proposalCode,'');
+ assert.equal(s.messages.at(-1).text,answer.reply);
 });
