@@ -272,7 +272,7 @@
     authored.forEach((item) => {
       const row = element('div', 'sl-row cl-published-row');
       const link = element('a', '', item.title);
-      link.href = `/correction-lab/?case=${encodeURIComponent(item.id)}`;
+      link.href = `/correction-lab/practice.html?case=${encodeURIComponent(item.id)}`;
       const remove = element('button', 'sl-text-button', 'Unpublish');
       remove.type = 'button';
       remove.addEventListener('click', () => {

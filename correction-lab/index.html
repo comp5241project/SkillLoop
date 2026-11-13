@@ -6,138 +6,169 @@
     <meta name="theme-color" content="#f6f5f1" />
     <meta
       name="description"
-      content="SkillLoop: short software development lessons, personalised paths, interview practice and AI correction challenges."
+      content="SkillLoop part 4: apply your repair plan to AI-built code and verify it with real tests."
     />
-    <title>Correction lab | SkillLoop</title>
-    <link rel="icon" href="../public/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="../shared/styles.css" />
-    <link rel="stylesheet" href="style.css" />
-    <script src="../shared/vendor/lucide.min.js" defer></script>
-    <script src="../shared/storage.js" defer></script>
-    <script src="../shared/navigation.js" defer></script>
-    <script src="cases.js" defer></script>
-    <script src="case-check.js" defer></script>
-    <script src="script.js" defer></script>
+    <title>Verify the fix | SkillLoop</title>
+    <link rel="icon" href="/public/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/shared/styles.css" />
+    <link rel="stylesheet" href="/correction-lab/style.css" />
+    <script src="/shared/vendor/lucide.min.js" defer></script>
+    <script src="/shared/storage.js" defer></script>
+    <script src="/shared/navigation.js" defer></script>
+    <script src="/correction-lab/shared-samples.js" defer></script>
+    <script src="/correction-lab/levels.js" defer></script>
+    <script src="/correction-lab/break-runner.js" defer></script>
+    <script src="/correction-lab/break.js" defer></script>
   </head>
-  <body data-root="../" data-module="correction-lab">
+  <body data-root="/" data-module="correction-lab">
     <a class="skip-link" href="#main-content">Skip to content</a>
     <div id="skillloop-prototype">
       <header id="site-header" class="sl-head"></header>
       <div class="sl-shell">
         <aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside>
         <main id="main-content" class="sl-main cl-main">
-          <div class="sl-kicker">Correction lab</div>
-          <h1>Be the one who spots it.</h1>
+          <div class="sl-kicker">Part 4 · AI-assisted verification</div>
+          <h1>The AI says it is fixed. Check the evidence.</h1>
           <p class="sl-intro">
-            AI answers sound confident. Find the lines that are wrong, explain why, and write a
-            better version.
+            Apply the repair plan you agreed in the dialogue, run the tests for real, and let the
+            results decide. AI explains the results; it does not decide them.
           </p>
+          <div class="cl-cases" id="bk-levels" role="group" aria-label="Cases"></div>
 
-          <section class="sl-card bk-banner" aria-labelledby="bk-banner-title">
-            <div>
-              <h2 id="bk-banner-title">Part 4: Verify the fix</h2>
-              <p>
-                Apply your repair plan to an app the AI called "done", run real tests and get an AI
-                review of the results.
-              </p>
-            </div>
-            <a class="sl-btn sl-btn-main" href="break.html"
-              >Start<i data-lucide="arrow-right" aria-hidden="true"></i
-            ></a>
-          </section>
-
-          <div class="cl-summary">
-            <span id="sl-progress" aria-live="polite"></span>
-            <span id="sl-stars"></span>
-          </div>
-          <div id="sl-case-list"></div>
-
-          <article class="sl-card cl-case-card" aria-labelledby="sl-case-title">
-            <div class="cl-chips">
-              <span class="sl-chip" id="sl-case-kind"></span>
-              <span class="sl-chip" id="sl-case-fluency" hidden></span>
-              <span class="sl-chip" id="sl-case-origin" hidden>AI-drafted · Teacher-reviewed</span>
-              <span class="sl-chip" id="sl-case-source"></span>
-            </div>
-            <h2 id="sl-case-title" class="cl-title" tabindex="-1"></h2>
-
+          <article class="sl-card cl-case-card" aria-labelledby="bk-title">
+            <div class="cl-chips" id="bk-topics"></div>
+            <h2 id="bk-title" class="cl-title" tabindex="-1"></h2>
             <div class="cl-question">
-              <span class="cl-who"><i data-lucide="user-round" aria-hidden="true"></i>Question to the AI</span>
-              <p id="sl-case-question"></p>
+              <span class="cl-who"><i data-lucide="clipboard-list" aria-hidden="true"></i>Scenario</span>
+              <p id="bk-scenario"></p>
+            </div>
+            <div class="cl-question bk-claim">
+              <span class="cl-who"><i data-lucide="bot" aria-hidden="true"></i>AI agent</span>
+              <p id="bk-claim"></p>
             </div>
 
-            <section class="cl-step" aria-labelledby="cl-step1">
-              <h3 id="cl-step1"><span class="sl-dot">1</span>Spot the problem</h3>
-              <p class="cl-hint" id="sl-spot-hint"></p>
-              <div class="cl-answer">
-                <span class="cl-who"><i data-lucide="bot" aria-hidden="true"></i>AI answer</span>
-                <div id="sl-lines" role="group" aria-label="Lines of the AI answer"></div>
+            <section class="cl-step" id="bk-noplan" aria-labelledby="bk-noplan-title" hidden>
+              <h3 id="bk-noplan-title">No confirmed repair plan yet</h3>
+              <p>
+                This part starts from the repair plan you confirm in the repair dialogue (part 3).
+                None was found for this case in this browser.
+              </p>
+              <div class="sl-row">
+                <a class="sl-btn sl-btn-main" href="/interview/">Go to the repair dialogue</a>
+                <button type="button" class="sl-btn" id="bk-load-sample">Load the sample plan</button>
               </div>
-              <button type="button" class="sl-btn sl-btn-main sl-spaced" id="sl-spot-check">
-                Check my lines<i data-lucide="arrow-right" aria-hidden="true"></i>
-              </button>
-              <div class="cl-result" id="sl-spot-result" aria-live="polite" hidden></div>
+              <p class="cl-note">The sample plan is fictional example data for trying this part on its own.</p>
             </section>
 
-            <section class="cl-step" id="sl-step-cause" aria-labelledby="cl-step2" hidden>
-              <h3 id="cl-step2"><span class="sl-dot">2</span>Why is it wrong?</h3>
-              <div class="cl-options" id="sl-cause-options" role="group" aria-label="Possible causes"></div>
-              <div class="cl-result" id="sl-cause-result" aria-live="polite" hidden></div>
-            </section>
+            <div id="bk-flow" hidden>
+              <section class="cl-step" aria-labelledby="bk-step1">
+                <h3 id="bk-step1"><span class="sl-dot">1</span>Your repair plan</h3>
+                <p class="cl-hint" id="bk-plan-source"></p>
+                <p class="bk-owner">Requirements</p>
+                <ul class="bk-rules" id="bk-rules"></ul>
+                <div id="bk-plan"></div>
+                <p class="cl-note" id="bk-plan-feedback"></p>
+              </section>
 
-            <section class="cl-step" id="sl-step-fix" aria-labelledby="cl-step3" hidden>
-              <h3 id="cl-step3"><span class="sl-dot">3</span>Fix it</h3>
-              <label for="sl-correction" id="sl-fix-prompt"></label>
-              <textarea id="sl-correction" placeholder="Write your fix in your own words."></textarea>
-              <button type="button" class="sl-btn sl-btn-main sl-spaced" id="sl-check">
-                Compare with a reference<i data-lucide="arrow-right" aria-hidden="true"></i>
-              </button>
-              <div class="sl-feedback" id="sl-correction-result" hidden>
-                <div class="sl-icon-title">
-                  <i data-lucide="lightbulb" aria-hidden="true"></i>
-                  <h4 id="sl-ref-title"></h4>
+              <section class="cl-step" aria-labelledby="bk-step2">
+                <h3 id="bk-step2"><span class="sl-dot">2</span>Try the app</h3>
+                <p class="cl-hint" id="bk-try"></p>
+                <div class="bk-stage">
+                  <iframe id="bk-app" class="bk-app" sandbox="allow-scripts" title="The app under test"></iframe>
+                  <div class="bk-bugs" id="bk-bugs"></div>
                 </div>
-                <p id="sl-ref-text"></p>
-                <pre class="sl-code cl-example" id="sl-ref-example"></pre>
-                <fieldset class="cl-criteria">
-                  <legend>Tick what your fix covers</legend>
-                  <div id="sl-criteria"></div>
-                </fieldset>
+              </section>
+
+              <section class="cl-step" aria-labelledby="bk-step3">
+                <h3 id="bk-step3"><span class="sl-dot">3</span><span id="bk-fix-title">Apply the plan</span></h3>
+                <div id="bk-report-block">
+                  <p class="cl-hint">
+                    No code needed. For each item, choose the change that does what you asked for.
+                    If your request was wrong, the tests will show it. Choose an option again to
+                    remove it.
+                  </p>
+                  <div id="bk-report"></div>
+                  <div class="sl-row sl-spaced">
+                    <button type="button" class="sl-btn sl-btn-main" id="bk-send">
+                      Apply and run the tests<i data-lucide="play" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="sl-text-button" id="bk-mode-code">I can code: edit it myself</button>
+                  </div>
+                </div>
+                <div id="bk-code-block" hidden>
+                  <p class="cl-hint">Edit the code so it meets the requirements, then run the tests.</p>
+                  <label for="bk-code">The code</label>
+                  <textarea id="bk-code" class="bk-code" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+                  <div class="sl-row sl-spaced">
+                    <button type="button" class="sl-btn sl-btn-main" id="bk-run">
+                      Run the tests<i data-lucide="play" aria-hidden="true"></i>
+                    </button>
+                    <span>
+                      <button type="button" class="sl-text-button" id="bk-mode-report">Choose changes instead</button>
+                      <button type="button" class="sl-text-button" id="bk-restore">Restore the starter code</button>
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              <section class="cl-step" aria-labelledby="bk-step4">
+                <h3 id="bk-step4" tabindex="-1"><span class="sl-dot">4</span>Test results</h3>
+                <div class="cl-result" id="bk-outcome" aria-live="polite"></div>
+                <ul class="bk-tests" id="bk-tests"></ul>
                 <p class="cl-note">
-                  This is a reference answer written by the team. Your written fix is not scored; the
-                  ticks are your own check.
+                  These tests really run on the current code in your browser. Passing them means this
+                  teaching case's checks pass, not that the app is ready for production.
                 </p>
-              </div>
-            </section>
+              </section>
 
-            <section class="cl-step" id="sl-next-question" aria-labelledby="cl-step4" hidden>
-              <h3 id="cl-step4"><span class="sl-dot">4</span>Apply it</h3>
-              <p id="sl-apply-question" class="cl-apply-question"></p>
-              <div class="cl-options" id="sl-apply-options" role="group" aria-label="Answers"></div>
-              <div class="cl-result" id="sl-apply-result" aria-live="polite" hidden></div>
-              <div class="sl-row sl-spaced" id="sl-case-end" hidden>
-                <a class="cl-link" id="sl-lesson-link" href="../knowledge-map/">Review the related lesson</a>
-                <button type="button" class="sl-btn sl-btn-main" id="sl-next-case">
-                  Next case<i data-lucide="arrow-right" aria-hidden="true"></i>
-                </button>
-              </div>
-            </section>
+              <section class="cl-step" id="bk-step-review" aria-labelledby="bk-step5" hidden>
+                <h3 id="bk-step5"><span class="sl-dot">5</span>AI review</h3>
+                <p class="cl-hint">The AI reads the real results above and explains them. It cannot change them.</p>
+                <div class="sl-row" id="bk-review-actions">
+                  <button type="button" class="sl-btn sl-btn-main" id="bk-ask-ai">
+                    Ask the AI to review<i data-lucide="sparkles" aria-hidden="true"></i>
+                  </button>
+                  <button type="button" class="sl-text-button" id="bk-sample-review">Show the sample review</button>
+                </div>
+                <div class="cl-result" id="bk-review-status" aria-live="polite" hidden></div>
+                <div class="cl-question bk-claim" id="bk-review" hidden>
+                  <span class="cl-who"><i data-lucide="bot" aria-hidden="true"></i><span id="bk-review-label"></span></span>
+                  <p id="bk-review-text"></p>
+                  <p class="bk-topics" id="bk-review-topics"></p>
+                </div>
+              </section>
 
-            <div class="cl-footer">
-              <button type="button" class="sl-text-button" id="sl-reset">Start this case again</button>
+              <section class="cl-step" id="bk-step-explain" aria-labelledby="bk-step6" hidden>
+                <h3 id="bk-step6"><span class="sl-dot">6</span>Explain the fix</h3>
+                <p class="cl-hint">The tests pass. Now show you understand why each change is the right one.</p>
+                <div id="bk-explain"></div>
+              </section>
+
+              <section class="cl-step" id="bk-step-output" aria-labelledby="bk-step-out" hidden>
+                <h3 id="bk-step-out">Verification record</h3>
+                <p class="cl-hint" id="bk-output-note"></p>
+                <details class="bk-diff">
+                  <summary>Show the handoff output (JSON)</summary>
+                  <pre class="sl-code" id="bk-output"></pre>
+                </details>
+              </section>
+
+              <div class="cl-footer">
+                <button type="button" class="sl-text-button" id="bk-reset">Start this case again</button>
+              </div>
             </div>
           </article>
 
           <p class="cl-note sl-spaced">
-            Cases are written by the team from the course lectures. Stars come from the line and choice
-            questions only. Teachers can <a href="teacher.html">draft new cases with AI</a>.
+            Cases, requirements and tests are authored teaching material shared by the four parts
+            of SkillLoop. Test results come from running the code; AI only explains them.
+            More practice: <a href="/correction-lab/practice.html">spot the errors in AI answers</a>.
           </p>
         </main>
       </div>
     </div>
     <noscript
-      >Please enable JavaScript to use the interactive exercises.
-      <a href="../index.html">Home</a></noscript
+      >Please enable JavaScript to use the interactive exercises. <a href="/">Home</a></noscript
     >
   </body>
 </html>
