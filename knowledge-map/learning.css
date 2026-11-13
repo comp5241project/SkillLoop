@@ -1,0 +1,17 @@
+#skillloop-prototype .learning-mode { display:inline-block; padding:7px 11px; border:1px solid var(--sl-line); border-radius:999px; background:var(--sl-soft); font-weight:700; }
+#skillloop-prototype .learning-eyebrow { margin:0; color:var(--sl-accent); font-weight:700; text-transform:uppercase; letter-spacing:.06em; font-size:.8rem; }
+#skillloop-prototype .learning-tags { display:flex; flex-wrap:wrap; gap:8px; }
+#skillloop-prototype .learning-tag { padding:6px 10px; border-radius:999px; background:var(--sl-soft); }
+#skillloop-prototype .learning-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr)); gap:16px; }
+#skillloop-prototype .learning-card { min-width:0; border:1px solid var(--sl-line); border-radius:12px; padding:18px; background:var(--sl-panel); }
+#skillloop-prototype .learning-card h3 { margin-top:0; }
+#skillloop-prototype .learning-card pre, #skillloop-prototype .learning-output { max-width:100%; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; padding:12px; border-radius:8px; background:var(--sl-soft); }
+#skillloop-prototype .learning-card fieldset { border:0; padding:0; margin:0 0 12px; }
+#skillloop-prototype .learning-card legend { font-weight:700; margin-bottom:8px; }
+#skillloop-prototype .learning-card label { display:block; margin:8px 0; }
+#skillloop-prototype .learning-card textarea, #skillloop-prototype #sample-case { box-sizing:border-box; width:100%; max-width:700px; padding:10px; border:1px solid var(--sl-line); border-radius:8px; font:inherit; }
+#skillloop-prototype .learning-card textarea { min-height:92px; }
+#skillloop-prototype .learning-card .learning-feedback { margin-top:12px; }
+#skillloop-prototype .learning-card[data-complete="true"] { border-color:var(--sl-accent); }
+#skillloop-prototype blockquote { margin:14px 0; padding:12px 16px; border-left:4px solid var(--sl-accent); background:var(--sl-soft); }
+@media(max-width:600px) { #skillloop-prototype .learning-cards { grid-template-columns:1fr; } #skillloop-prototype .learning-card { padding:14px; } }
