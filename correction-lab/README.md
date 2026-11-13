@@ -1,17 +1,46 @@
 # Correction lab - module 4
 
-Work mainly in this folder.
+Work mainly in this folder. `/correction-lab/` opens part 4 of the team flow (verification); see the next section for its files. The files below belong to the extra practice page and the teacher studio.
 
-- `index.html`: page layout and the four steps of a case.
-- `cases.js`: authored cases, based on the COMP5241 lectures.
+- `practice.html`: extra practice, the four steps of a reading case.
+- `cases.js`: authored reading cases, based on the COMP5241 lectures.
 - `script.js`: case switching, line flagging, multiple-choice feedback, stars and saved progress.
 - `style.css`: styles unique to this module, including its larger system-font type.
 - `case-check.js`: shape check for a case, shared by the browser and the server.
 - `teacher.html`, `teacher.js`: case studio where a teacher drafts a case with AI, reviews it and publishes it.
-- `server.cjs`: server-only AI drafting through OpenRouter, with validation and a demo sample.
+- `server.cjs`: server-only AI code: teacher drafting (earlier provider settings) and the part 4 review (shared helper).
 - `dev-server.cjs`: local preview that also runs the API. `server.test.cjs`: tests with a mocked AI.
 
-Open `/correction-lab/`, or `/correction-lab/?case=agent-edits-test` to open one case. Unknown case IDs fall back to the first case.
+Open `/correction-lab/practice.html`, or add `?case=agent-edits-test` to open one case. Unknown case IDs fall back to the first case.
+
+## Part 4: AI-assisted verification
+
+Open `/correction-lab/` (`index.html`), or add `?case=quiz-permissions` or `?case=notes-save`. This is part 4 of the team flow described in [docs/team-samples](../docs/team-samples/README.md): the learner applies the repair plan they confirmed in the repair dialogue and verifies it with real tests.
+
+**Input** `{ case, dialogue, testSpecs }`. The case and its fixed tests come from the shared materials. The dialogue is the confirmed plan from part 3. Cross-part saving is not connected yet, so no plan arrives: the page says so and offers the labelled sample plan. `readPart3` and `writeVerification` at the top of `break.js` are the only two places to connect. `readPart3` returns part 3's saved output `{ caseId, aiSource, dialogue }`; `checkDialogue` in `break-runner.js` accepts it only when it is for the same case, `confirmed` is `true`, every issue of the case has one plan item, and every check uses a test ID of the case. A plan that fails the check is not used, and the page lists the reasons. A new or changed plan clears this case's earlier choices, results and review.
+
+**Flow**
+
+1. **Your repair plan**: the plan as an acceptance checklist, with each check's live status.
+2. **Try the app**: the app runs in a sandboxed frame; an issue is marked as reproduced when the learner really triggers it.
+3. **Apply the plan**: for each issue the learner chooses the change that does what they asked for, or switches to editing the code. A wrong request leads to a wrong change, which the tests expose.
+4. **Test results**: every shared test runs in a Web Worker (stopped after 3 seconds) and reports `pass`, `fail`, `error` or `not_run` with an actual result. `fail` means the behaviour is wrong; `error` means the code could not load or finish. Any change to the code makes earlier results `not_run`.
+5. **AI review**: `POST /api/correction` with `action: "review"` sends the real results to the shared helper `server/ai.mjs`. The model returns only `aiReview` and `reviewTopics`; statuses and the outcome stay as the runner produced them. Without AI configuration, or after an error, the learner can show a labelled sample review built from the same results.
+6. **Explain the fix**: one question per issue once every test passes.
+
+**Output** `{ caseId, aiSource, verification: { testSource, tests, outcome, aiReview, reviewTopics } }`, shown on the page and stored under `verify` in the `correction` key. `testSource` is always `runner` here; `aiSource` is `api` only when the AI service answered. `outcome` follows the team rule: any fail is `needs_revision`, otherwise any error or not_run is `inconclusive`, otherwise `passed`.
+
+| File | Purpose |
+| --- | --- |
+| `shared-samples.js` | Derived copy of the shared cases, tests and sample plans (`docs/` is not deployed). Regenerate with `node correction-lab/sync-shared.cjs`; a test fails when it is out of date |
+| `levels.js` | What is needed to run each case here: app shell, issue detectors, an executable check per test ID, repair choices and questions |
+| `index.html`, `break.js` | Page, sandbox harness, plan, results, review and output |
+| `break-runner.js`, `break-worker.js` | Test runner, outcome rule and repair assembly, shared by the worker, the API and the Node tests |
+| `break.test.cjs` | IDs match the shared materials; starter code needs revision; the shared reference passes; every wrong repair leaves a failing test |
+
+AI configuration for the review uses the team variables `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` (see [AI setup](../docs/team-samples/AI-SETUP.md)). Teacher drafting below still uses its earlier provider settings until it is migrated. The review endpoint needs no teacher code, so the project owner should watch the shared quota.
+
+The earlier reading cases (`practice.html`, `script.js`, `cases.js`) and the teacher studio (`teacher.html`) remain as extra practice outside the four-part flow. Their sections below describe them.
 
 ## How a case works
 

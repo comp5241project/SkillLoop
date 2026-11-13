@@ -1,12 +1,10 @@
 /** Vercel endpoint for the correction lab. All logic lives in correction-lab/server.cjs. */
 const service = require('../correction-lab/server.cjs');
 
-// Load browser-authored fixtures without polluting the shared Node process.
-const { readFileSync } = require('node:fs');
-const { runInNewContext } = require('node:vm');
-const fixtures = { window: {} };
-runInNewContext(readFileSync(require.resolve('../correction-lab/cases.js'), 'utf8'), fixtures);
-const example = fixtures.window.SkillLoopCases[0];
+// cases.js attaches to window in the browser and to globalThis here. Never create a global
+// window on the server: the shared AI helper refuses to run when one exists.
+require('../correction-lab/cases.js');
+const example = (globalThis.SkillLoopCases || globalThis.window.SkillLoopCases)[0];
 
 module.exports = async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -15,7 +13,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET') {
     const available = service.configured(process.env, oidcToken);
     const ai = available ? service.provider(process.env, oidcToken) : null;
-    return res.status(200).json({ available, provider: ai ? ai.name : null });
+    return res.status(200).json({ available, provider: ai ? ai.name : null, review: service.reviewConfigured() });
   }
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'GET, POST');
@@ -27,9 +25,24 @@ module.exports = async function handler(req, res) {
     if (JSON.stringify(body).length > 10000) {
       return res.status(413).json({ error: 'The lecture notes are too long.' });
     }
-    service.readRequest(body);
+    if (body && body.action === 'review') service.readReview(body);
+    else service.readRequest(body);
   } catch (error) {
     return res.status(400).json({ error: error.message || 'The request could not be read.' });
+  }
+  // Part 4: review real test results with the team's shared AI helper.
+  if (body.action === 'review') {
+    const { callAI, AIError } = await import('../server/ai.mjs');
+    try {
+      return res.status(200).json(await service.review(body, { callAI, AIError }));
+    } catch (error) {
+      if (!(error instanceof AIError)) console.error(`Correction review failed: ${error.name}`);
+      const code = error instanceof AIError ? error.code : 'PROVIDER_ERROR';
+      return res.status(code === 'NOT_CONFIGURED' ? 503 : 502).json({
+        code,
+        error: error instanceof AIError ? error.message : 'The AI review failed. Try again.',
+      });
+    }
   }
   try {
     return res.status(200).json(await service.draft(body, { example, oidcToken }));

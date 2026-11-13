@@ -7,7 +7,7 @@
  * Keep case IDs stable: saved progress and activity use them.
  * conceptId must be one of the shared concept IDs in docs/DATA-CONTRACTS.md.
  */
-window.SkillLoopCases = [
+(typeof window === 'object' ? window : globalThis).SkillLoopCases = [
   {
     id: 'untestable-requirements',
     topic: 'Software engineering fundamentals',

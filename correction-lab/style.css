@@ -474,3 +474,267 @@
     grid-column: 1 / -1;
   }
 }
+
+/* Break the app */
+#skillloop-prototype .bk-claim {
+  margin-top: 8px;
+  background: var(--sl-soft);
+}
+#skillloop-prototype .bk-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 14px;
+  align-items: start;
+}
+#skillloop-prototype .bk-app {
+  width: 100%;
+  height: 320px;
+  border: 1px solid var(--sl-line);
+  border-radius: 10px;
+  background: #fff;
+}
+#skillloop-prototype .bk-bugs {
+  display: grid;
+  gap: 8px;
+}
+#skillloop-prototype .bk-bug {
+  padding: 12px 14px;
+  border: 1px dashed var(--sl-line);
+  border-radius: 10px;
+  font-size: 14px;
+}
+#skillloop-prototype .bk-bug[data-found='true'] {
+  border: 1px solid var(--cl-ok);
+  background: var(--cl-ok-bg);
+}
+#skillloop-prototype .bk-bug p {
+  margin: 6px 0 0;
+  color: var(--sl-sub);
+}
+#skillloop-prototype .bk-bug[data-found='true'] p {
+  color: var(--sl-text);
+}
+#skillloop-prototype .bk-bug .sl-text-button {
+  display: block;
+  padding: 6px 0 0;
+}
+#skillloop-prototype .bk-rules {
+  margin: 0 0 14px;
+  padding-left: 20px;
+}
+#skillloop-prototype .cl-main .bk-code {
+  min-height: 320px;
+  font: 13.5px/1.6 var(--cl-mono);
+  white-space: pre;
+  overflow: auto;
+  tab-size: 2;
+}
+#skillloop-prototype .bk-tests {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+#skillloop-prototype .bk-test {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 2px 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+#skillloop-prototype .bk-test[data-ok='true'] {
+  background: var(--cl-ok-bg);
+}
+#skillloop-prototype .bk-test[data-ok='false'] {
+  background: var(--sl-soft);
+}
+#skillloop-prototype .bk-mark {
+  font-size: 12px;
+  font-weight: 700;
+}
+#skillloop-prototype .bk-test[data-ok='true'] .bk-mark {
+  color: var(--cl-ok);
+}
+#skillloop-prototype .bk-test[data-ok='false'] .bk-mark {
+  color: var(--sl-accent);
+}
+#skillloop-prototype .bk-test .cl-line-note {
+  grid-column: 2;
+}
+#skillloop-prototype .bk-banner {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  border-color: var(--sl-accent);
+  background: var(--sl-soft);
+}
+#skillloop-prototype .bk-banner h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 600;
+}
+#skillloop-prototype .bk-banner p {
+  margin: 0;
+  max-width: 520px;
+}
+@media (max-width: 720px) {
+  #skillloop-prototype .bk-stage {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Break the app: report to the AI, review its change, explain the fix */
+#skillloop-prototype .bk-owner {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+#skillloop-prototype .bk-report-card {
+  margin: 0 0 12px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--sl-line);
+  border-radius: 10px;
+}
+#skillloop-prototype .bk-report-card legend {
+  padding: 0 6px;
+  font-weight: 600;
+}
+#skillloop-prototype .bk-report-card .cl-hint {
+  margin: 0;
+}
+#skillloop-prototype .bk-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+#skillloop-prototype .bk-facts dt {
+  color: var(--sl-sub);
+}
+#skillloop-prototype .bk-facts dd {
+  margin: 0;
+}
+#skillloop-prototype .cl-option[aria-pressed='true'] {
+  border-color: var(--sl-accent);
+  background: var(--sl-soft);
+  font-weight: 600;
+}
+#skillloop-prototype .bk-changes {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+#skillloop-prototype .bk-change {
+  border: 1px solid var(--sl-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+#skillloop-prototype .bk-change[data-result='right'] {
+  border-color: var(--cl-ok);
+}
+#skillloop-prototype .bk-change[data-result='wrong'] {
+  border-color: var(--sl-accent);
+}
+#skillloop-prototype .bk-change-head {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--sl-text);
+  font: inherit;
+  text-align: left;
+}
+#skillloop-prototype button.bk-change-head:hover {
+  background: var(--sl-bg);
+}
+#skillloop-prototype .bk-verdict {
+  margin: 0;
+  padding: 0 14px 12px;
+  font-weight: 600;
+}
+#skillloop-prototype .bk-diff {
+  padding: 0 14px 12px;
+  font-size: 13px;
+  color: var(--sl-sub);
+}
+#skillloop-prototype .bk-diff summary {
+  cursor: pointer;
+}
+#skillloop-prototype .bk-diff .sl-code {
+  margin: 8px 0 0;
+  white-space: pre;
+  overflow-x: auto;
+}
+#skillloop-prototype .bk-choice {
+  margin-bottom: 18px;
+}
+@media (max-width: 480px) {
+  #skillloop-prototype .bk-facts {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  #skillloop-prototype .bk-facts dd {
+    margin-bottom: 6px;
+  }
+}
+
+/* Part 4 verification: test statuses, plan checks and the record */
+#skillloop-prototype .bk-test[data-status='pass'] {
+  background: var(--cl-ok-bg);
+}
+#skillloop-prototype .bk-test[data-status='fail'] {
+  background: var(--sl-soft);
+}
+#skillloop-prototype .bk-test[data-status='error'] {
+  background: var(--cl-warn-bg);
+}
+#skillloop-prototype .bk-test[data-status='not_run'] {
+  background: var(--sl-bg);
+}
+#skillloop-prototype .bk-test {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+#skillloop-prototype .bk-mark[data-status='pass'] {
+  color: var(--cl-ok);
+}
+#skillloop-prototype .bk-mark[data-status='fail'] {
+  color: var(--sl-accent);
+}
+#skillloop-prototype .bk-mark[data-status='error'] {
+  color: var(--cl-warn);
+}
+#skillloop-prototype .bk-mark[data-status='not_run'] {
+  color: var(--sl-sub);
+}
+#skillloop-prototype .bk-test-body {
+  display: grid;
+  gap: 1px;
+}
+#skillloop-prototype .bk-test-body .cl-line-note {
+  grid-column: auto;
+  overflow-wrap: anywhere;
+}
+#skillloop-prototype .bk-report-card .bk-tests {
+  margin-top: 8px;
+}
+#skillloop-prototype .bk-topics {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+#skillloop-prototype #bk-output {
+  margin: 8px 0 0;
+  white-space: pre;
+  overflow-x: auto;
+  font-size: 12px;
+}
+#skillloop-prototype .bk-diff p {
+  margin: 6px 0 0;
+  color: var(--sl-text);
+}
