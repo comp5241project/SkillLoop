@@ -50,6 +50,43 @@ test('part 3 sample outputs pass the dialogue check; broken ones are refused wit
   }
 });
 
+test('plan text may be up to 1000 characters; longer text is reported as too long, not missing', () => {
+  const item = source.cases['quiz-permissions'];
+  const withRequest = (changeRequest) => {
+    const output = JSON.parse(JSON.stringify(source.samples['quiz-permissions'].part3.output));
+    output.dialogue.plan[0].changeRequest = changeRequest;
+    return runner.checkDialogue(output, item);
+  };
+  assert.equal(runner.TEXT_LIMIT, 1000);
+  assert.deepEqual(withRequest('x'.repeat(1000)).problems, []);
+  const long = withRequest('x'.repeat(1001)).problems.join(' ');
+  assert.match(long, /change request is too long \(1001 characters, at most 1000\)/);
+  assert.doesNotMatch(long, /no change request/);
+  assert.match(withRequest('').problems.join(' '), /has no change request/);
+});
+
+test("part 3's codeReview store gives the most recently confirmed plan for the case", () => {
+  const output = (caseId, tag) => ({ caseId, aiSource: 'api', dialogue: { tag } });
+  const session = (caseId, tag, at, extra = {}) => ({
+    confirmed: true, pending: false, output: output(caseId, tag), revisions: at ? [{ at, output: output(caseId, tag) }] : [], ...extra,
+  });
+  const records = [
+    session('notes-save', 'newer', '2026-11-13T10:00:00Z'),
+    session('notes-save', 'older', '2026-11-13T09:00:00Z'),
+    session('notes-save', 'draft', '2026-11-13T11:00:00Z', { confirmed: false, output: null }),
+    session('notes-save', 'waiting', '2026-11-13T12:00:00Z', { pending: true }),
+    session('cart-checkout', 'cart', '2026-11-13T13:00:00Z'),
+    null,
+    'garbage',
+  ];
+  assert.equal(runner.latestPart3(records, 'notes-save').dialogue.tag, 'newer');
+  assert.equal(runner.latestPart3(records, 'cart-checkout').dialogue.tag, 'cart');
+  assert.equal(runner.latestPart3(records, 'quiz-permissions'), null);
+  // Without timestamps the later record in the list wins.
+  assert.equal(runner.latestPart3([session('notes-save', 'a'), session('notes-save', 'b')], 'notes-save').dialogue.tag, 'b');
+  for (const bad of [null, undefined, {}, 'x', 3]) assert.equal(runner.latestPart3(bad, 'notes-save'), null);
+});
+
 test('the three shared cases are all runnable here', () => {
   assert.deepEqual(Object.keys(levels).sort(), Object.keys(source.cases).sort());
 });

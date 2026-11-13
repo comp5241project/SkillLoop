@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     const available = configured();
     return send(res, 200, {
       available,
-      provider: PROVIDER,
+      provider: process.env.AI_API_KEY ? 'Shared AI' : PROVIDER,
       model: available ? modelName() : null,
       contractVersion: 1,
     });

@@ -12,7 +12,8 @@
     <link rel="icon" href="../public/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../shared/styles.css" />
     <link rel="stylesheet" href="style.css" />
-    <script src="../shared/vendor/lucide.min.js" defer></script>
+    <script src="/shared/flow.js" defer></script>
+<script src="../shared/vendor/lucide.min.js" defer></script>
     <script src="../shared/storage.js" defer></script>
     <script src="../shared/navigation.js" defer></script>
     <script src="data.js" defer></script>
@@ -155,16 +156,7 @@
               </div>
             </div>
             <div id="lp-result" aria-live="polite"></div>
-            <div class="sl-card lp-locked">
-              <div class="sl-icon-title">
-                <i data-lucide="lock" aria-hidden="true"></i>
-                <h3>Part 2 is next</h3>
-              </div>
-              <p class="sl-small">
-                AI correction learning will reuse this case and your priority
-                knowledge points. Part 1 keeps working without it.
-              </p>
-            </div>
+            <div class="sl-card"><h3>Continue with your case</h3><p>Practise the topics from your diagnosis.</p><a id="lp-continue" class="sl-btn" href="/knowledge-map/">Continue learning</a></div>
           </section>
         </main>
       </div>

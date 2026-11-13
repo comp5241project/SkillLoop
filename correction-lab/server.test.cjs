@@ -206,6 +206,14 @@ test('results from another case or with unknown statuses are refused', () => {
   assert.throws(() => service.readReview({ action: 'review', caseId: 'nope', tests: [] }), /Unknown case/);
 });
 
+test('the AI review receives each change request up to the 1000-character plan limit', () => {
+  const body = reviewBody('quiz-permissions', 'fail');
+  body.plan[0].changeRequest = 'y'.repeat(1200);
+  assert.equal(service.readReview(body).plan[0].changeRequest.length, 1000);
+  body.plan[0].changeRequest = 'z'.repeat(800);
+  assert.equal(service.readReview(body).plan[0].changeRequest.length, 800);
+});
+
 test('the review prompt is built from the shared case, not from the request', () => {
   const prompt = service.reviewPrompt(shared.cases['notes-save']);
   assert.match(prompt, /Show saved only after the request confirms success/);

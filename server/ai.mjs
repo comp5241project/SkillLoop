@@ -4,7 +4,7 @@
  * `createAIClient()` is the four-part team interface configured with
  * AI_BASE_URL / AI_API_KEY / AI_MODEL.
  * `generateStructured()` is the Part 1 DeepSeek structured-output interface
- * configured with DEEPSEEK_API_KEY / DEEPSEEK_MODEL.
+ * uses the shared configuration first, with the legacy DeepSeek settings as fallback.
  */
 export class AIError extends Error {
   constructor(code, message) { super(message); this.name = 'AIError'; this.code = code; }
@@ -12,7 +12,7 @@ export class AIError extends Error {
 const fail = (code, message) => { throw new AIError(code, message); };
 
 export function createAIClient({ env = process.env, fetchImpl = globalThis.fetch, timeoutMs = 45000 } = {}) {
-  async function callAI({ system, messages, maxTokens = 1500 } = {}) {
+  async function callAI({ system, messages, maxTokens = 1500, temperature } = {}) {
     if (typeof window !== 'undefined') fail('SERVER_ONLY', 'AI calls belong on the server.');
     const key = env.AI_API_KEY?.trim();
     const model = env.AI_MODEL?.trim();
@@ -24,11 +24,13 @@ export function createAIClient({ env = process.env, fetchImpl = globalThis.fetch
     if (typeof system !== 'string' || !system.trim() || !Array.isArray(messages) || !messages.length || messages.length > 40 ||
         messages.some(m => !m || !['user', 'assistant'].includes(m.role) || typeof m.content !== 'string' || !m.content.trim()) ||
         system.length + messages.reduce((n, m) => n + m.content.length, 0) > 50000 ||
-        !Number.isInteger(maxTokens) || maxTokens < 1 || maxTokens > 4096) {
+        !Number.isInteger(maxTokens) || maxTokens < 1 || maxTokens > 8192) {
       fail('INVALID_INPUT', 'Provide a server-owned system prompt and bounded user/assistant messages.');
     }
     if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 55000) fail('INVALID_INPUT', 'Invalid AI timeout.');
+    if (temperature !== undefined && (!Number.isFinite(temperature) || temperature < 0 || temperature > 2)) fail('INVALID_INPUT', 'Invalid temperature.');
     const body = { model, messages: [{ role: 'system', content: system }, ...messages.map(({role, content}) => ({role, content}))], stream: false, max_tokens: maxTokens };
+    if (temperature !== undefined) body.temperature = temperature;
     if (env.AI_ENABLE_THINKING !== undefined && env.AI_ENABLE_THINKING !== '') {
       if (!['true', 'false'].includes(env.AI_ENABLE_THINKING)) fail('NOT_CONFIGURED', 'AI_ENABLE_THINKING must be true or false.');
       body.enable_thinking = env.AI_ENABLE_THINKING === 'true';
@@ -86,7 +88,7 @@ export const DEFAULT_MAX_OUTPUT_TOKENS = 8000;
 export const API_URL = 'https://api.deepseek.com/chat/completions';
 
 export function modelName(env = process.env) {
-  return env.LEARNING_PATH_AI_MODEL || env.DEEPSEEK_MODEL || DEFAULT_MODEL;
+  return env.AI_MODEL || env.LEARNING_PATH_AI_MODEL || env.DEEPSEEK_MODEL || DEFAULT_MODEL;
 }
 
 export function apiKey(env = process.env) {
@@ -94,7 +96,7 @@ export function apiKey(env = process.env) {
 }
 
 export function configured(env = process.env) {
-  return Boolean(apiKey(env));
+  return Boolean(env.AI_API_KEY && env.AI_MODEL && /^https:\/\//.test(env.AI_BASE_URL || '')) || Boolean(apiKey(env));
 }
 
 function contentText(content) {
@@ -147,6 +149,16 @@ function parseJson(content) {
  * @param {object} [dependency] Test seam: optional { fetch, apiKey, model }.
  */
 export async function generateStructured(task, dependency = {}) {
+  if (dependency.apiKey === undefined && process.env.AI_API_KEY) {
+    const result = await createAIClient({ fetchImpl: dependency.fetch || globalThis.fetch, timeoutMs: task.timeoutMs || 45000 }).callAIJson({
+      system: task.system + '\nRequired JSON schema: ' + JSON.stringify(task.schema),
+      messages: [{ role: 'user', content: task.prompt }],
+      validate: task.validate,
+      maxTokens: task.maxOutputTokens || DEFAULT_MAX_OUTPUT_TOKENS,
+      temperature: task.temperature,
+    });
+    return result.data;
+  }
   const fetchImpl = dependency.fetch || globalThis.fetch;
   const key = dependency.apiKey ?? apiKey();
   const model = dependency.model ?? modelName();

@@ -42,7 +42,7 @@
       typeof r.proposal==='string' && r.proposal.length<=1800 && typeof r.proposalCode==='string' && r.proposalCode.length<=10000 &&
       Array.isArray(r.updates) && r.updates.length<=session.context.case.issues.length &&
       new Set(r.updates.map(u=>u.issueId)).size===r.updates.length &&
-      r.updates.every(u=>validIssue(u.issueId) && text(u.request,1800) && text(u.quote,500) && last.text.includes(u.quote)) &&
+      r.updates.every(u=>validIssue(u.issueId) && text(u.request,1000) && text(u.quote,500) && last.text.includes(u.quote)) &&
       Array.isArray(r.rejected) && r.rejected.length<=6 && r.rejected.every(x=>text(x,400));
   }
   function apply(session, result) {
@@ -58,7 +58,7 @@
   function handoff(session) {
     if (session.pending || !session.messages.some(m=>m.role==='user')) throw Error('Finish a conversation turn first.');
     const c=session.context.case;
-    if (c.issues.some(i=>!text(session.requests[i.issueId]?.request,1800))) throw Error('Discuss or write a request for each issue before confirming.');
+    if (c.issues.some(i=>!text(session.requests[i.issueId]?.request,1000))) throw Error('Discuss or write a request for each issue before confirming.');
     return {caseId:c.caseId,aiSource:session.mode,dialogue:{
       plan:c.issues.map(i=>({issueId:i.issueId,problem:i.observed,changeRequest:session.requests[i.issueId].request,
         checks:i.suggestedChecks.map(id=>{const t=c.tests.find(t=>t.testId===id); return {testId:id,input:t.action,expected:t.expected};})})),

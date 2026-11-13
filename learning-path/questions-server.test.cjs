@@ -35,38 +35,38 @@ function rawSet(caseId) {
 }
 
 test('question generation validates the case before calling AI', () => {
-  const input = service.readRequest({ action: 'questions', caseId: 'shopping-cart' });
-  assert.equal(input.caseId, 'shopping-cart');
-  assert.equal(input.caseData.id, 'shopping-cart');
+  const input = service.readRequest({ action: 'questions', caseId: 'cart-checkout' });
+  assert.equal(input.caseId, 'cart-checkout');
+  assert.equal(input.caseData.id, 'cart-checkout');
   assert.throws(
     () => service.readRequest({ action: 'questions', caseId: 'not-a-case' }),
     /Unknown caseId/
   );
   assert.throws(
-    () => service.readRequest({ action: 'diagnose', caseId: 'shopping-cart' }),
+    () => service.readRequest({ action: 'diagnose', caseId: 'cart-checkout' }),
     /Unknown learning-path action/
   );
 });
 
 test('the generation prompt asks for a fresh, case-specific set with safe text', () => {
-  const prepared = service.prepare({ action: 'questions', caseId: 'note-saving' });
+  const prepared = service.prepare({ action: 'questions', caseId: 'notes-save' });
   assert.match(prepared.system, /not an examiner/);
   assert.match(prepared.prompt, /fresh set/);
   assert.match(prepared.prompt, /variationToken/);
-  assert.match(prepared.prompt, /note-saving/);
+  assert.match(prepared.prompt, /notes-save/);
   assert.match(prepared.prompt, /Do not include numeric scores/);
   assert.equal(prepared.maxOutputTokens, 8000);
   assert.equal(prepared.temperature, 1.15);
   assert.deepEqual(
     prepared.schema.properties.questions.items.properties.conceptId.enum,
-    data.findCase('note-saving').knowledgePoints
+    data.findCase('notes-save').knowledgePoints
   );
-  assert.equal(service.prepare({ action: 'questions', caseId: 'note-saving' }).validate(rawSet('note-saving')), true);
+  assert.equal(service.prepare({ action: 'questions', caseId: 'notes-save' }).validate(rawSet('notes-save')), true);
 });
 
 test('normalization turns qualities into scores, hides quality in IDs and validates the set', () => {
-  const caseData = data.findCase('shopping-cart');
-  const raw = rawSet('shopping-cart');
+  const caseData = data.findCase('cart-checkout');
+  const raw = rawSet('cart-checkout');
   raw.questions.reverse();
 
   assert.deepEqual(service.validateRaw(raw, caseData), { ok: true });
@@ -79,7 +79,7 @@ test('normalization turns qualities into scores, hides quality in IDs and valida
   assert.deepEqual(model.validateQuestions(questions, caseData), { ok: true });
 
   for (const question of questions) {
-    assert.match(question.id, /^shopping-cart-[a-z-]+-ai-[a-f0-9]{8}$/);
+    assert.match(question.id, /^cart-checkout-[a-z-]+-ai-[a-f0-9]{8}$/);
     assert.deepEqual(
       question.options.map((option) => option.score).sort(),
       [0, 1, 2]
@@ -96,25 +96,25 @@ test('normalization turns qualities into scores, hides quality in IDs and valida
 });
 
 test('malformed model output is rejected before it reaches the browser', () => {
-  const caseData = data.findCase('quiz-platform-permissions');
-  const duplicateQuality = rawSet('quiz-platform-permissions');
+  const caseData = data.findCase('quiz-permissions');
+  const duplicateQuality = rawSet('quiz-permissions');
   duplicateQuality.questions[0].options[2].quality = 'best';
   assert.equal(service.validateRaw(duplicateQuality, caseData).ok, false);
 
-  const duplicateConcept = rawSet('quiz-platform-permissions');
+  const duplicateConcept = rawSet('quiz-permissions');
   duplicateConcept.questions[1].conceptId = duplicateConcept.questions[0].conceptId;
   assert.equal(service.validateRaw(duplicateConcept, caseData).ok, false);
 
-  const unknownConcept = rawSet('quiz-platform-permissions');
+  const unknownConcept = rawSet('quiz-permissions');
   unknownConcept.questions[0].conceptId = 'foundations';
   assert.equal(service.validateRaw(unknownConcept, caseData).ok, false);
 
-  const longLabel = rawSet('quiz-platform-permissions');
+  const longLabel = rawSet('quiz-permissions');
   longLabel.questions[0].options[0].label = 'x'.repeat(model.MAX_OPTION + 1);
   assert.equal(service.validateRaw(longLabel, caseData).ok, false);
 
-  const wrongCase = rawSet('quiz-platform-permissions');
-  wrongCase.caseId = 'shopping-cart';
+  const wrongCase = rawSet('quiz-permissions');
+  wrongCase.caseId = 'cart-checkout';
   assert.equal(service.validateRaw(wrongCase, caseData).ok, false);
   assert.throws(() => service.normalize(wrongCase, caseData), /caseId/);
 });

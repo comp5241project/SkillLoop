@@ -112,6 +112,9 @@
       .join('\n');
   }
 
+  // Longest text accepted in a part 3 plan field, the same limit part 3 uses.
+  const TEXT_LIMIT = 1000;
+
   /**
    * Check part 3's output before this part uses it: same case, confirmed by the learner,
    * one plan item per issue of the case, and only test IDs of the case. Returns the plan
@@ -120,7 +123,13 @@
    */
   function checkDialogue(output, item) {
     const problems = [];
-    const text = (value) => typeof value === 'string' && value.trim().length > 0 && value.length <= 1000;
+    // Says what is wrong with one text field, or nothing when it is fine.
+    const text = (value, where, label) => {
+      if (typeof value !== 'string' || !value.trim()) return `${where} has no ${label}.`;
+      if (value.length > TEXT_LIMIT) return `${where}: the ${label} is too long (${value.length} characters, at most ${TEXT_LIMIT}).`;
+      return '';
+    };
+    const add = (problem) => problem && problems.push(problem);
     const dialogue = output && typeof output === 'object' ? output.dialogue : null;
     if (!output || typeof output !== 'object') return { problems: ['There is no part 3 output.'] };
     // A plan for another case cannot be checked item by item; say only that.
@@ -140,13 +149,14 @@
       if (!issueIds.includes(step.issueId)) problems.push(`${where} has an unknown issueId "${step.issueId}".`);
       else if (seen.includes(step.issueId)) problems.push(`${where} repeats issue "${step.issueId}".`);
       seen.push(step.issueId);
-      if (!text(step.problem)) problems.push(`${where} has no problem description.`);
-      if (!text(step.changeRequest)) problems.push(`${where} has no change request.`);
+      add(text(step.problem, where, 'problem description'));
+      add(text(step.changeRequest, where, 'change request'));
       const checks = Array.isArray(step.checks) ? step.checks : [];
       if (!checks.length) problems.push(`${where} has no checks.`);
       checks.forEach((check) => {
-        if (!check || !testIds.includes(check.testId)) problems.push(`${where} has an unknown testId "${check && check.testId}".`);
-        else if (!text(check.input) || !text(check.expected)) problems.push(`${where}, check "${check.testId}", needs an input and an expected result.`);
+        if (!check || !testIds.includes(check.testId)) return problems.push(`${where} has an unknown testId "${check && check.testId}".`);
+        add(text(check.input, `${where}, check "${check.testId}",`, 'input'));
+        add(text(check.expected, `${where}, check "${check.testId}",`, 'expected result'));
       });
     });
     issueIds
@@ -168,7 +178,30 @@
     };
   }
 
-  const api = { load, runTests, outcome, detects, assemble, checkDialogue, helpers };
+  /**
+   * Part 3 keeps its reviews in the `codeReview` store: an array of sessions, each with
+   * `output` once the learner confirms the plan. Returns the output of the most recently
+   * confirmed session for this case, or null. checkDialogue still decides whether it is usable.
+   */
+  function latestPart3(records, caseId) {
+    if (!Array.isArray(records)) return null;
+    const confirmedAt = (session) => {
+      const last = Array.isArray(session.revisions) ? session.revisions[session.revisions.length - 1] : null;
+      const time = last ? Date.parse(last.at) : NaN;
+      return Number.isNaN(time) ? 0 : time;
+    };
+    let best = null;
+    records.forEach((session, index) => {
+      if (!session || session.confirmed !== true || session.pending === true) return;
+      const output = session.output;
+      if (!output || typeof output !== 'object' || output.caseId !== caseId) return;
+      const rank = [confirmedAt(session), index];
+      if (!best || rank[0] > best.rank[0] || (rank[0] === best.rank[0] && rank[1] > best.rank[1])) best = { rank, output };
+    });
+    return best ? best.output : null;
+  }
+
+  const api = { load, runTests, outcome, detects, assemble, checkDialogue, latestPart3, TEXT_LIMIT, helpers };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.SkillLoopRunner = api;
 })(typeof self === 'object' ? self : globalThis);

@@ -1,12 +1,12 @@
 # Team development samples
 
-Shared content and input/output examples for the next SkillLoop iteration: learners review AI-built software, learn how to identify problems, discuss repairs, and verify the results. These materials describe planned integration, not features already connected in the live app.
+Shared content and input/output examples for the next SkillLoop iteration: learners review AI-built software, learn how to identify problems, discuss repairs, and verify the results. The four-part flow is connected through shared browser storage; the sample records remain development examples.
 
 Start with the [team guide in Chinese](guide.zh-CN.txt). It replaces the earlier draft handoff proposals for this iteration; the existing [data contracts](../DATA-CONTRACTS.md) still document the current implementation.
 
 ## Files
 
-- [Shared AI setup](AI-SETUP.md): common calling code, file locations, Vercel configuration and Alibaba Cloud Bailian compatibility. The helper is implemented; module migration is still required.
+- [Shared AI setup](AI-SETUP.md): common calling code, file locations, Vercel configuration and Alibaba Cloud Bailian compatibility. All four module APIs use this helper.
 - [samples.json](samples.json): three cases and twelve complete module input/output examples, including starter code, reference repairs and test specifications.
 - [samples.js](samples.js): the same data, ready to load in a browser or Node.js. Use either format; keep them identical when updating the materials.
 - [guide.zh-CN.txt](guide.zh-CN.txt): module responsibilities, field meanings and integration rules. This is the document called `先读这个.txt` in the shared download.
@@ -32,7 +32,9 @@ The new learning order does not rename the existing folders.
 | 3. AI repair dialogue | `interview/` | Case, assessment and learning result | Learner-confirmed repair plan and dialogue feedback |
 | 4. AI-assisted verification | `correction-lab/` | Case, repair plan and fixed test specifications | Test outcomes, AI review and suggested revision topics |
 
-Each owner can design their own UI and AI interaction. Keep the output fields and case, topic, issue and test IDs as supplied. The integration step still needs to connect saving, loading and navigation.
+Each owner can design their own UI and AI interaction. Keep the output fields and case, topic, issue and test IDs as supplied. `shared/flow.js` connects saving, loading and navigation. A confirmed part 3 plan appears in part 4 for the same case. Repeating an upstream step invalidates older downstream handoffs.
+
+After editing `samples.json`, run `node scripts/sync-cases.cjs` to update the deployed `shared/cases.json` copy. Keep `samples.js` consistent too. Runtime APIs load the deployed copy because Vercel excludes `docs/`.
 
 ## Start independently
 

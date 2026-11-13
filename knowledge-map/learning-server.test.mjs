@@ -6,7 +6,7 @@ import { generate, validateFeedback, validateReflection, validateRequest, buildP
 import { handleLearningRequest } from './learning-api.mjs';
 const require = createRequire(import.meta.url);
 const cases = require('./learning-part1-cases.js');
-const priorities = { 'shopping-cart': ['requirements'], 'quiz-platform-permissions': ['communication'], 'note-saving': ['edge-cases'] };
+const priorities = { 'cart-checkout': ['requirements'], 'quiz-permissions': ['communication'], 'notes-save': ['edge-cases'] };
 const input = (id) => ({ case: cases[id], result: { caseId: id, overall: { level: 'developing', summary: 'Sample diagnosis.' },
   dimensions: cases[id].topicIds.map((conceptId) => ({ conceptId, level: 'developing', evidence: 'Sample answer', strength: 'One useful observation.', gap: `Check ${conceptId}.` })),
   priorities: priorities[id], nextSteps: ['Clarify the expected result.', 'Request a regression check.'] } });
@@ -36,12 +36,12 @@ for (const id of Object.keys(cases)) test(`${id}: prompt carries Part 1 case, di
 test('feedback, reflection and requests reject malformed fields and foreign IDs', () => {
   assert.equal(validateFeedback({ judgment: 'correct', explanation: 'Yes', followUp: null, needsPractice: false }), false);
   assert.equal(validateReflection({ reflection: 'Review.', needsPractice: ['foreign'], practiceFocus: ['Check it'] }, ['requirements']), false);
-  const body = request('shopping-cart'); body.topicId = 'communication'; assert.equal(validateRequest(body), false);
-  const swapped = request('shopping-cart'); swapped.input.case.starterCode = 'wrong code'; assert.equal(validateRequest(swapped), false);
+  const body = request('cart-checkout'); body.topicId = 'communication'; assert.equal(validateRequest(body), false);
+  const swapped = request('cart-checkout'); swapped.input.case.starterCode = 'wrong code'; assert.equal(validateRequest(swapped), false);
 });
 
 test('reflection uses only completed priority topics', async () => {
-  const body = request('note-saving', 'reflection');
+  const body = request('notes-save', 'reflection');
   const result = await generate(body, async ({ validate }) => {
     const data = { reflection: 'Check the unsent edit.', needsPractice: ['edge-cases'], practiceFocus: ['Ask for a reload check.'] };
     assert.equal(validate(data), true);
@@ -51,7 +51,7 @@ test('reflection uses only completed priority topics', async () => {
 });
 
 test('API error and retry preserve the submitted answer', async () => {
-  const body = request('shopping-cart');
+  const body = request('cart-checkout');
   const make = () => new Request('http://localhost/api/knowledge-learning', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const failed = await handleLearningRequest(make(), async () => { throw new AIError('TIMEOUT', 'The AI request timed out.'); });
   assert.equal(failed.status, 504);

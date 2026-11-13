@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import handler from '../api/learning-path.mjs';
 import data from '../learning-path/data.js';
 
-const AI_KEYS = [
+const AI_KEYS = ['AI_API_KEY', 'AI_BASE_URL', 'AI_MODEL',
   'DEEPSEEK_API_KEY',
   'DEEPSEEK_MODEL',
   'AI_GATEWAY_MODEL',
@@ -54,7 +54,7 @@ function request(method, body, headers = {}) {
 }
 
 function validBody() {
-  const caseData = data.findCase('shopping-cart');
+  const caseData = data.findCase('cart-checkout');
   return {
     action: 'diagnose',
     caseId: caseData.id,
@@ -123,7 +123,7 @@ test('the HTTP boundary reports direct DeepSeek availability without exposing cr
 
 test('input validation runs before the AI configuration check', async () => {
   const missing = fakeResponse();
-  await handler(request('POST', JSON.stringify({ action: 'diagnose', caseId: 'shopping-cart', responses: [] })), missing);
+  await handler(request('POST', JSON.stringify({ action: 'diagnose', caseId: 'cart-checkout', responses: [] })), missing);
   assert.equal(missing.statusCode, 400);
   assert.match(missing.body.error, /Answer every question/);
 
@@ -164,7 +164,7 @@ test('the questions action returns a normalized AI-written set', async () => {
       ok: true,
       status: 200,
       json: async () => ({
-        choices: [{ message: { content: JSON.stringify(generatedAnswer('shopping-cart')) } }],
+        choices: [{ message: { content: JSON.stringify(generatedAnswer('cart-checkout')) } }],
       }),
       text: async () => '',
     };
@@ -172,16 +172,16 @@ test('the questions action returns a normalized AI-written set', async () => {
   try {
     const res = fakeResponse();
     await handler(
-      request('POST', JSON.stringify({ action: 'questions', caseId: 'shopping-cart' })),
+      request('POST', JSON.stringify({ action: 'questions', caseId: 'cart-checkout' })),
       res
     );
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.source, 'ai');
-    assert.equal(res.body.caseId, 'shopping-cart');
+    assert.equal(res.body.caseId, 'cart-checkout');
     assert.equal(res.body.questions.length, 4);
     assert.deepEqual(
       res.body.questions.map((question) => question.conceptId),
-      data.findCase('shopping-cart').knowledgePoints
+      data.findCase('cart-checkout').knowledgePoints
     );
     for (const question of res.body.questions) {
       assert.deepEqual(
@@ -202,6 +202,31 @@ test('the questions action returns a normalized AI-written set', async () => {
   }
 });
 
+test('part 1 uses the shared provider even when legacy credentials exist', async () => {
+  const restore = withoutAiEnv();
+  const originalFetch = globalThis.fetch;
+  Object.assign(process.env, { AI_API_KEY: 'test-shared-key', AI_BASE_URL: 'https://example.invalid/v1', AI_MODEL: 'shared-model', DEEPSEEK_API_KEY: 'legacy-test-key' });
+  let upstream;
+  globalThis.fetch = async (url, options) => {
+    upstream = { url: String(url), headers: options.headers, body: JSON.parse(options.body) };
+    return new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(generatedAnswer('cart-checkout')) } }] }));
+  };
+  try {
+    const status = fakeResponse();
+    await handler(request('GET'), status);
+    assert.equal(status.body.available, true);
+    assert.equal(status.body.provider, 'Shared AI');
+    const res = fakeResponse();
+    await handler(request('POST', { action: 'questions', caseId: 'cart-checkout' }), res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.questions.length, 4);
+    assert.equal(upstream.url, 'https://example.invalid/v1/chat/completions');
+    assert.equal(upstream.headers.Authorization, 'Bearer test-shared-key');
+    assert.equal(upstream.body.model, 'shared-model');
+    assert.equal(upstream.body.temperature, 1.15);
+  } finally { globalThis.fetch = originalFetch; restore(); }
+});
+
 test('a valid request without AI configuration returns the documented 503', async () => {
   const restore = withoutAiEnv();
   try {
@@ -215,7 +240,7 @@ test('a valid request without AI configuration returns the documented 503', asyn
 
     const questionRes = fakeResponse();
     await handler(
-      request('POST', JSON.stringify({ action: 'questions', caseId: 'shopping-cart' })),
+      request('POST', JSON.stringify({ action: 'questions', caseId: 'cart-checkout' })),
       questionRes
     );
     assert.equal(questionRes.statusCode, 503);

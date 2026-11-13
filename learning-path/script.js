@@ -147,7 +147,7 @@
 
       const title = node('span', 'lp-case-title', item.title);
       const tagline = node('span', 'lp-case-tagline', item.tagline);
-      const summary = node('span', 'sl-small lp-case-summary', item.summary);
+      const summary = node('span', 'sl-small lp-case-summary', item.summary.split('. ')[0] + '.');
       const points = node('span', 'lp-case-points');
       item.knowledgePoints.forEach((conceptId) => {
         points.append(node('span', 'sl-chip', conceptTitle(conceptId)));
@@ -335,7 +335,7 @@
 
     state.questionsLoading = true;
     renderQuestionSource('Writing four fresh checks for this case…', true);
-    renderQuestionState('DeepSeek is writing a fresh set of case-specific checks…');
+    renderQuestionState('AI is preparing your case questions…');
     updateRunState();
     announce('Writing new AI checks.');
 
@@ -767,6 +767,7 @@
   }
 
   function showResult(record) {
+    $("lp-continue").href = "/knowledge-map/?case=" + encodeURIComponent(record.caseId);
     const found = data.findCase(record.caseId);
     if (!found) return;
     const questions =

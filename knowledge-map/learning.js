@@ -27,6 +27,8 @@
   function sampleInput(id) { return samples.samples[id]?.part2.input; }
   function start(input) {
     session = null;
+    $('continue-dialogue').hidden = true;
+    $('handoff-status').textContent = '';
     $('learning-summary').hidden = true;
     $('learning-output').textContent = '';
     $('ai-reflection').textContent = '';
@@ -48,6 +50,15 @@
     selected.forEach((id) => $('weak-topics').append(el('span', topics.get(id), 'learning-tag')));
     $('learning-intro').textContent = 'Recommended from your diagnosis. Complete an activity to add a topic to your learning summary.';
     selected.forEach((id) => $('learning-cards').append(card(input, id, available[id])));
+    const savedRecord = window.SkillLoopFlow.learningRecord(window.SkillLoop, caseId);
+    if (savedRecord && JSON.stringify(savedRecord.diagnosis.result) === JSON.stringify(input.result)) {
+      $('learning-summary').hidden = false;
+      $('summary-state').textContent = 'Your completed learning record is saved. Continue, or practise these activities again.';
+      $('learning-output').textContent = JSON.stringify(savedRecord.learned.output, null, 2);
+      $('continue-dialogue').hidden = false;
+      $('continue-dialogue').href = '/interview/?flow=1&case=' + encodeURIComponent(caseId);
+    }
+
   }
   function card(input, topicId, lesson) {
     const article = el('article', undefined, 'learning-card');
@@ -79,10 +90,12 @@
     form.append(fieldset, button, response); article.append(form);
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
-      if (!session || session.input !== input || session.pending.has(topicId)) return;
+      if (!session || session.input !== input || session.pending.has(topicId) || session.reflecting) return;
       const current = session;
       const value = answer();
       if (value === undefined || value === '') { response.textContent = 'Answer the question before checking.'; return; }
+      window.SkillLoopFlow.clearLearning(window.SkillLoop, input.case.caseId);
+      $('continue-dialogue').hidden = true;
       session.pending.add(topicId); button.disabled = true; response.textContent = 'Checking…';
       try {
         const result = await feedback.evaluate({ caseId: input.case.caseId, topicId, exercise: lesson.exercise, answer: value, input, mode: current.mode });
@@ -124,6 +137,10 @@
     try { output = contract.buildOutput(input, results, session.mode, session.reflection, content, samples); }
     catch (error) { return showError(error.message); }
     $('learning-output').textContent = JSON.stringify(output, null, 2);
+    const saved = window.SkillLoopFlow.saveLearning(window.SkillLoop, input, output);
+    $('continue-dialogue').hidden = !saved;
+    $('continue-dialogue').href = '/interview/?flow=1&case=' + encodeURIComponent(output.caseId);
+    $('handoff-status').textContent = saved ? 'Learning saved. Bring your practice focus into the dialogue.' : 'This standalone session is not linked to a saved diagnosis.';
   }
   async function runReflection() {
     const current = session;
@@ -156,7 +173,7 @@
   $('open-sample-mode').addEventListener('click', () => {
     $('sample-picker').hidden = false;
     modePicker.value = 'sample';
-    picker.value = 'shopping-cart';
+    picker.value = 'cart-checkout';
     start(sampleInput(picker.value));
   });
   if (providedInput !== undefined) {

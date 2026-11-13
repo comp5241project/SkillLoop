@@ -4,9 +4,9 @@ const path = require('node:path');
 const cases = require('./learning-part1-cases.js');
 const { topics } = require('../docs/team-samples/samples.json');
 const priorities = {
-  'shopping-cart': ['requirements', 'software-testing'],
-  'quiz-platform-permissions': ['code-reading', 'communication'],
-  'note-saving': ['edge-cases', 'ai-code-review'],
+  'cart-checkout': ['requirements', 'software-testing'],
+  'quiz-permissions': ['ai-code-review', 'communication'],
+  'notes-save': ['edge-cases', 'code-reading'],
 };
 const samples = Object.fromEntries(Object.values(cases).map((item) => [item.caseId, { part2: { input: {
   case: item,

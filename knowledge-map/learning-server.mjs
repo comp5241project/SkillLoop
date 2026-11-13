@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { callAIJson, AIError } from '../server/ai.mjs';
 const require = createRequire(import.meta.url);
-const samples = require('../docs/team-samples/samples.json');
+const samples = require('../shared/cases.json');
 const cases = require('./learning-part1-cases.js');
 const contract = require('./learning-contract.js');
 const lessons = require('./learning-content.js');
@@ -53,7 +53,7 @@ export function buildPrompt(body) {
       : { prompt: exercise.prompt };
     return `${rules} Current topic: ${topic.title} (${body.topicId}). Relevant diagnosis evidence: ${dimension.evidence}. Strength: ${dimension.strength}. Gap: ${dimension.gap}. Learning card explanation: ${lessons[fixed.caseId][body.topicId].explanation}. Exercise: ${JSON.stringify(question)}. Return JSON with exactly judgment (correct|incomplete|incorrect), explanation, followUp (string or null), needsPractice (boolean), practiceFocus (one concrete engineering task for the repair dialogue). An incorrect or incomplete answer normally needs further practice.`;
   }
-  return `${rules} The UI recorded completed activities and their validated feedback. Summarize the observed reasoning in 1-2 sentences. Return JSON with exactly reflection, needsPractice (subset of completed topic IDs), and practiceFocus (1-6 concrete engineering or communication tasks for the repair dialogue). Do not erase an observed need for practice without evidence. Allowed topic IDs: ${JSON.stringify(body.observations.map((o) => o.topicId))}.`;
+  return `${rules} The observations are the teaching assistant's validated feedback on activities completed AFTER the diagnosis, not the learner's self-assessment. Treat them as the latest evidence. A correct activity can show progress on an earlier diagnosis gap; do not label it incorrect solely because the earlier diagnosis found that gap. Summarize the observed practice in 1-2 sentences without claiming mastery. Return JSON with exactly reflection, needsPractice (subset of completed topic IDs), and practiceFocus (1-6 concrete engineering or communication tasks for the repair dialogue). Do not erase an observed need for practice without evidence. Allowed topic IDs: ${JSON.stringify(body.observations.map((o) => o.topicId))}.`;
 }
 
 export async function generate(body, ai = callAIJson) {

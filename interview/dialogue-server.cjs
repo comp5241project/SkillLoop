@@ -1,4 +1,4 @@
-const catalog = require('../docs/team-samples/samples.json');
+const catalog = require('../shared/cases.json');
 const model = require('./dialogue-model.js');
 const configured = (env=process.env) => Boolean(env.AI_API_KEY && env.AI_MODEL && /^https:\/\//.test(env.AI_BASE_URL||''));
 function read(body) {
@@ -60,7 +60,7 @@ First classify the latest learner message: intent is "explain" for asking how/wh
 Return JSON: {intent:"explain"|"change",reply:string,coach:string,proposal:string,proposalCode:string,updates:[{issueId,request,quote}],rejected:string[]}.
 Include ALL eight fields every time. Use empty strings for unused text and [] for unused arrays; never null or objects in rejected. Every update has exactly three string fields: issueId, request, quote. Copy quote character-for-character from the latest learner message, never from earlier messages.
 Do not write a full code solution unless the learner requests code. When intent is explain, keep updates empty. Answer the question without turning your explanation into a repair request or a proposed change. Keep unrelated issues untouched.
-reply max 2200 chars, coach max 800, proposal max 1800, proposalCode max 10000 (empty when no code proposal), rejected max 6 short strings. coach is optional advice (empty allowed), never a grade. updates contain ONLY explicit behaviour changes the learner requests, never an explanation you supplied; quote must be an exact substring of that message, max 500 chars. request max 1800: preserve the learner's intent, including mistaken requests, merge their earlier constraints, do not fill in an unmentioned standard answer. Empty updates are allowed. Only use these issue IDs: ${c.issues.map(i=>i.issueId).join(', ')}.
+reply max 2200 chars, coach max 800, proposal max 1800, proposalCode max 10000 (empty when no code proposal), rejected max 6 short strings. coach is optional advice (empty allowed), never a grade. updates contain ONLY explicit behaviour changes the learner requests, never an explanation you supplied; quote must be an exact substring of that message, max 500 chars. request max 1000: preserve the learner's intent, including mistaken requests, merge their earlier constraints, do not fill in an unmentioned standard answer. Empty updates are allowed. Only use these issue IDs: ${c.issues.map(i=>i.issueId).join(', ')}.
 Canonical task: ${JSON.stringify({title:c.title,requirements:c.requirements,starterCode:c.starterCode,issues:c.issues.map(i=>({issueId:i.issueId,observed:i.observed}))})}`;
   const context={assessment:s.context.assessment,learning:s.context.learning,requests:Object.fromEntries(Object.entries(s.requests).map(([id,value])=>[id,value.request])),rejected:s.rejected,currentProposal:s.proposal,currentCodeProposal:s.proposalCode};
   const recent=s.messages.slice(-16,-1).map(m=>({role:m.role,content:m.text}));

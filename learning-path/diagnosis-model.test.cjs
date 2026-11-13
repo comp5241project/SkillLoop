@@ -43,7 +43,7 @@ test('the shared question validator accepts every authored set and rejects broke
   for (const caseData of data.cases) {
     assert.deepEqual(model.validateQuestions(caseData.questions, caseData), { ok: true });
   }
-  const caseData = data.findCase('shopping-cart');
+  const caseData = data.findCase('cart-checkout');
   const duplicateScore = structuredClone(caseData.questions);
   duplicateScore[0].options[1].score = 2;
   assert.equal(model.validateQuestions(duplicateScore, caseData).ok, false);
@@ -58,11 +58,11 @@ test('the shared question validator accepts every authored set and rejects broke
 });
 
 test('the local sample diagnosis is complete, validated and clearly labelled by the caller', () => {
-  const caseData = data.findCase('shopping-cart');
+  const caseData = data.findCase('cart-checkout');
   const responses = answersFor(caseData, 'best');
   const result = model.buildLocalDiagnosis(caseData, responses);
 
-  assert.equal(result.caseId, 'shopping-cart');
+  assert.equal(result.caseId, 'cart-checkout');
   assert.equal(result.overall.level, 'ready');
   assert.equal(result.dimensions.length, 4);
   assert.deepEqual(
@@ -75,7 +75,7 @@ test('the local sample diagnosis is complete, validated and clearly labelled by 
 });
 
 test('weak answers produce a foundation diagnosis and prioritise the gaps', () => {
-  const caseData = data.findCase('note-saving');
+  const caseData = data.findCase('notes-save');
   const responses = answersFor(caseData, 'weak');
   const result = model.buildLocalDiagnosis(caseData, responses);
 
@@ -86,7 +86,7 @@ test('weak answers produce a foundation diagnosis and prioritise the gaps', () =
 });
 
 test('evidence must quote the selected option or the learner explanation', () => {
-  const caseData = data.findCase('quiz-platform-permissions');
+  const caseData = data.findCase('quiz-permissions');
   const responses = answersFor(caseData, 'best');
   const result = model.buildLocalDiagnosis(caseData, responses);
 
@@ -104,12 +104,12 @@ test('evidence must quote the selected option or the learner explanation', () =>
 });
 
 test('the output contract rejects wrong cases, missing dimensions and invented priorities', () => {
-  const caseData = data.findCase('shopping-cart');
+  const caseData = data.findCase('cart-checkout');
   const responses = answersFor(caseData, 'best');
   const result = model.buildLocalDiagnosis(caseData, responses);
 
   const wrongCase = structuredClone(result);
-  wrongCase.caseId = 'note-saving';
+  wrongCase.caseId = 'notes-save';
   assert.equal(model.validateResult(wrongCase, caseData, responses).ok, false);
 
   const missing = structuredClone(result);

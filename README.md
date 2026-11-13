@@ -1,10 +1,10 @@
 # SkillLoop
 
-Short software development lessons, personalised learning paths, AI code-review dialogues and correction exercises.
+Learn to review AI-generated code: diagnose a gap, practise it, discuss a repair, and verify the result.
 
 Live site: [skillloop-sigma.vercel.app](https://skillloop-sigma.vercel.app/).
 
-The pages use plain HTML, CSS and JavaScript. Server-side functions handle knowledge accounts and publishing, code-review conversations, and teacher correction-case drafts. Each module keeps its own folder and AI configuration.
+The pages use plain HTML, CSS and JavaScript. Server-side functions handle knowledge accounts and publishing, code-review conversations, and teacher correction-case drafts. Each module keeps its own folder. All four use the shared server-side AI configuration.
 
 ## Run locally
 
@@ -15,24 +15,26 @@ npm ci
 npm run dev
 ```
 
-Open [http://127.0.0.1:8765](http://127.0.0.1:8765). The server runs all three API routes. Copy `.env.example` to an ignored `.env.local` only when enabling backend services. Public sample content works without credentials; knowledge accounts and publishing require Supabase.
+Open [http://127.0.0.1:8765](http://127.0.0.1:8765). The server runs all API routes. Copy `.env.example` to an ignored `.env.local` only when enabling backend services. Public sample content works without credentials; knowledge accounts and publishing require Supabase.
 
 ## Modules
 
 | Module | Folder | Current behavior |
 | --- | --- | --- |
-| Knowledge map | `knowledge-map/` | Explore concept graphs, mini-courses, questions and sourced cases. Supabase supports accounts and teacher publishing; optional AI helps teachers find sources. |
-| Learning path | `learning-path/` | Assess prior knowledge and recommend courses using background, goals and quiz results. Recommendations are rule-based. |
-| AI dialogue | `interview/` | Review an AI delivery through continuous conversation, revise repair requests and export a confirmed plan. Requires a configured AI provider. |
-| Correction lab | `correction-lab/` | Find errors in authored answers, explain and fix them, then try a related question. Teachers can request AI case drafts and review them before browser-local publication. |
+| 1. Diagnosis | `learning-path/` | Choose a case, answer AI-generated questions, and identify topics to practise. |
+| 2. Case learning | `knowledge-map/` | Study the diagnosed gaps, complete activities, and receive AI feedback. Existing concept and teacher pages remain available. |
+| 3. AI dialogue | `interview/` | Review an AI delivery through continuous conversation, revise repair requests and export a confirmed plan. Requires a configured AI provider. |
+| 4. Verification | `correction-lab/` | Apply the confirmed repair plan, run fixed tests in an isolated worker, and receive an AI review of the actual results. |
 
 See each folder's README for its workflow. Shared navigation, styles and browser-storage helpers live in `shared/`; server endpoints live in `api/`. Knowledge database migrations are in `supabase/migrations/`.
 
-AI does not publish teaching material automatically. Student correction answers use authored checks and self-review; submitted code is not executed. Knowledge account data can sync through Supabase. Learning paths, dialogue records and correction progress remain browser-local. Signing into Knowledge does not upload those records.
+AI does not publish teaching material automatically. Verification runs the teaching-case code in an isolated worker; AI cannot decide or overwrite test results. Knowledge account data can sync through Supabase. Learning paths, dialogue records and correction progress remain browser-local. Signing into Knowledge does not upload those records.
 
 ## Collaborate
 
-For the next iteration, use the [three shared cases and module input/output samples](docs/team-samples/README.md) to develop each module independently. These materials describe the planned workflow; they do not change the current app behavior.
+Use the [three shared cases and module input/output samples](docs/team-samples/README.md) to develop each module independently. The four-part flow is now connected in the same browser. Continue buttons carry the selected case through each step. A new diagnosis or changed learning result invalidates older downstream handoffs.
+
+`shared/flow.js` handles these handoffs. `docs/team-samples/samples.json` remains the source for shared case materials; run `node scripts/sync-cases.cjs` after editing it to update the deployed `shared/cases.json` copy. Module prompts remain in their own server files. Configure `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` on the server; never put credentials in frontend JavaScript.
 
 1. Pull the latest `main` and create a feature branch.
 2. Work in your module and check its interactions, refresh behavior and phone layout.
