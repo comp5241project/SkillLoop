@@ -13,13 +13,13 @@ The working helper is [server/ai.mjs](../../server/ai.mjs). It uses Node.js `fet
 | Provider request code | `server/ai.mjs` | Shared integration owner; do not make four copies |
 | API key, base URL and model | Vercel project environment variables; ignored `.env.local` for local development | Project owner |
 | Empty configuration template | `.env.example` | Shared integration owner |
-| Prompts, conversation logic and output validators | Each module's server file, such as `interview/server.cjs` | Module owner |
+| Prompts, conversation logic and output validators | Each module's server file, such as `interview/dialogue-server.cjs` | Module owner |
 | HTTP endpoint | A thin file under `api/` | Module owner, coordinated with integration owner |
 | Page code | Existing module folder | Module owner |
 
 Browser pages call their module endpoint. That endpoint validates input, builds the system prompt, imports this helper and checks the result against the team samples. The browser never imports the helper or receives credentials. Prompts in browser requests are learner data, not system instructions.
 
-Keep the existing `/api/interview`, `/api/knowledge` and `/api/correction` contracts intact while migrating. Knowledge also handles accounts; correction currently handles teacher drafting, not the new student verification review. New assessment/learning actions and routes need explicit handlers. New routes must also be registered in `scripts/dev.mjs` for `npm run dev`. This change deliberately does not create a public generic AI proxy.
+Part 3 now uses `/api/dialogue` and the shared helper; the earlier `/api/interview` has been retired. Keep the existing `/api/knowledge` and `/api/correction` contracts intact while migrating. Knowledge also handles accounts; correction currently handles teacher drafting, not the new student verification review. New assessment/learning actions and routes need explicit handlers. New routes must also be registered in `scripts/dev.mjs` for `npm run dev`. This change deliberately does not create a public generic AI proxy.
 
 ## One configuration for everyone
 

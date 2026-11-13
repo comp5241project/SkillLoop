@@ -5,7 +5,7 @@
   const modules = [
     ['learning-path', 'route', 'My path'],
     ['knowledge-map', 'workflow', 'Skill map'],
-    ['interview', 'messages-square', 'Interview'],
+    ['interview', 'messages-square', 'AI dialogue'],
     ['correction-lab', 'scan-line', 'Correction lab'],
   ];
   document.getElementById('site-header').innerHTML = `

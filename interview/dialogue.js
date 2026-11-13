@@ -18,14 +18,15 @@
     $('chat').replaceChildren();
     for(const message of session.messages){
       const item=el('article',undefined,'rd-message '+(message.role==='user'?'user':''));
-      item.append(el('div',message.role==='user'?'YOU':'MAYA · AI DEVELOPER','speaker'),el('p',message.text));
-      if(message.opening)item.append(el('small','Simulated delivery report; no tests have run here.','rd-note'));
+      item.append(el('div',message.role==='user'?'You':'Maya','speaker'),el('p',message.text));
+      if(message.opening)item.append(el('small','Simulated delivery · untested','rd-note'));
       if(message.coach){const d=el('details',undefined,'rd-coach');d.append(el('summary','✧ AI Coach'),el('p',message.coach));item.append(d);}
-      if(message.proposal||message.code){const d=el('details');d.append(el('summary','View modification proposal · not executed'),el('p',message.proposal||''));if(message.code)d.append(el('pre',message.code,'rd-code'));item.append(d);}
+      if(message.proposal||message.code){const d=el('details');d.append(el('summary','Proposed change · untested'),el('p',message.proposal||''));if(message.code)d.append(el('pre',message.code,'rd-code'));item.append(d);}
       $('chat').append(item);
     }
     $('reply').value=session.draft||'';
-    $('progress').replaceChildren(...session.context.case.issues.map((i,index)=>el('span',session.requests[i.issueId]?'Request '+(index+1)+' recorded':'Open review '+(index+1),'rd-dot '+(session.requests[i.issueId]?'done':''))));
+    const recorded=session.context.case.issues.filter(i=>session.requests[i.issueId]).length;
+    $('progress').textContent=recorded+' of '+session.context.case.issues.length+' requests recorded';
     $('memory').replaceChildren(...Object.values(session.requests).map(r=>el('li',r.request)),...session.rejected.map(r=>el('li','Rejected: '+r)));
     $('confirmed-note').hidden=!session.confirmed;
     lock(busy);
@@ -75,20 +76,20 @@
   $('export-record').onclick=()=>download(session,'skillloop-dialogue-record.json');
   $('review-plan').onclick=()=>{
     if(!session||busy||session.pending)return;
-    $('workspace').hidden=true;$('plan').hidden=false;$('plan-items').replaceChildren();
+    $('plan').hidden=false;$('plan-items').replaceChildren();
     for(const i of session.context.case.issues){
       const card=el('article');card.append(el('h3',i.title));
-      if(!session.requests[i.issueId])card.append(el('p','Not yet discussed. Return to the conversation, or write your own request below.','missing'));
+      if(!session.requests[i.issueId])card.append(el('p','Not discussed yet. Add a request or ask Maya.','missing'));
       const label=el('label','Your repair request');const box=el('textarea');box.maxLength=1800;box.value=session.requests[i.issueId]?.request||'';box.setAttribute('aria-label',i.title+' repair request');
       box.oninput=()=>{session.requests[i.issueId]={request:box.value,quote:'',manual:true};session.confirmed=false;session.output=null;save();$('confirm-plan').disabled=false;$('download-output').hidden=true;say('Request changed. Confirm the updated plan before exporting.');};
       label.append(box);card.append(label);
-      const checks=el('details');checks.append(el('summary','Acceptance checks · from the case requirements'));
+      const checks=el('details');checks.append(el('summary','Acceptance checks'));
       const ul=el('ul');for(const id of i.suggestedChecks){const t=session.context.case.tests.find(t=>t.testId===id);ul.append(el('li',t.action+' → '+t.expected));}checks.append(ul);card.append(checks);$('plan-items').append(card);
     }
     $('plan-feedback').textContent=session.feedback||'No AI feedback yet.';
-    $('download-output').hidden=!session.confirmed;$('confirm-plan').disabled=false;$('plan-title').focus();
+    $('download-output').hidden=!session.confirmed;$('confirm-plan').disabled=false;$('plan-title').focus();$('plan').scrollIntoView({behavior:'smooth',block:'start'});
   };
-  $('back-chat').onclick=()=>render(false);
+  $('back-chat').onclick=()=>{$('plan').hidden=true;$('reply').focus();$('compose').scrollIntoView({behavior:'smooth',block:'center'});};
   $('confirm-plan').onclick=()=>{try{const output=M.handoff(session);session.output=output;session.confirmed=true;session.revisions.push({at:new Date().toISOString(),output});session.revisions=session.revisions.slice(-20);const ok=save();$('download-output').hidden=false;$('confirm-plan').disabled=true;say(ok?'Plan saved. Export it for part 4; automatic handoff is not connected yet.':'Plan confirmed for this visit. Download it before leaving.');}catch(error){say(error.message);}};
   $('download-output').onclick=()=>download(session.output,'skillloop-part3-output.json');
   try {

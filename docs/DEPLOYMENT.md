@@ -1,6 +1,6 @@
 # Deploy to Vercel
 
-Deploy the four module pages and `/api/knowledge`, `/api/interview`, `/api/correction` in the same existing SkillLoop project.
+Deploy the four module pages and `/api/knowledge`, `/api/dialogue`, `/api/correction` in the same existing SkillLoop project.
 
 ## Project settings
 

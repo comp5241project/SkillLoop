@@ -1,10 +1,160 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Repair dialogue | SkillLoop</title><meta name="description" content="Review an AI delivery, challenge its assumptions and agree on a repair plan."><link rel="icon" href="../public/favicon.svg"><link rel="stylesheet" href="../shared/styles.css"><link rel="stylesheet" href="dialogue.css"><script src="../shared/vendor/lucide.min.js" defer></script><script src="../shared/storage.js" defer></script><script src="../shared/navigation.js" defer></script><script src="dialogue-model.js" defer></script><script src="dialogue.js" defer></script></head>
-<body data-root="../" data-module="interview"><a class="skip-link" href="#main-content">Skip to content</a><div id="skillloop-prototype"><header id="site-header" class="sl-head"></header><div class="sl-shell"><aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside><main id="main-content" class="sl-main">
-<header class="rd-top"><div><h1>Repair dialogue</h1><p>Review the delivery. Challenge the fix.</p></div><div class="rd-actions"><button id="history-toggle" class="rd-btn">History</button><button id="new-task" class="rd-btn">New review</button><a class="rd-link" href="legacy.html">Earlier interviews</a></div></header>
-<div id="status" role="status" aria-live="polite">Loading cases…</div><p id="storage-note" class="rd-error" hidden>Storage unavailable. Export your work before leaving.</p><div id="history" class="rd-history" hidden></div>
-<section id="start" class="rd-start rd-card"><h2>Your next code review</h2><p>Maya has delivered an app. Check her work, discuss the changes and agree on what to verify.</p><label for="case-select">Choose a delivery</label><select id="case-select"></select><details><summary>Use input from part 2</summary><p>Import the agreed part 3 input JSON: case, assessment and learning.</p><input id="import-input" type="file" accept=".json,application/json" aria-label="Import part 3 input"><button id="reset-input" class="rd-btn">Use sample input</button></details><p id="input-label" class="rd-note">Sample input</p><div class="rd-actions"><button id="start-sample" class="rd-btn primary" disabled>Start sample review</button><button id="start-live" class="rd-btn" disabled>Start with AI</button></div><p id="connection" class="rd-note"></p></section>
-<section id="workspace" hidden><div class="rd-grid"><section class="rd-room" aria-label="Conversation with Maya"><header class="rd-person"><img src="maya.svg" alt=""><div><strong>Maya</strong><p>AI Developer</p><span id="mode" class="rd-badge"></span></div></header><div id="chat" class="rd-chat" role="log" aria-label="Review conversation"></div><form id="compose" class="rd-compose"><label class="rd-note" for="reply">Your message</label><textarea id="reply" maxlength="2000" placeholder="Question the delivery, explain an issue, or ask for a change…"></textarea><div id="hint-box" hidden></div><div class="rd-actions"><button id="hints" class="rd-btn" type="button">Need a starting point?</button><div class="rd-actions"><button id="retry" class="rd-btn" type="button" hidden>Retry reply</button><button id="send" class="rd-btn primary" type="submit">Send</button></div></div><small>Ctrl / ⌘ + Enter to send</small></form></section>
-<aside class="rd-side"><section class="rd-card"><h2 id="task-title"></h2><p id="focus"></p><details><summary>Delivery requirements</summary><ul id="requirements"></ul></details><details><summary>Delivered code</summary><pre id="code"></pre></details></section><section class="rd-card"><h2>Review notes</h2><div id="progress" class="rd-progress"></div><details><summary>Requests &amp; rejected approaches</summary><ul id="memory"></ul></details><p>Proposals stay unverified until you test them.</p><button id="review-plan" class="rd-btn primary">Review plan</button><p id="confirmed-note" hidden>Plan confirmed. A new message reopens it.</p></section><section class="rd-card"><button id="export-record" class="rd-btn">Export conversation</button><p>Stored in this browser. Earlier interviews remain separate.</p></section></aside></div></section>
-<section id="plan" class="rd-plan" hidden><div class="rd-top"><div><h2 id="plan-title" tabindex="-1">What should change?</h2><p>Edit your requests before handing them over.</p></div><button id="back-chat" class="rd-btn">Continue conversation</button></div><div id="plan-items"></div><details class="rd-card"><summary>✧ AI feedback</summary><p id="plan-feedback"></p></details><p class="rd-note">Acceptance checks come from the case requirements. They have not run here.</p><div class="rd-actions"><button id="confirm-plan" class="rd-btn primary">Confirm plan</button><button id="download-output" class="rd-btn" hidden>Download part 3 output</button></div><p class="rd-note">Export is ready for part 4. Automatic transfer is not connected yet.</p></section>
-</main></div></div></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI code review | SkillLoop</title>
+<meta name="description" content="Review an AI delivery, challenge its assumptions and agree on a repair plan.">
+<link rel="icon" href="../public/favicon.svg">
+<link rel="stylesheet" href="../shared/styles.css">
+<link rel="stylesheet" href="dialogue.css">
+<script src="../shared/vendor/lucide.min.js" defer>
+</script>
+<script src="../shared/storage.js" defer>
+</script>
+<script src="../shared/navigation.js" defer>
+</script>
+<script src="dialogue-model.js" defer>
+</script>
+<script src="dialogue.js" defer>
+</script>
+</head>
+<body data-root="../" data-module="interview">
+<a class="skip-link" href="#main-content">Skip to content</a>
+<div id="skillloop-prototype">
+<header id="site-header" class="sl-head">
+</header>
+<div class="sl-shell">
+<aside id="site-navigation" class="sl-side" aria-label="Workspace navigation">
+</aside>
+<main id="main-content" class="sl-main">
+<header class="rd-top">
+<div>
+<h1>AI code review</h1>
+</div>
+<div class="rd-actions">
+<button id="history-toggle" class="rd-btn">History</button>
+<button id="new-task" class="rd-btn">New review</button>
+</div>
+</header>
+<div id="status" role="status" aria-live="polite">Loading cases…</div>
+<p id="storage-note" class="rd-error" hidden>Storage unavailable. Export your work before leaving.</p>
+<div id="history" class="rd-history" hidden>
+</div>
+<section id="start" class="rd-start rd-card">
+<h2>Your next code review</h2>
+<p>Review Maya’s code and ask for changes.</p>
+<label for="case-select">Choose a delivery</label>
+<select id="case-select">
+</select>
+<details>
+<summary>Use input from part 2</summary>
+<p>Import the agreed part 3 input JSON: case, assessment and learning.</p>
+<input id="import-input" type="file" accept=".json,application/json" aria-label="Import part 3 input">
+<button id="reset-input" class="rd-btn">Use sample input</button>
+</details>
+<p id="input-label" class="rd-note">Sample input</p>
+<div class="rd-actions">
+<button id="start-sample" class="rd-btn primary" disabled>Start sample review</button>
+<button id="start-live" class="rd-btn" disabled>Start with AI</button>
+</div>
+<p id="connection" class="rd-note">
+</p>
+</section>
+<section id="workspace" hidden>
+<div class="rd-grid">
+<section class="rd-room" aria-label="Conversation with Maya">
+<header class="rd-person">
+<img src="maya.svg" alt="">
+<div>
+<strong>Maya</strong>
+<p>AI developer</p>
+<span id="mode" class="rd-badge">
+</span>
+</div>
+</header>
+<div id="chat" class="rd-chat" role="log" aria-label="Review conversation">
+</div>
+<form id="compose" class="rd-compose">
+<label class="rd-sr-only" for="reply">Your message</label>
+<textarea id="reply" maxlength="2000" placeholder="Ask Maya or suggest a fix…">
+</textarea>
+<div id="hint-box" hidden>
+</div>
+<div class="rd-actions">
+<button id="hints" class="rd-btn" type="button">Need a hint?</button>
+<div class="rd-actions">
+<button id="retry" class="rd-btn" type="button" hidden>Retry reply</button>
+<button id="send" class="rd-btn primary" type="submit">Send</button>
+</div>
+</div>
+</form>
+</section>
+<aside class="rd-side">
+<section class="rd-card">
+<h2 id="task-title">
+</h2>
+<details>
+<summary>Your focus</summary>
+<p id="focus">
+</p>
+</details>
+<details>
+<summary>Requirements</summary>
+<ul id="requirements">
+</ul>
+</details>
+<details>
+<summary>Code</summary>
+<pre id="code">
+</pre>
+</details>
+</section>
+<section class="rd-card">
+<h2>Repair plan</h2>
+<div id="progress" class="rd-progress">
+</div>
+<details>
+<summary>Discussion notes</summary>
+<ul id="memory">
+</ul>
+</details>
+<button id="review-plan" class="rd-btn primary">Review plan</button>
+<p id="confirmed-note" hidden>Plan saved.</p>
+</section>
+<details class="rd-card rd-records">
+<summary>Saved work</summary>
+<p>Saved in this browser.</p>
+<button id="export-record" class="rd-btn">Export conversation</button>
+
+</details>
+</aside>
+</div>
+</section>
+<section id="plan" class="rd-plan" hidden>
+<div class="rd-top">
+<div>
+<h2 id="plan-title" tabindex="-1">Review your plan</h2>
+<p>Check and edit your requests.</p>
+</div>
+<button id="back-chat" class="rd-btn">Continue conversation</button>
+</div>
+<div id="plan-items">
+</div>
+<details class="rd-card">
+<summary>✧ AI feedback</summary>
+<p id="plan-feedback">
+</p>
+</details>
+<p class="rd-note">Checks are from the case. Tests have not run.</p>
+<div class="rd-actions">
+<button id="confirm-plan" class="rd-btn primary">Confirm plan</button>
+<button id="download-output" class="rd-btn" hidden>Download part 3 output</button>
+</div>
+<p class="rd-note">Export for part 4. Automatic transfer is not connected yet.</p>
+</section>
+</main>
+</div>
+</div>
+</body>
+</html>

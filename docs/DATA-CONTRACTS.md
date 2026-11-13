@@ -64,6 +64,8 @@ Signed-in users can `GET ?op=personal` for account references, note nodes and ma
 
 The other modules still use browser-local prototype data. Knowledge study-mark editing is paused until an account progress API exists. Keep API credentials on the server.
 
-## Interview and correction APIs
+## Dialogue and correction APIs
 
-`/api/interview` supports `turn`, `review`, `rewrite` and `compare`. It returns validated AI output and retains the original student answers; without configuration the browser uses a labelled authored demo. `/api/correction` supports teacher case drafting, protected by `CORRECTION_TEACHER_CODE`; AI drafts require teacher review and publish only in the current browser. Both modules can use separate model overrides while retaining the shared Gateway default. Their AI endpoints do not create Knowledge account sessions or upload local records.
+`/api/dialogue` handles continuous code-review conversations using the shared AI configuration. Part 3 input/output remains defined in `team-samples`; conversation records stay in browser storage. The retired `/api/interview` workflow has been removed.
+
+`/api/correction` supports teacher case drafting, protected by `CORRECTION_TEACHER_CODE`. AI drafts require teacher review and publish only in the current browser. It retains its existing provider configuration. These endpoints do not create Knowledge account sessions or upload local records.

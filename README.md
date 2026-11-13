@@ -1,10 +1,10 @@
 # SkillLoop
 
-Short software development lessons, personalised learning paths, mock interviews and correction exercises.
+Short software development lessons, personalised learning paths, AI code-review dialogues and correction exercises.
 
 Live site: [skillloop-sigma.vercel.app](https://skillloop-sigma.vercel.app/).
 
-The pages use plain HTML, CSS and JavaScript. Server-side functions handle knowledge accounts and publishing, interview conversations, and teacher correction-case drafts. Each module keeps its own folder and AI configuration.
+The pages use plain HTML, CSS and JavaScript. Server-side functions handle knowledge accounts and publishing, code-review conversations, and teacher correction-case drafts. Each module keeps its own folder and AI configuration.
 
 ## Run locally
 
@@ -23,12 +23,12 @@ Open [http://127.0.0.1:8765](http://127.0.0.1:8765). The server runs all three A
 | --- | --- | --- |
 | Knowledge map | `knowledge-map/` | Explore concept graphs, mini-courses, questions and sourced cases. Supabase supports accounts and teacher publishing; optional AI helps teachers find sources. |
 | Learning path | `learning-path/` | Assess prior knowledge and recommend courses using background, goals and quiz results. Recommendations are rule-based. |
-| Interview | `interview/` | Type answers, receive AI feedback and follow-ups, review the conversation and compare rewrites. A labelled sample is available without AI configuration. |
+| AI dialogue | `interview/` | Review an AI delivery through continuous conversation, revise repair requests and export a confirmed plan. A labelled sample is available without AI configuration. |
 | Correction lab | `correction-lab/` | Find errors in authored answers, explain and fix them, then try a related question. Teachers can request AI case drafts and review them before browser-local publication. |
 
 See each folder's README for its workflow. Shared navigation, styles and browser-storage helpers live in `shared/`; server endpoints live in `api/`. Knowledge database migrations are in `supabase/migrations/`.
 
-AI does not publish teaching material automatically. Student correction answers use authored checks and self-review; submitted code is not executed. Knowledge account data can sync through Supabase. Learning paths, interview records and correction progress remain browser-local. Signing into Knowledge does not upload those records.
+AI does not publish teaching material automatically. Student correction answers use authored checks and self-review; submitted code is not executed. Knowledge account data can sync through Supabase. Learning paths, dialogue records and correction progress remain browser-local. Signing into Knowledge does not upload those records.
 
 ## Collaborate
 
@@ -51,7 +51,7 @@ Keep shared concept IDs and data formats stable. Discuss changes to `shared/`, A
 npm test
 ```
 
-This runs the site link check and the knowledge, interview and correction tests. Tests use mock AI and database responses; they do not prove real credentials, provider credits or database permissions. GitHub Actions runs these checks for pull requests and `main`.
+This runs the site link check and the knowledge, dialogue and correction tests. Tests use mock AI and database responses; they do not prove real credentials, provider credits or database permissions. GitHub Actions runs these checks for pull requests and `main`.
 
 ## Deploy
 

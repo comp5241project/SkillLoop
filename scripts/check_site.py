@@ -37,7 +37,8 @@ required = ['index.html', 'README.md', 'LICENSE', 'vercel.json', 'shared/styles.
             'shared/navigation.js', 'shared/storage.js', 'shared/vendor/lucide.min.js',
             'shared/vendor/LUCIDE-LICENSE', 'public/favicon.svg']
 required += [f'{folder}/{name}' for folder in MODULES
-             for name in ('index.html', 'style.css', 'script.js', 'README.md')]
+             for name in (('index.html', 'dialogue.css', 'dialogue.js', 'README.md')
+                          if folder == 'interview' else ('index.html', 'style.css', 'script.js', 'README.md'))]
 required.append('knowledge-map/data.js')
 required += ['knowledge-map/explore.html', 'knowledge-map/explore.js',
              'knowledge-map/account.html', 'knowledge-map/account.js',
