@@ -375,7 +375,8 @@ async function review(body, { callAIJson }) {
     system: reviewPrompt(item),
     messages: [{ role: 'user', content: JSON.stringify({ repairRequests: plan, results: tests }) }],
     validate: validReview,
-    maxTokens: 700,
+    // Models that think before answering spend output tokens on it; leave room for the JSON.
+    maxTokens: 2500,
   });
   return {
     caseId: item.caseId,
