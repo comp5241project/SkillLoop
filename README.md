@@ -32,6 +32,8 @@ AI does not publish teaching material automatically. Student correction answers 
 
 ## Collaborate
 
+For the next iteration, use the [three shared cases and module input/output samples](docs/team-samples/README.md) to develop each module independently. These materials describe the planned workflow; they do not change the current app behavior.
+
 1. Pull the latest `main` and create a feature branch.
 2. Work in your module and check its interactions, refresh behavior and phone layout.
 3. Open a pull request and merge after checks and review.
