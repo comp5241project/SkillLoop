@@ -1,118 +1,673 @@
-/* style.css */
-
-/* 选中的 Quick check 按钮样式 */
-.diagnostic-btn.active {
-  background-color: var(--sl-primary, #2563eb) !important;
-  color: white !important;
-  border-color: var(--sl-primary, #2563eb) !important;
-}
-
-/* 复选框列表 */
-.sl-checkbox-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: #f8fafc;
-  padding: 16px;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-}
-.sl-checkbox-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  font-size: 0.95rem;
-}
-
-/* 路径列表容器 */
-#sl-path-list {
+/* AI capability diagnosis · part 1 of the case-based learning path. */
+#skillloop-prototype .lp-main {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-/* 单个路径节点 */
-.sl-path-item {
-  padding: 16px;
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-left: 4px solid #2563eb;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+#skillloop-prototype .lp-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--sl-line);
 }
 
-.sl-path-item h4 {
-  margin: 0 0 4px 0;
-  font-size: 1.05rem;
-  color: #1e293b;
+#skillloop-prototype .lp-hero h1 {
+  margin: 6px 0 8px;
+  font-size: clamp(30px, 4vw, 42px);
+  font-weight: 500;
+  letter-spacing: -1.7px;
+  line-height: 1.05;
+}
+
+#skillloop-prototype .lp-hero .sl-intro {
+  margin-bottom: 0;
+  max-width: 62ch;
+  line-height: 1.6;
+}
+
+#skillloop-prototype .lp-status-chip {
+  flex: none;
+  white-space: nowrap;
+  background: var(--sl-bg);
+}
+
+#skillloop-prototype .lp-status-chip::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sl-sub);
+}
+
+#skillloop-prototype .lp-status-chip.is-live::before {
+  background: #3c8a5e;
+}
+
+#skillloop-prototype .lp-status-chip.is-local::before {
+  background: #b9832f;
+}
+
+#skillloop-prototype .lp-steps ol {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#skillloop-prototype .lp-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px;
+  border: 1px solid var(--sl-line);
+  border-radius: 11px;
+  background: var(--sl-panel);
+  color: var(--sl-sub);
+}
+
+#skillloop-prototype .lp-step[aria-current='step'] {
+  border-color: var(--sl-accent);
+  background: var(--sl-soft);
+  color: var(--sl-text);
+}
+
+#skillloop-prototype .lp-step[aria-disabled='true'] {
+  opacity: 0.62;
+}
+
+#skillloop-prototype .lp-step-number {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--sl-line);
+  border-radius: 50%;
+  background: var(--sl-bg);
+  font-size: 10px;
+}
+
+#skillloop-prototype .lp-step strong {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+#skillloop-prototype .lp-step small {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--sl-sub);
+}
+
+#skillloop-prototype .lp-live {
+  min-height: 15px;
+  font-size: 11px;
+  color: var(--sl-sub);
+}
+
+#skillloop-prototype .lp-stage {
+  scroll-margin-top: 18px;
+}
+
+#skillloop-prototype .lp-stage-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+#skillloop-prototype .lp-case-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+  margin-top: 14px;
+}
+
+#skillloop-prototype .lp-case-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 18px;
+  border: 1px solid var(--sl-line);
+  border-radius: var(--sl-radius);
+  background: var(--sl-panel);
+  color: var(--sl-text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+#skillloop-prototype .lp-case-card:hover {
+  border-color: var(--sl-accent);
+  transform: translateY(-1px);
+}
+
+#skillloop-prototype .lp-case-card:focus-visible {
+  outline: 2px solid var(--sl-accent);
+  outline-offset: 2px;
+}
+
+#skillloop-prototype .lp-case-card[aria-pressed='true'] {
+  border-color: var(--sl-accent);
+  background: var(--sl-soft);
+}
+
+#skillloop-prototype .lp-case-top {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
 }
 
-.sl-path-item p {
-  margin: 0;
-  font-size: 0.95rem;
-  color: #64748b;
-}
-
-/* 标签牌 */
-.sl-badge {
-  font-size: 0.7rem;
-  padding: 2px 8px;
-  border-radius: 12px;
-  background: #eff6ff;
-  color: #2563eb;
+#skillloop-prototype .lp-select-mark {
+  font-size: 9px;
   text-transform: uppercase;
-  font-weight: bold;
+  letter-spacing: 0.08em;
+  color: var(--sl-accent);
 }
 
-/* 手机端适配 */
-@media (max-width: 600px) {
-  .sl-row {
-    flex-direction: column;
-    align-items: flex-start !important;
-    gap: 12px;
-  }
-  #sl-reset-path {
-    width: 100%;
-    margin-top: 8px;
-  }
+#skillloop-prototype .lp-case-card[aria-pressed='true'] .lp-select-mark::after {
+  content: ' ✓';
 }
-/* Modal 弹窗样式 */
-.sl-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(15, 23, 42, 0.4); /* 半透明深色遮罩 */
+
+#skillloop-prototype .lp-case-title {
+  display: block;
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+}
+
+#skillloop-prototype .lp-case-tagline {
+  display: block;
+  font-size: 12px;
+  color: var(--sl-text);
+}
+
+#skillloop-prototype .lp-case-summary {
+  display: block;
+  flex: 1;
+  line-height: 1.55;
+}
+
+#skillloop-prototype .lp-case-points {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  backdrop-filter: blur(2px);
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.sl-modal-content {
-  background: #ffffff;
-  padding: 32px;
-  border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  max-width: 480px;
-  width: 90%;
-  animation: modalScaleIn 0.2s ease-out;
-}
-
-.sl-modal-actions {
+#skillloop-prototype .lp-case-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
-@keyframes modalScaleIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+#skillloop-prototype .lp-case-actions .sl-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#skillloop-prototype .lp-back {
+  margin-bottom: 8px;
+  padding-left: 0;
+}
+
+#skillloop-prototype .lp-case-brief {
+  margin-bottom: 13px;
+}
+
+#skillloop-prototype .lp-brief-head {
+  align-items: flex-start;
+}
+
+#skillloop-prototype .lp-brief-title {
+  margin: 4px 0 6px;
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.9px;
+}
+
+#skillloop-prototype .lp-code-wrap {
+  margin-top: 15px;
+}
+
+#skillloop-prototype .lp-code-label {
+  margin-bottom: 6px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sl-sub);
+}
+
+#skillloop-prototype .lp-snippet {
+  margin: 0;
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--sl-ink);
+  color: var(--sl-inverse);
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+#skillloop-prototype .lp-snippet code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+#skillloop-prototype .lp-context {
+  margin-bottom: 13px;
+}
+
+#skillloop-prototype .lp-context-grid {
+  margin-top: 0;
+}
+
+#skillloop-prototype .lp-context p {
+  margin-top: 11px;
+  line-height: 1.5;
+}
+
+#skillloop-prototype .lp-section-title {
+  margin: 18px 0 10px;
+}
+
+#skillloop-prototype .lp-question-source {
+  margin: -4px 0 12px;
+  color: var(--sl-sub);
+  line-height: 1.5;
+}
+
+#skillloop-prototype .lp-question-source.is-ai {
+  color: var(--sl-accent);
+}
+
+#skillloop-prototype .lp-question-state {
+  padding: 20px;
+  border-style: dashed;
+  line-height: 1.6;
+}
+
+#skillloop-prototype .lp-question-state.lp-error {
+  border-style: solid;
+}
+
+#skillloop-prototype .lp-question-state p {
+  margin: 0;
+}
+
+#skillloop-prototype .lp-question-actions {
+  margin-top: 12px;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+#skillloop-prototype .lp-question {
+  margin: 0 0 13px;
+  padding: 17px;
+  border: 1px solid var(--sl-line);
+  border-radius: var(--sl-radius);
+  background: var(--sl-panel);
+}
+
+#skillloop-prototype .lp-question legend {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 0;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+#skillloop-prototype .lp-q-number {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 2px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: var(--sl-soft);
+  color: var(--sl-accent);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+#skillloop-prototype .lp-q-prompt {
+  max-width: 72ch;
+}
+
+#skillloop-prototype .lp-q-concept {
+  margin: 8px 0 10px;
+}
+
+#skillloop-prototype .lp-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#skillloop-prototype .lp-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--sl-line);
+  border-radius: 9px;
+  background: var(--sl-bg);
+  color: var(--sl-text);
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+#skillloop-prototype .lp-option:hover {
+  border-color: var(--sl-accent);
+}
+
+#skillloop-prototype .lp-option:has(input:checked) {
+  border-color: var(--sl-accent);
+  background: var(--sl-soft);
+}
+
+#skillloop-prototype .lp-option input {
+  flex: none;
+  margin-top: 2px;
+  accent-color: var(--sl-accent);
+}
+
+#skillloop-prototype .lp-explain-label {
+  margin-top: 12px;
+}
+
+#skillloop-prototype .lp-explain {
+  min-height: 62px;
+  font-size: 13px;
+}
+
+#skillloop-prototype .lp-counter {
+  display: block;
+  margin-top: 4px;
+  text-align: right;
+  font-size: 10px;
+  color: var(--sl-sub);
+}
+
+#skillloop-prototype .lp-submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+#skillloop-prototype .lp-submit-row .sl-btn {
+  flex: none;
+}
+
+#skillloop-prototype .lp-submit-row .sl-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+#skillloop-prototype .lp-error {
+  margin-top: 12px;
+  padding: 11px 12px;
+  border: 1px solid #d9a3a3;
+  border-left: 4px solid #b54747;
+  border-radius: 8px;
+  background: #fbf1f1;
+  color: #7a2f2f;
+  font-size: 12px;
+}
+
+#skillloop-prototype .lp-result-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 13px;
+}
+
+#skillloop-prototype .lp-result-actions {
+  justify-content: flex-end;
+}
+
+#skillloop-prototype .lp-source-note {
+  margin-bottom: 13px;
+  padding: 12px 14px;
+  border: 1px dashed var(--sl-line);
+  border-radius: 10px;
+  background: var(--sl-soft);
+}
+
+#skillloop-prototype .lp-source-note strong {
+  font-size: 12px;
+}
+
+#skillloop-prototype .lp-source-note p {
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+#skillloop-prototype .lp-ai-note {
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+#skillloop-prototype .lp-overall {
+  margin-bottom: 13px;
+}
+
+#skillloop-prototype .lp-level-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+#skillloop-prototype .lp-level {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 9px;
+  border: 1px solid var(--sl-line);
+  border-radius: 999px;
+  background: var(--sl-bg);
+  color: var(--sl-sub);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+#skillloop-prototype .lp-level-ready {
+  border-color: #8ab89a;
+  background: #eef7f0;
+  color: #2f6b45;
+}
+
+#skillloop-prototype .lp-level-developing {
+  border-color: #d8bf85;
+  background: #fbf6e8;
+  color: #765a1f;
+}
+
+#skillloop-prototype .lp-level-foundation {
+  border-color: #d3a7a7;
+  background: #fbf1f1;
+  color: #7a2f2f;
+}
+
+#skillloop-prototype .lp-summary {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+#skillloop-prototype .lp-dimensions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+
+#skillloop-prototype .lp-dimension {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+#skillloop-prototype .lp-dimension-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+#skillloop-prototype .lp-dimension-head h3 {
+  margin-top: 3px;
+  font-size: 15px;
+}
+
+#skillloop-prototype .lp-evidence {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--sl-accent);
+  border-radius: 0 8px 8px 0;
+  background: var(--sl-bg);
+}
+
+#skillloop-prototype .lp-evidence p {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+#skillloop-prototype .lp-evidence cite {
+  display: block;
+  margin-top: 5px;
+  font-style: normal;
+}
+
+#skillloop-prototype .lp-feedback-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+#skillloop-prototype .lp-feedback strong {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sl-sub);
+}
+
+#skillloop-prototype .lp-feedback p {
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+#skillloop-prototype .lp-result-grid {
+  margin-top: 13px;
+}
+
+#skillloop-prototype .lp-priority-list,
+#skillloop-prototype .lp-next-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 12px;
+}
+
+#skillloop-prototype .lp-priority-list {
+  padding-left: 0;
+  list-style: none;
+}
+
+#skillloop-prototype .lp-priority-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--sl-line);
+  border-radius: 8px;
+  color: var(--sl-text);
+  text-decoration: none;
+}
+
+#skillloop-prototype .lp-priority-link:hover {
+  border-color: var(--sl-accent);
+}
+
+#skillloop-prototype .lp-priority-link svg.lucide {
+  width: 14px;
+  height: 14px;
+  color: var(--sl-accent);
+}
+
+#skillloop-prototype .lp-next-list li {
+  line-height: 1.5;
+}
+
+#skillloop-prototype .lp-locked {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 13px;
+  border-style: dashed;
+}
+
+#skillloop-prototype .lp-locked .sl-icon-title {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1080px) {
+  #skillloop-prototype .lp-case-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  #skillloop-prototype .lp-steps ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #skillloop-prototype .lp-dimensions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  #skillloop-prototype .lp-hero {
+    flex-direction: column;
+  }
+  #skillloop-prototype .lp-case-grid,
+  #skillloop-prototype .lp-steps ol,
+  #skillloop-prototype .lp-feedback-grid {
+    grid-template-columns: 1fr;
+  }
+  #skillloop-prototype .lp-case-actions,
+  #skillloop-prototype .lp-submit-row {
+    justify-content: stretch;
+  }
+  #skillloop-prototype .lp-case-actions .sl-btn,
+  #skillloop-prototype .lp-submit-row .sl-btn {
+    width: 100%;
+  }
+  #skillloop-prototype .lp-question {
+    padding: 14px;
+  }
+  #skillloop-prototype .lp-question legend {
+    flex-direction: column;
+    gap: 6px;
+  }
 }

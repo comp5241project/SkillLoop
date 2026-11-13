@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import knowledge from '../api/knowledge.mjs';
 import interview from '../api/interview.js';
 import correction from '../api/correction.js';
+import learningPath from '../api/learning-path.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.env.PORT || 8765);
@@ -15,7 +16,7 @@ createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
     const route = url.pathname.replace(/\/$/, '');
-    if (['/api/knowledge', '/api/interview', '/api/correction'].includes(route)) {
+    if (['/api/knowledge', '/api/interview', '/api/correction', '/api/learning-path'].includes(route)) {
       const chunks = [];
       let size = 0;
       for await (const chunk of req) {
@@ -38,7 +39,13 @@ createServer(async (req, res) => {
         req.body = body.toString('utf8');
         res.status = (code) => { res.statusCode = code; return res; };
         res.json = (data) => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(data)); };
-        await (route === '/api/interview' ? interview : correction)(req, res);
+        await (
+          route === '/api/interview'
+            ? interview
+            : route === '/api/correction'
+              ? correction
+              : learningPath
+        )(req, res);
       }
       return;
     }

@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
     "test": "node scripts/check.cjs",
+    "test:learning-path": "node --test learning-path/*.test.cjs tests/learning-path-ai.test.mjs tests/learning-path-api.test.mjs",
     "dev:interview": "node --env-file-if-exists=.env.local scripts/interview-dev.cjs",
     "test:interview": "node --test interview/*.test.cjs"
   },

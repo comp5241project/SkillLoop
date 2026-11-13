@@ -4,8 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f6f5f1" />
-    <meta name="description" content="SkillLoop: short software development lessons, personalised paths, interview practice and AI correction challenges." />
-    <title>My path | SkillLoop</title>
+    <meta
+      name="description"
+      content="SkillLoop AI capability diagnosis: choose one software case, answer four AI-written checks, and get an evidence-based starting point for the next three parts."
+    />
+    <title>AI capability diagnosis | SkillLoop</title>
     <link rel="icon" href="../public/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../shared/styles.css" />
     <link rel="stylesheet" href="style.css" />
@@ -13,6 +16,7 @@
     <script src="../shared/storage.js" defer></script>
     <script src="../shared/navigation.js" defer></script>
     <script src="data.js" defer></script>
+    <script src="diagnosis-model.js" defer></script>
     <script src="script.js" defer></script>
   </head>
   <body data-root="../" data-module="learning-path">
@@ -21,107 +25,147 @@
       <header id="site-header" class="sl-head"></header>
       <div class="sl-shell">
         <aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside>
-        <main id="main-content" class="sl-main">
-          
-          <!-- 弹窗遮罩层 -->
-          <div id="sl-quiz-modal" class="sl-modal-overlay">
-            <div class="sl-modal-content">
-              <div class="sl-icon-title" style="margin-bottom: 12px">
-                <i data-lucide="sparkles" aria-hidden="true"></i>
-                <h3>Calibrate your path</h3>
-              </div>
-              <p>Would you like to take a quick 5-question assessment? We'll use your answers to tailor the perfect learning path for you.</p>
-              <div class="sl-modal-actions">
-                <button type="button" class="sl-btn" id="btn-modal-skip">Skip for now</button>
-                <button type="button" class="sl-btn sl-btn-main" id="btn-modal-start">Start Test</button>
+        <main id="main-content" class="sl-main lp-main">
+          <section class="lp-hero" aria-labelledby="lp-title">
+            <div>
+              <div class="sl-kicker">Learning path · Part 1</div>
+              <h1 id="lp-title">AI capability diagnosis</h1>
+              <p class="sl-intro">
+                Pick one case, answer four AI-written checks, and get an
+                evidence-based starting point. Every attempt gets a fresh set.
+                Parts 2–4 will reuse the same case.
+              </p>
+            </div>
+            <span class="sl-chip lp-status-chip" id="lp-ai-status" role="status">
+              Checking AI service…
+            </span>
+          </section>
+
+          <nav class="lp-steps" aria-label="Four-part case sequence">
+            <ol>
+              <li class="lp-step" data-step="diagnosis" aria-current="step">
+                <span class="lp-step-number">1</span>
+                <span><strong>Diagnose</strong><small>Current part</small></span>
+              </li>
+              <li class="lp-step" data-step="correction" aria-disabled="true">
+                <span class="lp-step-number">2</span>
+                <span><strong>AI correction learning</strong><small>Next part</small></span>
+              </li>
+              <li class="lp-step" data-step="dialogue" aria-disabled="true">
+                <span class="lp-step-number">3</span>
+                <span><strong>AI dialogue correction</strong><small>Later part</small></span>
+              </li>
+              <li class="lp-step" data-step="verification" aria-disabled="true">
+                <span class="lp-step-number">4</span>
+                <span><strong>AI-assisted verification</strong><small>Later part</small></span>
+              </li>
+            </ol>
+          </nav>
+
+          <p class="lp-live" id="lp-live" role="status" aria-live="polite"></p>
+
+          <section id="lp-case-step" class="lp-stage" aria-labelledby="lp-case-heading">
+            <div class="lp-stage-head">
+              <div>
+                <h2 id="lp-case-heading">Choose a case</h2>
+                <p class="sl-small">
+                  The case is the anchor for all four parts. You can switch later,
+                  but your diagnosis is tied to the case you choose.
+                </p>
               </div>
             </div>
-          </div>
-
-          <!-- 第一屏：测试题卡片 (默认隐藏) -->
-          <div class="sl-card" id="sl-welcome-card" style="display: none;">
-            <div class="sl-kicker">Skill Check</div>
-            <h1>Let's find your starting point.</h1>
-            <p class="sl-intro">Answer these 5 questions to calibrate your engineering path.</p>
-            
-            <form id="sl-quiz-form" style="margin-top: 24px;">
-              <div id="sl-quiz-questions"></div>
-            </form>
-            
-            <div class="sl-row" style="margin-top: 24px; justify-content: flex-end;">
-              <button type="button" class="sl-btn sl-btn-main" id="btn-submit-quiz" style="width: 100%;">
-                Submit & Continue<i data-lucide="arrow-right" aria-hidden="true"> </i>
+            <div class="lp-case-grid" id="lp-case-grid"></div>
+            <div class="lp-case-actions">
+              <button type="button" class="sl-btn sl-btn-main" id="lp-start" disabled>
+                Start diagnosis
+                <i data-lucide="arrow-right" aria-hidden="true"></i>
               </button>
             </div>
-          </div>
+          </section>
 
-          <!-- 第二屏：主评估卡片 (初始隐藏) -->
-          <div class="sl-card sl-assessment-card" id="sl-personal-card" style="display: none;">
-            <div class="sl-icon-title" style="margin-bottom: 17px">
-              <i data-lucide="sliders-horizontal" aria-hidden="true"> </i>
-              <h3>Set your starting point</h3>
-            </div>
-            
-            <div id="sl-skill-check-banner" style="display: none; padding: 12px; background: #eff6ff; border-left: 4px solid #2563eb; border-radius: 4px; margin-bottom: 16px;">
-              <p class="sl-small" id="sl-skill-check-text" style="margin: 0;"></p>
-            </div>
-
-            <div class="sl-grid" style="margin-top: 0">
-              <div>
-                <label for="sl-background">Experience</label>
-                <select id="sl-background">
-                  <option value="beginner">New to programming</option>
-                  <option value="student">Some coding experience</option>
-                  <option value="graduate">Preparing for interviews</option>
-                </select>
-              </div>
-              <div>
-                <label for="sl-goal">Goal</label>
-                <select id="sl-goal">
-                  <option value="internship">Software internship</option>
-                  <option value="build">Build with AI</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="sl-grid" style="margin-top: 16px;">
-              <div>
-                <label for="sl-ai-model">AI Model for Teaching Video Generation</label>
-                <select id="sl-ai-model">
-                  <option value="sora">OpenAI Sora</option>
-                  <option value="runway">Runway Gen-2</option>
-                  <option value="pika">Pika Labs</option>
-                </select>
-              </div>
-            </div>
-
-            <div style="margin-top: 24px;" id="sl-habits-section">
-              <h4 style="margin-bottom: 8px;">Code Habits Audit</h4>
-              <p class="sl-small" style="margin-bottom: 12px;">Select the habits you want to fix:</p>
-              <div class="sl-checkbox-list" id="bad-habits-list"></div>
-            </div>
-
-            <button type="button" class="sl-btn sl-btn-main" id="sl-make-path" style="margin-top: 24px;">
-              Build my path<i data-lucide="arrow-right" aria-hidden="true"> </i>
+          <section
+            id="lp-diagnosis-step"
+            class="lp-stage"
+            aria-labelledby="lp-diagnosis-heading"
+            hidden
+          >
+            <button type="button" class="sl-text-button lp-back" id="lp-back-to-cases">
+              ← Choose another case
             </button>
-          </div>
+            <div id="lp-case-brief"></div>
 
-          <!-- 第三屏：最终路径展示卡片 (初始隐藏) -->
-          <div class="sl-card sl-spaced" aria-live="polite" id="sl-path-card" style="display: none;">
-            <div class="sl-row" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
-              <h3 id="sl-path-heading">Your next steps</h3>
-              <div class="sl-row" style="gap: 10px;">
-                <span class="sl-chip" id="sl-path-chip">Personalised recommendation</span>
-                <button type="button" class="sl-btn" id="sl-reset-path" style="font-size: 0.85rem; padding: 4px 12px;">Retake</button>
+            <div class="sl-card lp-context">
+              <div class="sl-grid lp-context-grid">
+                <div>
+                  <label for="lp-background">Experience</label>
+                  <select id="lp-background">
+                    <option value="beginner">New to programming</option>
+                    <option value="student">Some coding experience</option>
+                    <option value="graduate">Preparing for interviews</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="lp-goal">Goal</label>
+                  <select id="lp-goal">
+                    <option value="internship">Software internship</option>
+                    <option value="build">Build with AI</option>
+                  </select>
+                </div>
+              </div>
+              <p class="sl-small">
+                Shared with your SkillLoop profile. The diagnosis is a planning aid,
+                not a grade or a claim of mastery.
+              </p>
+            </div>
+
+            <form id="lp-diagnosis-form" novalidate>
+              <h2 id="lp-diagnosis-heading" class="lp-section-title">Four checks</h2>
+              <p class="sl-small lp-question-source" id="lp-question-source" role="status" hidden></p>
+              <div id="lp-question-list"></div>
+              <div class="lp-submit-row">
+                <p class="sl-small">
+                  Choose one approach per check. Explanations are optional but give
+                  the diagnosis better evidence. Retake asks AI for a new set.
+                </p>
+                <button type="submit" class="sl-btn sl-btn-main" id="lp-run">
+                  Run AI diagnosis
+                  <i data-lucide="sparkles" aria-hidden="true"></i>
+                </button>
+              </div>
+              <p class="lp-error" id="lp-error" role="alert" hidden></p>
+            </form>
+          </section>
+
+          <section
+            id="lp-result-step"
+            class="lp-stage"
+            aria-labelledby="lp-result-heading"
+            tabindex="-1"
+            hidden
+          >
+            <div class="lp-result-head">
+              <div>
+                <div class="sl-kicker" id="lp-source-label">Diagnosis</div>
+                <h2 id="lp-result-heading">Your diagnosis</h2>
+                <p class="sl-small" id="lp-result-case"></p>
+              </div>
+              <div class="sl-row lp-result-actions">
+                <button type="button" class="sl-btn" id="lp-retake">Retake</button>
+                <button type="button" class="sl-btn" id="lp-new-case">New case</button>
               </div>
             </div>
-            <div id="sl-path-list"></div>
-            <div id="sl-path-title" class="sl-small" style="margin: 12px 0"></div>
-            <a class="sl-btn" href="../knowledge-map/" style="margin-top: 16px;">
-              Explore skill map<i data-lucide="arrow-up-right" aria-hidden="true"> </i>
-            </a>
-          </div>
-
+            <div id="lp-result" aria-live="polite"></div>
+            <div class="sl-card lp-locked">
+              <div class="sl-icon-title">
+                <i data-lucide="lock" aria-hidden="true"></i>
+                <h3>Part 2 is next</h3>
+              </div>
+              <p class="sl-small">
+                AI correction learning will reuse this case and your priority
+                knowledge points. Part 1 keeps working without it.
+              </p>
+            </div>
+          </section>
         </main>
       </div>
     </div>
