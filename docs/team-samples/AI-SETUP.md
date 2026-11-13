@@ -4,7 +4,7 @@ All four parts of the new workflow use one provider account, base URL and model.
 
 The working helper is [server/ai.mjs](../../server/ai.mjs). It uses Node.js `fetch` with the OpenAI-compatible Chat Completions HTTP interface; no extra package or Vercel AI Gateway subscription is required. It supports text and validated JSON, a 45-second request timeout and safe errors. It does not stream, run tools or automatically retry paid calls.
 
-**Integration status:** the helper and mocked tests are implemented. Existing module endpoints still use their old providers until their owners migrate them. No live key has been configured or live Bailian call verified in this change. Adding environment variables alone will not migrate an existing module.
+**Integration status:** all four student modules use the shared helper. Local end-to-end testing has verified live Bailian calls for diagnosis, learning feedback, dialogue and verification review. Production still needs the three shared environment variables configured in its Vercel project.
 
 ## Where things go
 
@@ -19,7 +19,7 @@ The working helper is [server/ai.mjs](../../server/ai.mjs). It uses Node.js `fet
 
 Browser pages call their module endpoint. That endpoint validates input, builds the system prompt, imports this helper and checks the result against the team samples. The browser never imports the helper or receives credentials. Prompts in browser requests are learner data, not system instructions.
 
-Part 3 now uses `/api/dialogue` and the shared helper; the earlier `/api/interview` has been retired. Keep the existing `/api/knowledge` and `/api/correction` contracts intact while migrating. Knowledge also handles accounts; correction currently handles teacher drafting, not the new student verification review. New assessment/learning actions and routes need explicit handlers. New routes must also be registered in `scripts/dev.mjs` for `npm run dev`. This change deliberately does not create a public generic AI proxy.
+The student routes are `/api/learning-path`, `/api/knowledge-learning`, `/api/dialogue`, and `/api/correction` (action `review`). All are registered in `scripts/dev.mjs`. `/api/knowledge` and correction teacher drafting retain their separate legacy settings. There is no public generic AI proxy.
 
 ## One configuration for everyone
 
