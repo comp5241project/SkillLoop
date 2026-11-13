@@ -1,22 +1,15 @@
-# SkillLoop project page
+# SkillLoop project resources
 
-Static project introduction, independent of the application and its AI services.
+Public project page: https://comp5241project.github.io/SkillLoop/
 
-- Project page: https://comp5241project.github.io/SkillLoop/
-- Live application: https://skillloop-sigma.vercel.app/
-- Source repository: https://github.com/comp5241project/SkillLoop
+Four homepage entries:
+- Public GitHub repository: https://github.com/comp5241project/SkillLoop
+- Deployed app: https://skillloop-sigma.vercel.app/
+- Overview video (6–10 minutes)
+- Final report and presentation slides
 
-Edit `index.html`, `style.css` and `script.js`. Assets are local and links are relative, so the page works under the repository's GitHub Pages path. The interactive examples are labelled illustrations, not live AI responses. The dialogue screenshot comes from the actual prototype.
+Add the final video, report and slides URLs to `resources` in `script.js`. Until then, the page clearly labels them as coming soon. Set `accessNote` to the verified app login instructions. Never publish a personal account password or an API key.
 
-Source lives under `project-page/` on `feature/project-page`. The `gh-pages` branch contains only this directory's published contents. GitHub Pages publishes from that branch's root. Application branches and Vercel configuration are not modified.
+Source: `project-page/` on `feature/project-page`. Deployment: root of `gh-pages`. Changes to this page do not require changing application code or merging `main`.
 
-To publish from the source branch after editing:
-
-```sh
-git subtree split --prefix=project-page -b project-page-release
-git push origin project-page-release:gh-pages
-```
-
-Use a new temporary release branch name if it already exists. Never force-push the application branch to publish this page.
-
-Visual structure inspired by https://meta-interactiveworld.github.io/. All project copy and interactions are original to SkillLoop; no affiliation is implied.
+Use relative asset paths. This page has no libraries, build step or external fonts.
