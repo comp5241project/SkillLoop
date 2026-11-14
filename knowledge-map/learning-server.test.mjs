@@ -73,6 +73,12 @@ test('reflection uses only completed priority topics', async () => {
   assert.equal(result.aiSource, 'api');
 });
 
+test('completed practice may have no extra follow-up or focus while invalid fields remain rejected', () => {
+  assert.equal(validateFeedback({ judgment: 'correct', explanation: 'The chosen option matches the requirement.', followUp: '', needsPractice: false, practiceFocus: 'Check permission before changing data.' }), true);
+  assert.equal(validateReflection({ reflection: 'The learner selected the required permission check.', needsPractice: [], practiceFocus: [] }, ['communication']), true);
+  assert.equal(validateReflection({ reflection: 'Done.', needsPractice: [], practiceFocus: null }, ['communication']), false);
+});
+
 test('API error and retry preserve the submitted answer', async () => {
   const body = request('cart-checkout');
   const make = () => new Request('http://localhost/api/knowledge-learning', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });

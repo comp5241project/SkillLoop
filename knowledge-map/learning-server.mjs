@@ -15,14 +15,14 @@ const exact = (value, keys) => value && typeof value === 'object' && !Array.isAr
 export function validateFeedback(data) {
   return exact(data, ['judgment', 'explanation', 'followUp', 'needsPractice', 'practiceFocus']) &&
     ['correct', 'incomplete', 'incorrect'].includes(data.judgment) && text(data.explanation) &&
-    (data.followUp === null || text(data.followUp, 300)) && typeof data.needsPractice === 'boolean' &&
+    (data.followUp === null || data.followUp === '' || text(data.followUp, 300)) && typeof data.needsPractice === 'boolean' &&
     text(data.practiceFocus, 300);
 }
 export function validateReflection(data, selected) {
   return exact(data, ['reflection', 'needsPractice', 'practiceFocus']) && text(data.reflection) &&
     Array.isArray(data.needsPractice) && new Set(data.needsPractice).size === data.needsPractice.length &&
     data.needsPractice.every((id) => selected.includes(id) && topics.has(id)) &&
-    Array.isArray(data.practiceFocus) && data.practiceFocus.length > 0 && data.practiceFocus.length <= 6 &&
+    Array.isArray(data.practiceFocus) && data.practiceFocus.length <= 6 &&
     data.practiceFocus.every((item) => text(item, 300));
 }
 export function validateRequest(body) {
@@ -53,7 +53,7 @@ export function buildPrompt(body) {
       : { prompt: exercise.prompt };
     return `${rules} Current topic: ${topic.title} (${body.topicId}). Relevant diagnosis evidence: ${dimension.evidence}. Strength: ${dimension.strength}. Gap: ${dimension.gap}. Learning card explanation: ${lessons[fixed.caseId][body.topicId].explanation}. Exercise: ${JSON.stringify(question)}. Return JSON with exactly judgment (correct|incomplete|incorrect), explanation, followUp (string or null), needsPractice (boolean), practiceFocus (one concrete engineering task for the repair dialogue). An incorrect or incomplete answer normally needs further practice.`;
   }
-  return `${rules} The observations are the teaching assistant's validated feedback on activities completed AFTER the diagnosis, not the learner's self-assessment. Treat them as the latest evidence. A correct activity can show progress on an earlier diagnosis gap; do not label it incorrect solely because the earlier diagnosis found that gap. Summarize the observed practice in 1-2 sentences without claiming mastery. Return JSON with exactly reflection, needsPractice (subset of completed topic IDs), and practiceFocus (1-6 concrete engineering or communication tasks for the repair dialogue). Do not erase an observed need for practice without evidence. Allowed topic IDs: ${JSON.stringify(body.observations.map((o) => o.topicId))}.`;
+  return `${rules} The observations are the teaching assistant's validated feedback on activities completed AFTER the diagnosis, not the learner's self-assessment. Treat them as the latest evidence. A correct activity can show progress on an earlier diagnosis gap; do not label it incorrect solely because the earlier diagnosis found that gap. These activities are answers to learning questions, not code changes: never claim the learner implemented tests, fixed code, or edited documentation. Summarize the observed practice in 1-2 sentences without claiming mastery. Return JSON with exactly reflection, needsPractice (subset of completed topic IDs), and practiceFocus (0-6 concrete engineering or communication tasks for the repair dialogue; an empty array is allowed when there is no additional task). Do not erase an observed need for practice without evidence. Allowed topic IDs: ${JSON.stringify(body.observations.map((o) => o.topicId))}.`;
 }
 
 export async function generate(body, ai = callAIJson) {
