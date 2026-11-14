@@ -9,7 +9,9 @@ const assets = Object.freeze({ '/': ['index.html', 'text/html; charset=utf-8'],
   '/studio.css': ['studio.css', 'text/css; charset=utf-8'] });
 const routes = Object.freeze({ '/api/validate': 'validate', '/api/preview': 'preview',
   '/api/manual': 'saveManual', '/api/proposal': 'generate', '/api/accept': 'accept',
-  '/api/reject': 'reject', '/api/preview-accepted': 'previewAccepted' });
+  '/api/reject': 'reject', '/api/preview-accepted': 'previewAccepted',
+  '/api/checkpoint': 'saveCheckpoint', '/api/reopen-checkpoint': 'reopenCheckpoint',
+  '/api/export': 'exportDraft', '/api/import': 'importDraft' });
 
 function createM3StudioServer(session = createStudioSession()) {
   return http.createServer(async (req, res) => {
@@ -52,7 +54,8 @@ function createM3StudioServer(session = createStudioSession()) {
       const result = await session[routes[route]](input);
       send(200, result);
     } catch (error) {
-      if (error instanceof StudioError) send(error.status, { error: error.message, fields: error.fields });
+      if (error instanceof StudioError) send(error.status, { error: error.message,
+        fields: error.fields, code: error.code });
       else send(422, { error: error instanceof Error ? error.message : 'Invalid studio input.' });
     }
   });

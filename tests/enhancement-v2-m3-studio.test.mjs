@@ -30,6 +30,8 @@ async function withServer(run) {
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   const post = async (route, body, extraHeaders = {}) => {
+    if (body && Object.hasOwn(body, 'expectedRevision') && !Object.hasOwn(body, 'expectedDraftId'))
+      body = { ...body, expectedDraftId: session.state().draft?.draftId ?? null };
     const response = await fetch(base + route, { method: 'POST', headers: {
       'Content-Type': 'application/json', 'X-Studio-Request': '1', ...extraHeaders },
     body: JSON.stringify(body) });
@@ -51,7 +53,7 @@ test('real HTTP studio serves canonical public facts and manual draft creation',
   const valid = await post('/api/validate', form());
   assert.deepEqual(valid, { status: 200, body: { valid: true } });
   assert.equal((await (await get('/api/state')).json()).draft, null);
-  const saved = await post('/api/manual', form());
+  const saved = await post('/api/manual', { expectedRevision: null, form: form() });
   assert.equal(saved.status, 200);
   assert.equal(saved.body.draft.status, 'draft-only');
   assert.equal(saved.body.draft.origin, 'manual');
@@ -59,7 +61,7 @@ test('real HTTP studio serves canonical public facts and manual draft creation',
 }));
 
 test('Mock proposal stays server-held, acceptance preserves trusted provenance and needs confirmation', async () => withServer(async ({ post, get, session }) => {
-  await post('/api/manual', form());
+  await post('/api/manual', { expectedRevision: null, form: form() });
   const generated = await post('/api/proposal', { brief: brief() });
   assert.equal(generated.status, 200);
   assert.equal(generated.body.proposal.source, 'deterministic-mock');
@@ -71,7 +73,8 @@ test('Mock proposal stays server-held, acceptance preserves trusted provenance a
   const id = generated.body.proposal.proposalId;
   assert.equal((await post('/api/accept', { proposalId: id })).status, 409);
   assert.equal((await post('/api/accept', { proposalId: 'forged', confirmReplace: true })).status, 409);
-  const accepted = await post('/api/accept', { proposalId: id, confirmReplace: true });
+  const accepted = await post('/api/accept', { proposalId: id, confirmReplace: true,
+    expectedRevision: 1 });
   assert.equal(accepted.status, 200);
   assert.equal(accepted.body.draft.origin, 'mock-proposal');
   assert.equal(accepted.body.draft.status, 'draft-only');
@@ -81,7 +84,7 @@ test('Mock proposal stays server-held, acceptance preserves trusted provenance a
 }));
 
 test('rejecting Mock keeps accepted draft and unsaved form content untouched', async () => withServer(async ({ post, get }) => {
-  const saved = await post('/api/manual', form());
+  const saved = await post('/api/manual', { expectedRevision: null, form: form() });
   const generated = await post('/api/proposal', { brief: brief() });
   const unsaved = form(); unsaved.content.explanation += ' Unsaved teacher edit remains in the browser.';
   const rejected = await post('/api/reject', { proposalId: generated.body.proposal.proposalId });
@@ -106,19 +109,20 @@ test('editing explanation and exercise passes through HTTP validation and previe
   assert.equal(publicJson.includes('zero-count guard'), false);
   assert.equal(publicJson.includes('publicFactsDigest'), false);
   assert.equal(publicJson.includes('provenance'), false);
-  const saved = await post('/api/manual', edited);
+  const saved = await post('/api/manual', { expectedRevision: null, form: edited });
   assert.equal(saved.body.draft.content.exercises[0].teacherAnswerGuidance.length, 3);
   const multiReference = form();
   multiReference.brief.objectives[0].requirementIds = ['empty-cart', 'discount'];
   multiReference.content.objectives[0].requirementIds = ['empty-cart', 'discount'];
-  assert.equal((await post('/api/manual', multiReference)).status, 200);
+  assert.equal((await post('/api/manual', { expectedRevision: saved.body.draft.revision,
+    form: multiReference })).status, 200);
 }));
 
 test('invalid form returns field errors without replacing the accepted draft', async () => withServer(async ({ post, get }) => {
-  const saved = await post('/api/manual', form());
+  const saved = await post('/api/manual', { expectedRevision: null, form: form() });
   const invalid = form(); invalid.brief.topic = 'x'; invalid.content.explanation = 'short';
   invalid.content.exercises[0].teacherAnswerGuidance = [];
-  const response = await post('/api/manual', invalid);
+  const response = await post('/api/manual', { expectedRevision: saved.body.draft.revision, form: invalid });
   assert.equal(response.status, 422);
   assert.ok(response.body.fields['brief.topic']);
   assert.ok(response.body.fields['content.explanation']);
@@ -196,7 +200,9 @@ test('real studio event handlers invalidate previews across edits, rejection and
       'title', 'explanation', 'code-excerpt', 'code-prompt', 'objectives', 'exercises',
       'editing-state', 'preview-panel', 'preview-content', 'proposal-panel', 'proposal-content',
       'editor', 'message', 'add-objective', 'add-exercise', 'example-beginner',
-      'example-intermediate', 'validate', 'manual', 'generate', 'preview-button', 'reject', 'accept'];
+      'example-intermediate', 'validate', 'manual', 'generate', 'preview-button', 'reject', 'accept',
+      'checkpoint', 'reopen-checkpoint', 'export-json', 'import-file', 'import-json',
+      'conflict-warning', 'reload-latest', 'revision-state', 'checkpoint-state'];
     const nodes = Object.fromEntries(ids.map((id) => [id, new Element('div', id)]));
     root.append(...Object.values(nodes));
     nodes['preview-panel'].hidden = true;
@@ -284,4 +290,90 @@ test('real studio event handlers invalidate previews across edits, rejection and
     await waitFor(() => nodes.message.textContent === 'Correct the highlighted fields.');
     assert.equal(nodes['preview-panel'].hidden, true);
     assert.equal(nodes.topic.value, 'x');
+
+    input('topic', initial.brief.topic);
+    const external = form(); external.content.explanation += ' Updated from another browser tab.';
+    session.saveManual({ expectedDraftId: session.state().draft.draftId,
+      expectedRevision: 1, form: external });
+    const unsaved = 'This valid explanation remains in the stale browser tab after a conflict.';
+    input('explanation', unsaved);
+    click('manual');
+    await waitFor(() => !nodes['conflict-warning'].hidden);
+    assert.match(nodes['conflict-warning'].textContent, /Revision conflict/);
+    assert.equal(nodes['reload-latest'].hidden, false);
+    assert.equal(nodes.explanation.value, unsaved);
+    assert.equal(session.state().draft.revision, 2);
+    confirmReplace = false;
+    click('reload-latest');
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(nodes.explanation.value, unsaved);
+    confirmReplace = true;
+    click('reload-latest');
+    await waitFor(() => nodes['revision-state'].textContent.includes('revision 2'));
+    assert.equal(nodes.explanation.value, external.content.explanation);
+    assert.equal(nodes['conflict-warning'].hidden, true);
+
+    const current = session.state().draft;
+    const exported = session.exportDraft({ expectedDraftId: current.draftId,
+      expectedRevision: current.revision });
+    input('explanation', 'Unsaved import failure marker remains in this browser form after invalid JSON.');
+    nodes['import-file'].files = [{ text: async () => '{broken' }];
+    click('import-json');
+    await waitFor(() => nodes.message.textContent.includes('not valid JSON'));
+    assert.match(nodes.explanation.value, /Unsaved import failure marker/);
+    assert.equal(session.state().draft.revision, 2);
+    nodes['import-file'].files = [{ text: async () => JSON.stringify(exported.document) }];
+    click('import-json');
+    await waitFor(() => nodes.message.textContent.startsWith('Imported content'));
+    assert.equal(session.state().draft.origin, 'imported');
+    assert.equal(nodes['preview-panel'].hidden, true);
+    assert.equal(nodes['preview-content'].textContent, '');
+    assert.match(nodes['revision-state'].textContent, /imported from declared manual \(unverified\)/);
+    click('preview-button');
+    await waitFor(() => !nodes['preview-panel'].hidden);
+    assert.match(nodes['preview-content'].textContent, /Updated from another browser tab/);
+    assert.doesNotMatch(nodes['preview-content'].textContent, /Unsaved import failure marker|Return numeric 0/);
+
+    input('topic', 'x');
+    click('manual');
+    await waitFor(() => nodes.message.textContent === 'Correct the highlighted fields.');
+    assert.equal(session.state().draft.origin, 'imported');
+    assert.match(nodes['revision-state'].textContent, /imported from declared manual \(unverified\)/);
+    assert.equal(nodes.topic.value, 'x');
+    input('topic', initial.brief.topic);
+    input('explanation', `${external.content.explanation} Saved after import.`);
+    click('manual');
+    await waitFor(() => nodes.message.textContent.startsWith('Manual draft kept'));
+    assert.equal(session.state().draft.origin, 'manual');
+    assert.equal(session.state().draft.revision, 2);
+    assert.match(nodes['revision-state'].textContent, /revision 2 · manual/);
+    assert.doesNotMatch(nodes['revision-state'].textContent, /imported from declared/);
+
+    nodes['import-file'].files = [{ text: async () => JSON.stringify(exported.document) }];
+    click('import-json');
+    await waitFor(() => nodes.message.textContent.startsWith('Imported content'));
+    assert.match(nodes['revision-state'].textContent, /imported from declared manual \(unverified\)/);
+    const imported = session.state().draft;
+    session.saveManual({ expectedDraftId: imported.draftId, expectedRevision: imported.revision,
+      form: external });
+    const stillUnsaved = `${external.content.explanation} Unsaved after conflict.`;
+    input('explanation', stillUnsaved);
+    click('manual');
+    await waitFor(() => !nodes['conflict-warning'].hidden);
+    assert.equal(nodes.explanation.value, stillUnsaved);
+    assert.match(nodes['revision-state'].textContent, /imported from declared manual \(unverified\)/);
+
+    click('reload-latest');
+    await waitFor(() => nodes['revision-state'].textContent.includes('revision 2 · manual'));
+    nodes['import-file'].files = [{ text: async () => JSON.stringify(exported.document) }];
+    click('import-json');
+    await waitFor(() => nodes.message.textContent.startsWith('Imported content'));
+    click('checkpoint');
+    await waitFor(() => nodes.message.textContent.startsWith('Checkpoint saved'));
+    assert.equal(session.state().draft.origin, 'imported');
+    assert.match(nodes['revision-state'].textContent, /imported from declared manual \(unverified\)/);
+    input('explanation', `${external.content.explanation} Checkpoint update after import.`);
+    click('checkpoint');
+    await waitFor(() => nodes['revision-state'].textContent.includes('revision 2 · manual'));
+    assert.doesNotMatch(nodes['revision-state'].textContent, /imported from declared/);
   }));

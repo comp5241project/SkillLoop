@@ -5,6 +5,24 @@ let caseFacts;
 let acceptedDraft = null;
 let shownProposal = null;
 let dirty = false;
+let checkpointInfo = null;
+let importSource = null;
+const expectedRevision = () => acceptedDraft?.revision ?? null;
+const expectedDraftId = () => acceptedDraft?.draftId ?? null;
+function updateLocalStatus() {
+  $('#revision-state').textContent = acceptedDraft
+    ? `Current local draft revision ${acceptedDraft.revision} · ${acceptedDraft.origin}${importSource ?
+      ` · imported from declared ${importSource.declaredOrigin} (unverified)` : ''}.`
+    : 'No current local draft revision.';
+  $('#checkpoint-state').textContent = checkpointInfo
+    ? `Saved checkpoint: revision ${checkpointInfo.revision} · ${checkpointInfo.origin}. Server restart removes it.`
+    : 'No saved checkpoint in this server process.';
+}
+function clearConflict() {
+  $('#conflict-warning').hidden = true;
+  $('#conflict-warning').textContent = '';
+  $('#reload-latest').hidden = true;
+}
 
 function element(tag, text, className) {
   const node = document.createElement(tag);
@@ -92,6 +110,7 @@ function refreshRowErrors() {
 }
 function renderForm(draft) {
   invalidatePreview();
+  clearConflict();
   const brief = draft?.brief || {}, content = draft?.content || {};
   $('#topic').value = brief.topic || '';
   $('#learner-level').value = brief.learnerLevel || 'beginner';
@@ -109,6 +128,7 @@ function renderForm(draft) {
   $('#editing-state').textContent = acceptedDraft
     ? `Local process-memory draft · ${acceptedDraft.origin} · draft-only. Form matches this snapshot.`
     : 'No accepted draft. Form changes are unsaved and disappear on refresh.';
+  updateLocalStatus();
   clearErrors();
 }
 const value = (row, name) => $(`[data-field="${name}"]`, row).value;
@@ -139,6 +159,11 @@ function clearErrors() {
 function showError(error) {
   clearErrors();
   $('#message').textContent = error.message || 'Unable to complete this action.';
+  if (error.code === 'revision-conflict') {
+    $('#conflict-warning').hidden = false;
+    $('#conflict-warning').textContent = 'Revision conflict: another tab saved a newer draft. Your unsaved form is intact.';
+    $('#reload-latest').hidden = false;
+  }
   for (const [key, message] of Object.entries(error.fields || {})) {
     let target = all('[data-error-for]').find((node) => node.dataset.errorFor === key);
     if (!target && key.startsWith('content.objectives')) target = $('[data-error-for="brief.objectives"]');
@@ -149,7 +174,8 @@ async function request(route, body) {
   const response = await fetch(route, { method: 'POST', headers: {
     'Content-Type': 'application/json', 'X-Studio-Request': '1' }, body: JSON.stringify(body) });
   const payload = await response.json();
-  if (!response.ok) throw { message: payload.error, fields: payload.fields || {} };
+  if (!response.ok) throw { message: payload.error, fields: payload.fields || {},
+    code: payload.code, status: response.status };
   return payload;
 }
 function section(host, title, text, tag = 'p') {
@@ -220,6 +246,7 @@ async function init() {
   if (!response.ok) throw Error('Unable to load public case facts.');
   const state = await response.json();
   caseFacts = state.case; acceptedDraft = state.draft;
+  checkpointInfo = state.checkpoint; importSource = state.importSource;
   $('#requirements').replaceChildren(...caseFacts.requirements.map((item) =>
     element('li', `${item.requirementId}: ${item.text}`)));
   $('#starter-code').textContent = caseFacts.starterCode;
@@ -235,9 +262,19 @@ async function init() {
     await request('/api/validate', collectForm()); $('#message').textContent = 'Current form is valid; it is still unsaved.';
   }));
   $('#manual').addEventListener('click', () => run(async () => {
-    const result = await request('/api/manual', collectForm());
-    acceptedDraft = result.draft; renderForm(acceptedDraft); renderProposal(null);
+    const result = await request('/api/manual', { expectedDraftId: expectedDraftId(),
+      expectedRevision: expectedRevision(), form: collectForm() });
+    acceptedDraft = result.draft; importSource = null;
+    renderForm(acceptedDraft); renderProposal(null);
     $('#message').textContent = 'Manual draft kept in process memory. Restarting the server loses it.';
+  }));
+  $('#checkpoint').addEventListener('click', () => run(async () => {
+    const result = await request('/api/checkpoint', { expectedDraftId: expectedDraftId(),
+      expectedRevision: expectedRevision(), form: collectForm() });
+    acceptedDraft = result.draft; checkpointInfo = result.checkpoint;
+    if (acceptedDraft.origin !== 'imported') importSource = null;
+    renderForm(acceptedDraft); renderProposal(null);
+    $('#message').textContent = `Checkpoint saved at revision ${checkpointInfo.revision} in this server process.`;
   }));
   $('#generate').addEventListener('click', () => run(async () => {
     const result = await request('/api/proposal', { brief: collectForm().brief });
@@ -257,9 +294,50 @@ async function init() {
     if (!shownProposal) return;
     if ((dirty || acceptedDraft) && !window.confirm(`${replacementSummary(shownProposal)}\nReplace the current form and local draft?`)) return;
     const result = await request('/api/accept', { proposalId: shownProposal.proposalId,
-      confirmReplace: true });
-    acceptedDraft = result.draft; renderForm(acceptedDraft); renderProposal(null);
+      confirmReplace: true, expectedDraftId: expectedDraftId(), expectedRevision: expectedRevision() });
+    acceptedDraft = result.draft; checkpointInfo = null; importSource = null;
+    renderForm(acceptedDraft); renderProposal(null);
     $('#message').textContent = 'Mock Proposal accepted as a draft-only local snapshot.';
+  }));
+  $('#reopen-checkpoint').addEventListener('click', () => run(async () => {
+    if (!window.confirm('Reopen the saved checkpoint? This replaces the current form; unsaved edits will be lost.')) return;
+    const result = await request('/api/reopen-checkpoint', { expectedRevision: expectedRevision(),
+      expectedDraftId: expectedDraftId(), confirmReplace: true });
+    acceptedDraft = result.draft; checkpointInfo = result.checkpoint;
+    if (acceptedDraft.origin !== 'imported') importSource = null;
+    renderForm(acceptedDraft); renderProposal(null);
+    $('#message').textContent = `Checkpoint content restored at revision ${acceptedDraft.revision}.`;
+  }));
+  $('#export-json').addEventListener('click', () => run(async () => {
+    if (dirty) throw { message: 'Save a valid draft or checkpoint before exporting; unsaved edits are not included.' };
+    const result = await request('/api/export', { expectedDraftId: expectedDraftId(),
+      expectedRevision: expectedRevision() });
+    const blob = new Blob([JSON.stringify(result.document, null, 2) + '\n'], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a'); link.href = url; link.download = result.filename;
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    $('#message').textContent = 'Private teacher JSON exported. Keep answer guidance confidential.';
+  }));
+  $('#import-json').addEventListener('click', () => run(async () => {
+    const file = $('#import-file').files?.[0];
+    if (!file) throw { message: 'Choose a TeacherDraft JSON file first.' };
+    if (file.size > 100000) throw { message: 'Choose a JSON draft file below 100 KB.' };
+    if ((dirty || acceptedDraft) && !window.confirm('Import this private JSON? It replaces the current local draft and unsaved form edits.')) return;
+    const result = await request('/api/import', { expectedRevision: expectedRevision(),
+      expectedDraftId: expectedDraftId(), confirmReplace: true, jsonText: await file.text() });
+    acceptedDraft = result.draft; importSource = result.importSource; checkpointInfo = null;
+    renderForm(acceptedDraft); renderProposal(null); $('#import-file').value = '';
+    $('#message').textContent = 'Imported content as an unverified draft-only local copy.';
+  }));
+  $('#reload-latest').addEventListener('click', () => run(async () => {
+    if (dirty && !window.confirm('Reload the latest server draft? Your unsaved form edits will be lost.')) return;
+    const response = await fetch('/api/state');
+    if (!response.ok) throw { message: 'Could not reload the latest local draft.' };
+    const state = await response.json();
+    acceptedDraft = state.draft; checkpointInfo = state.checkpoint; importSource = state.importSource;
+    renderForm(acceptedDraft); renderProposal(state.proposal);
+    $('#message').textContent = 'Latest local draft loaded. Previous form edits were replaced.';
   }));
 }
 init().catch(showError);

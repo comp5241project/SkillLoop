@@ -12,7 +12,7 @@
     <p class="eyebrow">SkillLoop enhancement v2 · local prototype</p>
     <h1>Teacher Authoring Studio</h1>
     <p>Case-bound teaching material for <strong>cart-checkout@1 / edge-cases</strong>. Mock generation only.</p>
-    <p class="notice">Draft-only. Data stays in this local Node process and is lost when it restarts. Form edits are unsaved until you choose “Keep manual draft”. No account, database or publishing.</p>
+    <p class="notice">Draft-only. Checkpoints stay in this local Node process and disappear when it restarts. Form edits are unsaved until saved. Exported JSON is a private teacher file and may contain answer guidance. Import is not publication. No account, database or publishing.</p>
   </header>
   <main>
     <section class="panel" aria-labelledby="facts-title">
@@ -47,11 +47,26 @@
       <section class="panel actions" aria-label="Draft actions">
         <button type="button" id="validate">Validate current form</button>
         <button type="button" id="manual" class="secondary">Keep manual draft in memory</button>
+        <button type="button" id="checkpoint" class="secondary">Save Checkpoint</button>
         <button type="button" id="generate" class="secondary">Generate Mock Proposal</button>
         <button type="button" id="preview-button" class="secondary">Preview current form</button>
-        <p id="editing-state" role="status"></p><p id="message" role="alert"></p><small data-error-for="form"></small>
+        <p id="editing-state" role="status"></p><p id="revision-state"></p>
+        <p id="message" role="alert"></p><small data-error-for="form"></small>
       </section>
     </form>
+    <section class="panel" aria-labelledby="local-files-title">
+      <h2 id="local-files-title">Local checkpoint and private JSON</h2>
+      <p id="checkpoint-state">No saved checkpoint.</p>
+      <div class="actions">
+        <button type="button" id="reopen-checkpoint" class="secondary">Reopen Checkpoint</button>
+        <button type="button" id="export-json" class="secondary">Export private JSON</button>
+      </div>
+      <label>Import a private TeacherDraft JSON file <input id="import-file" type="file" accept=".json,application/json"></label>
+      <button type="button" id="import-json" class="secondary">Import JSON</button>
+      <p id="conflict-warning" role="alert" hidden></p>
+      <button type="button" id="reload-latest" class="secondary" hidden>Reload Latest (replaces unsaved form)</button>
+      <p>Downloaded JSON contains teacher-only answer guidance. Keep it private. Import does not authenticate the file or publish it.</p>
+    </section>
     <section class="panel" id="proposal-panel" hidden aria-labelledby="proposal-title">
       <h2 id="proposal-title">Mock Proposal · review before adoption</h2>
       <p>Deterministic test template. Free-text constraints may not be satisfied. Acceptance replaces the current local draft and unsaved form material.</p>
