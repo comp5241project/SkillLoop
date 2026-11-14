@@ -269,6 +269,50 @@
   margin-top: 0;
 }
 
+#skillloop-prototype .lp-provider-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 13px;
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid var(--sl-line);
+}
+
+#skillloop-prototype .lp-provider-row label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+#skillloop-prototype .lp-provider-row select {
+  width: 100%;
+}
+
+#skillloop-prototype .lp-context .lp-provider-row p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+#skillloop-prototype .lp-shared-chip {
+  align-self: flex-start;
+  background: var(--sl-soft);
+  color: var(--sl-accent);
+  border-color: var(--sl-accent);
+}
+
+#skillloop-prototype .lp-practice-chip {
+  align-self: flex-start;
+}
+
+#skillloop-prototype .lp-next-part .sl-btn {
+  margin-top: 12px;
+}
+
+#skillloop-prototype .lp-next-part[hidden],
+#skillloop-prototype .lp-locked[hidden] {
+  display: none;
+}
+
 #skillloop-prototype .lp-context p {
   margin-top: 11px;
   line-height: 1.5;
@@ -652,7 +696,8 @@
   }
   #skillloop-prototype .lp-case-grid,
   #skillloop-prototype .lp-steps ol,
-  #skillloop-prototype .lp-feedback-grid {
+  #skillloop-prototype .lp-feedback-grid,
+  #skillloop-prototype .lp-provider-row {
     grid-template-columns: 1fr;
   }
   #skillloop-prototype .lp-case-actions,

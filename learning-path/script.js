@@ -15,6 +15,9 @@
     result: null,
     source: null,
     aiAvailable: null,
+    aiProviders: [],
+    aiProvider: null,
+    aiDefaultProvider: null,
     availabilityPromise: null,
     questionRequest: 0,
     questionsLoading: false,
@@ -75,6 +78,136 @@
   function activeCase() {
     const found = caseData();
     return found ? { ...found, questions: state.questions } : null;
+  }
+
+  function providerById(providerId) {
+    return state.aiProviders.find((provider) => provider.id === providerId) || null;
+  }
+
+  function activeProvider() {
+    return providerById(state.aiProvider);
+  }
+
+  function liveProvider() {
+    const provider = activeProvider();
+    return provider && provider.available ? provider : null;
+  }
+
+  function providerLabel(provider) {
+    return provider && provider.label ? provider.label : 'Live AI';
+  }
+
+  function readProviderChoice() {
+    if (!window.SkillLoop) return null;
+    try {
+      const value = window.SkillLoop.read('learningPathAIProvider', null);
+      return typeof value === 'string' ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveProviderChoice(providerId) {
+    if (!window.SkillLoop) return;
+    try {
+      window.SkillLoop.write('learningPathAIProvider', providerId);
+    } catch {
+      /* A blocked storage area must not stop provider selection. */
+    }
+  }
+
+  function makeProvider(item, index) {
+    if (!item || typeof item.id !== 'string' || !item.id) return null;
+    return {
+      id: item.id,
+      label:
+        typeof item.label === 'string' && item.label
+          ? item.label
+          : 'AI provider ' + (index + 1),
+      description: typeof item.description === 'string' ? item.description : '',
+      available: Boolean(item.available),
+      model: typeof item.model === 'string' ? item.model : null,
+    };
+  }
+
+  function updateProviderNote() {
+    const note = $('lp-ai-provider-note');
+    if (!note) return;
+    const provider = activeProvider();
+    if (!state.aiProviders.length) {
+      note.textContent = 'Checking AI services…';
+      return;
+    }
+    if (!state.aiProviders.some((item) => item.available)) {
+      note.textContent =
+        'No live AI is configured. Authored checks and the local sample diagnosis are used.';
+      return;
+    }
+    if (!provider) {
+      note.textContent = 'Choose an available AI provider.';
+      return;
+    }
+    note.textContent =
+      provider.description ||
+      (provider.id === 'shared'
+        ? 'Uses the same configuration as Parts 2–4.'
+        : 'Uses the Part 1 DeepSeek configuration.');
+  }
+
+  function updateProviderOptions() {
+    const select = $('lp-ai-provider');
+    if (!select) return;
+    select.textContent = '';
+    if (!state.aiProviders.length) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent =
+        state.aiAvailable === false ? 'No live AI configured' : 'Checking AI services…';
+      select.append(option);
+      select.disabled = true;
+      updateProviderNote();
+      return;
+    }
+
+    state.aiProviders.forEach((provider) => {
+      const option = document.createElement('option');
+      option.value = provider.id;
+      option.disabled = !provider.available;
+      option.textContent =
+        provider.label +
+        (provider.model ? ' · ' + provider.model : '') +
+        (provider.available ? '' : ' · unavailable');
+      select.append(option);
+    });
+    const anyAvailable = state.aiProviders.some((provider) => provider.available);
+    select.disabled = !anyAvailable || state.busy || state.questionsLoading;
+    if (state.aiProvider) select.value = state.aiProvider;
+    updateProviderNote();
+  }
+
+  function chooseInitialProvider(defaultProviderId) {
+    const available = state.aiProviders.filter((provider) => provider.available);
+    const saved = readProviderChoice();
+    const savedProvider = available.find((provider) => provider.id === saved);
+    if (savedProvider) return savedProvider.id;
+    const preferred =
+      available.find((provider) => provider.id === defaultProviderId) ||
+      available.find((provider) => provider.id === 'deepseek') ||
+      available[0];
+    if (preferred) return preferred.id;
+    const fallback =
+      state.aiProviders.find((provider) => provider.id === defaultProviderId) ||
+      state.aiProviders[0];
+    return fallback ? fallback.id : null;
+  }
+
+  function markProviderUnavailable(provider) {
+    if (provider) provider.available = false;
+    state.aiAvailable = state.aiProviders.some((item) => item.available);
+    const next = state.aiProviders.find((item) => item.available);
+    if (next) state.aiProvider = next.id;
+    updateProviderOptions();
+    updateAiStatus();
   }
 
   function conceptTitle(conceptId) {
@@ -147,13 +280,19 @@
 
       const title = node('span', 'lp-case-title', item.title);
       const tagline = node('span', 'lp-case-tagline', item.tagline);
-      const summary = node('span', 'sl-small lp-case-summary', item.summary.split('. ')[0] + '.');
+      const summary = node('span', 'sl-small lp-case-summary', item.summary);
+      const shared = Boolean(data.isSharedCase && data.isSharedCase(item.id));
+      const scope = node(
+        'span',
+        'sl-chip ' + (shared ? 'lp-shared-chip' : 'lp-practice-chip'),
+        shared ? 'Shared flow · Parts 2–4' : 'Part 1 practice'
+      );
       const points = node('span', 'lp-case-points');
       item.knowledgePoints.forEach((conceptId) => {
         points.append(node('span', 'sl-chip', conceptTitle(conceptId)));
       });
 
-      card.append(top, title, tagline, summary, points);
+      card.append(top, title, tagline, summary, scope, points);
       grid.append(card);
     });
     const start = $('lp-start');
@@ -320,7 +459,8 @@
     await ensureAvailability();
     if (token !== state.questionRequest) return;
 
-    if (state.aiAvailable === false) {
+    const provider = liveProvider();
+    if (!provider) {
       state.questions = found.questions;
       state.questionSource = 'authored';
       hideError();
@@ -335,7 +475,9 @@
 
     state.questionsLoading = true;
     renderQuestionSource('Writing four fresh checks for this case…', true);
-    renderQuestionState('AI is preparing your case questions…');
+    renderQuestionState(
+      providerLabel(provider) + ' is writing a fresh set of case-specific checks…'
+    );
     updateRunState();
     announce('Writing new AI checks.');
 
@@ -345,7 +487,11 @@
         response = await fetch('/api/learning-path', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ action: 'questions', caseId: found.id }),
+          body: JSON.stringify({
+            action: 'questions',
+            caseId: found.id,
+            aiProvider: provider.id,
+          }),
         });
       } catch {
         throw new Error('The AI service is unreachable. Please retry.');
@@ -359,15 +505,14 @@
       }
 
       if (response.status === 503 && payload.code === 'ai-not-configured') {
-        state.aiAvailable = false;
-        updateAiStatus();
+        markProviderUnavailable(provider);
         state.questions = found.questions;
         state.questionSource = 'authored';
         renderQuestions();
         renderQuestionSource(
-          'Authored sample checks · live AI is not configured, so these fixed checks are used.'
+          'Authored sample checks · the selected AI provider is not configured, so these fixed checks are used.'
         );
-        announce('Live AI is unavailable. Authored sample checks loaded.');
+        announce('Selected AI provider is unavailable. Authored sample checks loaded.');
         return;
       }
       if (!response.ok) {
@@ -472,10 +617,16 @@
     } else if (state.questionsLoading) {
       run.textContent = 'Writing checks…';
     } else {
-      run.textContent =
-        state.aiAvailable === false ? 'Run sample diagnosis' : 'Run AI diagnosis';
+      run.textContent = liveProvider() ? 'Run AI diagnosis' : 'Run sample diagnosis';
       run.append(icon('sparkles'));
       refreshIcons();
+    }
+    const providerSelect = $('lp-ai-provider');
+    if (providerSelect) {
+      providerSelect.disabled =
+        !state.aiProviders.some((provider) => provider.available) ||
+        state.busy ||
+        state.questionsLoading;
     }
   }
 
@@ -488,14 +639,17 @@
     const chip = $('lp-ai-status');
     if (!chip) return;
     chip.classList.remove('is-live', 'is-local', 'is-checking');
+    const provider = liveProvider();
     if (state.aiAvailable === null) {
-      chip.textContent = 'Checking AI service…';
+      chip.textContent = 'Checking AI services…';
       chip.classList.add('is-checking');
-    } else if (state.aiAvailable) {
-      chip.textContent = 'Live AI ready';
+    } else if (provider) {
+      chip.textContent = provider.label + ' ready';
+      chip.title = provider.model || '';
       chip.classList.add('is-live');
     } else {
       chip.textContent = 'Local sample mode';
+      chip.title = '';
       chip.classList.add('is-local');
     }
     updateRunState();
@@ -510,9 +664,42 @@
         });
         if (!response.ok) throw new Error('unavailable');
         const payload = await response.json();
-        state.aiAvailable = Boolean(payload && payload.available);
+        state.aiProviders = Array.isArray(payload.aiProviders)
+          ? payload.aiProviders.map(makeProvider).filter(Boolean)
+          : [];
+        if (!state.aiProviders.length) {
+          state.aiProviders = [
+            makeProvider(
+              {
+                id: 'deepseek',
+                label: payload.provider || 'DeepSeek',
+                description: 'Uses the Part 1 DeepSeek configuration.',
+                available: Boolean(payload.available),
+                model: payload.model || null,
+              },
+              0
+            ),
+          ].filter(Boolean);
+        }
+        state.aiDefaultProvider =
+          typeof payload.defaultAiProvider === 'string'
+            ? payload.defaultAiProvider
+            : state.aiProviders.find((provider) => provider.available)?.id || null;
+        state.aiAvailable = state.aiProviders.some((provider) => provider.available);
+        const current = providerById(state.aiProvider);
+        if (
+          !current ||
+          (!current.available && state.aiProviders.some((provider) => provider.available))
+        ) {
+          state.aiProvider = chooseInitialProvider(state.aiDefaultProvider);
+          if (state.aiProvider) saveProviderChoice(state.aiProvider);
+        }
+        updateProviderOptions();
       } catch {
         state.aiAvailable = false;
+        state.aiProviders = [];
+        state.aiProvider = null;
+        updateProviderOptions();
       }
       updateAiStatus();
       return state.aiAvailable;
@@ -587,7 +774,8 @@
     try {
       let result;
       let source;
-      if (state.aiAvailable === false) {
+      const provider = liveProvider();
+      if (!provider) {
         result = model.buildLocalDiagnosis(diagnosisCase, responses);
         source = 'local';
       } else {
@@ -599,6 +787,7 @@
             body: JSON.stringify({
               action: 'diagnose',
               caseId: found.id,
+              aiProvider: provider.id,
               learner: state.learner,
               responses,
               ...(state.questionSource === 'ai' ? { questions } : {}),
@@ -618,8 +807,7 @@
         }
 
         if (response.status === 503 && payload.code === 'ai-not-configured') {
-          state.aiAvailable = false;
-          updateAiStatus();
+          markProviderUnavailable(provider);
           result = model.buildLocalDiagnosis(diagnosisCase, responses);
           source = 'local';
         } else if (!response.ok) {
@@ -643,6 +831,9 @@
         responses,
         result,
         source,
+        ...(source === 'ai' && provider
+          ? { aiProvider: provider.id, aiModel: provider.model }
+          : {}),
         updatedAt: new Date().toISOString(),
       };
       saveRecord(record);
@@ -767,7 +958,6 @@
   }
 
   function showResult(record) {
-    $("lp-continue").href = "/knowledge-map/?case=" + encodeURIComponent(record.caseId);
     const found = data.findCase(record.caseId);
     if (!found) return;
     const questions =
@@ -811,9 +1001,17 @@
     }
     const sourceLabel = $('lp-source-label');
     if (sourceLabel) {
+      const recordProvider = providerById(record.aiProvider) || activeProvider();
       sourceLabel.textContent =
-        record.source === 'ai' ? 'AI diagnosis · live model' : 'Local sample diagnosis';
+        record.source === 'ai'
+          ? 'AI diagnosis · ' + (recordProvider ? recordProvider.label : 'live model')
+          : 'Local sample diagnosis';
     }
+    const sharedCase = Boolean(data.isSharedCase && data.isSharedCase(record.caseId));
+    const sharedNext = $('lp-shared-next');
+    if (sharedNext) sharedNext.hidden = !sharedCase;
+    const legacyNext = $('lp-legacy-next');
+    if (legacyNext) legacyNext.hidden = sharedCase;
     renderResult(record);
     setStage('result');
     const section = $('lp-result-step');
@@ -973,6 +1171,29 @@
         renderCases();
         setStage('cases');
         focusAndScroll('lp-case-heading');
+      });
+    }
+
+    const providerSelect = $('lp-ai-provider');
+    if (providerSelect) {
+      providerSelect.addEventListener('change', () => {
+        const next = providerById(providerSelect.value);
+        if (!next || !next.available) {
+          providerSelect.value = state.aiProvider || '';
+          return;
+        }
+        state.aiProvider = next.id;
+        saveProviderChoice(next.id);
+        updateProviderNote();
+        updateAiStatus();
+        if (activeQuestions().length && !state.questionsLoading && !state.busy) {
+          renderQuestionSource(
+            'AI provider changed to ' +
+              providerLabel(next) +
+              '. Retake if you want the checks rewritten by this provider.'
+          );
+        }
+        announce(providerLabel(next) + ' selected.');
       });
     }
 
