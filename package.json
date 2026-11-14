@@ -4,6 +4,7 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
+    "dev:m3-studio": "node scripts/m3-studio-server.cjs",
     "test": "node scripts/check.cjs",
     "test:learning-path": "node --test learning-path/*.test.cjs tests/learning-path-ai.test.mjs tests/learning-path-api.test.mjs",
     "dev:interview": "node --env-file-if-exists=.env.local scripts/dev.mjs",

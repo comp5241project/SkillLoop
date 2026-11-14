@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillLoop · Teacher Authoring Studio</title>
+  <link rel="stylesheet" href="./studio.css">
+  <script src="./studio.js" defer></script>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">SkillLoop enhancement v2 · local prototype</p>
+    <h1>Teacher Authoring Studio</h1>
+    <p>Case-bound teaching material for <strong>cart-checkout@1 / edge-cases</strong>. Mock generation only.</p>
+    <p class="notice">Draft-only. Data stays in this local Node process and is lost when it restarts. Form edits are unsaved until you choose “Keep manual draft”. No account, database or publishing.</p>
+  </header>
+  <main>
+    <section class="panel" aria-labelledby="facts-title">
+      <h2 id="facts-title">Published case facts</h2>
+      <p>Select requirement IDs from this canonical public case. Copy any code excerpt exactly from the starter code.</p>
+      <ul id="requirements"></ul>
+      <details><summary>Public starter code</summary><pre id="starter-code"></pre></details>
+    </section>
+    <form id="editor" novalidate>
+      <section class="panel" aria-labelledby="brief-title">
+        <h2 id="brief-title">Teaching brief</h2>
+        <div class="grid">
+          <label>Course topic <input id="topic" maxlength="160" autocomplete="off"><small data-error-for="brief.topic"></small></label>
+          <label>Learner level <select id="learner-level"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select><small data-error-for="brief.learnerLevel"></small></label>
+        </div>
+        <h3>Learning objectives</h3>
+        <div id="objectives"></div><small data-error-for="brief.objectives"></small>
+        <button type="button" id="add-objective" class="secondary">Add objective</button>
+        <label>Teaching constraints <textarea id="constraints" maxlength="500" rows="2"></textarea><small data-error-for="brief.constraints"></small></label>
+        <div class="actions"><button type="button" id="example-beginner" class="secondary">Load beginner brief</button><button type="button" id="example-intermediate" class="secondary">Load intermediate brief</button></div>
+      </section>
+      <section class="panel" aria-labelledby="material-title">
+        <h2 id="material-title">Editable material</h2>
+        <label>Title <input id="title" maxlength="120"><small data-error-for="content.title"></small></label>
+        <p>Teaching objective text is editable beside each learning objective above.</p>
+        <label>Explanation <textarea id="explanation" maxlength="2000" rows="7"></textarea><small data-error-for="content.explanation"></small></label>
+        <label>Public code excerpt <textarea id="code-excerpt" maxlength="600" rows="4" spellcheck="false"></textarea><small data-error-for="content.codeExample.excerpt"></small></label>
+        <label>Code-reading prompt <textarea id="code-prompt" maxlength="400" rows="2"></textarea><small data-error-for="content.codeExample.prompt"></small></label>
+        <h3>Exercises</h3><div id="exercises"></div><small data-error-for="content.exercises"></small>
+        <button type="button" id="add-exercise" class="secondary">Add exercise</button>
+      </section>
+      <section class="panel actions" aria-label="Draft actions">
+        <button type="button" id="validate">Validate current form</button>
+        <button type="button" id="manual" class="secondary">Keep manual draft in memory</button>
+        <button type="button" id="generate" class="secondary">Generate Mock Proposal</button>
+        <button type="button" id="preview-button" class="secondary">Preview current form</button>
+        <p id="editing-state" role="status"></p><p id="message" role="alert"></p><small data-error-for="form"></small>
+      </section>
+    </form>
+    <section class="panel" id="proposal-panel" hidden aria-labelledby="proposal-title">
+      <h2 id="proposal-title">Mock Proposal · review before adoption</h2>
+      <p>Deterministic test template. Free-text constraints may not be satisfied. Acceptance replaces the current local draft and unsaved form material.</p>
+      <div id="proposal-content"></div>
+      <div class="actions"><button type="button" id="accept">Accept and replace draft</button><button type="button" id="reject" class="secondary">Reject proposal</button></div>
+    </section>
+    <section class="panel preview" id="preview-panel" hidden aria-labelledby="preview-title">
+      <h2 id="preview-title">Draft preview only</h2>
+      <p>Student-visible fields projected from the current form. This is neither saved nor published.</p>
+      <div id="preview-content"></div>
+    </section>
+  </main>
+</body>
+</html>
