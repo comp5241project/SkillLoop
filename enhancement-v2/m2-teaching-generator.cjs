@@ -63,7 +63,7 @@ async function callProvider(provider, request, timeoutMs) {
 
 async function generateTeachingCard(input, provider, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
   if (!provider || typeof provider.generate !== 'function' || !Number.isInteger(timeoutMs) ||
-      timeoutMs < 1 || timeoutMs > 5000) return fail('invalid-input', 'invalid-provider');
+      timeoutMs < 1 || timeoutMs > 20000) return fail('invalid-input', 'invalid-provider');
   let context;
   try {
     // Never accept a caller-supplied Teaching Context or targetSelection as authority.
