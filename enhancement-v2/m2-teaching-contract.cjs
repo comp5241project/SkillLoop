@@ -1,6 +1,8 @@
 /** Isolated M2 data boundary. No model call, API route or module UI uses this file. */
 const path = require('node:path');
 const { isDeepStrictEqual } = require('node:util');
+const { createHash } = require('node:crypto');
+const { validateModelProposal, PROMPT_VERSION } = require('./m2-model-proposal.cjs');
 const { convertLegacyCatalog, convertStudentCatalog, convertEvaluationCatalog } = require('./legacy-adapter.cjs');
 const { validatePreflight } = require('./m2-preflight/validate.cjs');
 const { reviewedDiagnosis, reviewedObservation } = require('./m2-reviewed-evidence.cjs');
@@ -118,11 +120,63 @@ function validateTeachingDraft(draft, context) {
       metadata.schemaVersion !== 1 || !text(metadata.promptVersion, 80) ||
       metadata.origin !== 'ai-proposal' || metadata.validationStatus !== 'structurally-validated-needs-review')
     fail('Invalid internal generation metadata');
+  if (metadata.promptVersion === PROMPT_VERSION &&
+      card.codeExample.excerpt !== selectReviewedCodeExcerpt(context).excerpt)
+    fail('Bound code excerpt differs from reviewed public source selection');
   const privateCode = convertEvaluationCatalog(ROOT)[context.caseId].referenceCode;
   if ([card.objective, card.explanation, card.codeExample.prompt, card.exercise.prompt,
     ...card.exercise.publicHints].some((value) => value.includes(privateCode)))
     fail('Reference solution in public card');
   return draft;
+}
+
+function selectReviewedCodeExcerpt(context) {
+  // The private WeakMap association and full snapshot are checked before selecting source.
+  requireReviewedContext(context);
+  const requirementId = context.targetSelection.requirementId;
+  const excerpt = requirementId === 'empty-cart' ? 'return total / count;' :
+    requirementId === 'discount' ? 'return total * (1 - discountPercent / 100);' : null;
+  const starterCode = context.factPack.starterCode;
+  const start = excerpt === null ? -1 : starterCode.indexOf(excerpt);
+  if (start < 0 || starterCode.indexOf(excerpt, start + 1) !== -1)
+    fail('No unique reviewed public starter-code excerpt');
+  const requirement = context.factPack.requirements.find((item) => item.requirementId === requirementId);
+  if (!requirement) fail('Reviewed requirement differs from public Fact Pack');
+  const sha256 = (value) => createHash('sha256').update(value).digest('hex');
+  const sourceReference = { caseId: context.caseId, caseVersion: context.caseVersion,
+    requirementId, requirementTextSha256: sha256(requirement.text),
+    starterCodeSha256: sha256(starterCode), excerptStart: start, excerptLength: excerpt.length,
+    diagnosisQuestionId: context.diagnosis.evidence.questionId,
+    diagnosisOptionId: context.diagnosis.evidence.optionId,
+    reviewId: context.targetSelection.reviewId };
+  return { excerpt, sourceReference };
+}
+
+function assembleModelTeachingDraft(proposal, context) {
+  const { excerpt, sourceReference } = selectReviewedCodeExcerpt(context);
+  validateModelProposal(proposal);
+  const requirementId = context.targetSelection.requirementId;
+  const content = proposal.publicContent;
+  const publicProse = [content.objective, content.explanation, content.codeTracePrompt,
+    content.exercise.prompt, ...content.exercise.publicHints];
+  if (publicProse.some((value) => value.includes(context.diagnosis.evidence.quote)))
+    fail('Private diagnosis evidence in public teaching content');
+  const draft = {
+    publicCard: { caseId: context.caseId, caseVersion: context.caseVersion,
+      conceptId: context.conceptId, objective: content.objective,
+      requirementRefs: [requirementId], explanation: content.explanation,
+      codeExample: { kind: 'trace', excerpt, prompt: content.codeTracePrompt },
+      exercise: { kind: 'short-answer', prompt: content.exercise.prompt,
+        publicHints: [...content.exercise.publicHints] } },
+    internalAssessment: { targetGap: proposal.internalProposal.targetGap,
+      diagnosisEvidence: context.diagnosis.evidence.quote,
+      expectedElements: [...proposal.internalProposal.expectedElements],
+      observableCriteria: [...proposal.internalProposal.observableCriteria],
+      followUpPolicy: { ...proposal.internalProposal.followUpPolicy }, status: 'untrusted-proposal' },
+    metadata: { schemaVersion: 1, promptVersion: PROMPT_VERSION, origin: 'ai-proposal',
+      validationStatus: 'structurally-validated-needs-review' },
+  };
+  return { draft, sourceReference };
 }
 
 function projectPublicCard(draft, context) {
@@ -135,4 +189,5 @@ function projectPublicCard(draft, context) {
       publicHints: [...card.exercise.publicHints] } };
 }
 
-module.exports = { buildFactPack, validateFactPack, buildTeachingContext, validateTeachingDraft, projectPublicCard };
+module.exports = { buildFactPack, validateFactPack, buildTeachingContext, validateTeachingDraft,
+  projectPublicCard, assembleModelTeachingDraft, selectReviewedCodeExcerpt };

@@ -1,6 +1,8 @@
 /** Isolated orchestration for an injected provider. No real AI client is imported. */
-const { buildFactPack, buildTeachingContext, validateTeachingDraft, projectPublicCard } =
+const { buildFactPack, buildTeachingContext, validateTeachingDraft, projectPublicCard,
+  assembleModelTeachingDraft, selectReviewedCodeExcerpt } =
   require('./m2-teaching-contract.cjs');
+const { MODEL_OUTPUT_PROTOCOL_VERSION } = require('./m2-model-proposal.cjs');
 const { validateFactualClaims } = require('./m2-factual-gate.cjs');
 const { isDeepStrictEqual } = require('node:util');
 const { createHash } = require('node:crypto');
@@ -20,7 +22,8 @@ function providerRequest(context) {
     case: { caseId: factPack.caseId, caseVersion: factPack.caseVersion, conceptId: factPack.conceptId,
       title: factPack.title, scenario: factPack.scenario, aiClaim: factPack.aiClaim,
       requirements: factPack.requirements.map(({ requirementId, text }) => ({ requirementId, text })),
-      starterCode: factPack.starterCode },
+      starterCode: factPack.starterCode,
+      selectedTraceExcerpt: selectReviewedCodeExcerpt(context).excerpt },
     target: { requirementId: targetSelection.requirementId,
       evidence: { quote: diagnosis.evidence.quote, questionId: diagnosis.evidence.questionId,
         optionId: diagnosis.evidence.optionId, explanation: diagnosis.evidence.explanation,
@@ -61,9 +64,10 @@ async function callProvider(provider, request, timeoutMs) {
   } finally { clearTimeout(timer); }
 }
 
-async function generateTeachingCard(input, provider, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+async function generateTeachingCard(input, provider, { timeoutMs = DEFAULT_TIMEOUT_MS, maxAttempts = 2 } = {}) {
   if (!provider || typeof provider.generate !== 'function' || !Number.isInteger(timeoutMs) ||
-      timeoutMs < 1 || timeoutMs > 20000) return fail('invalid-input', 'invalid-provider');
+      timeoutMs < 1 || timeoutMs > 20000 || !Number.isInteger(maxAttempts) ||
+      maxAttempts < 1 || maxAttempts > 2) return fail('invalid-input', 'invalid-provider');
   let context;
   try {
     // Never accept a caller-supplied Teaching Context or targetSelection as authority.
@@ -85,7 +89,7 @@ async function generateTeachingCard(input, provider, { timeoutMs = DEFAULT_TIMEO
   let proposed;
   let attempts = 0;
   let timeoutEvents = 0;
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     attempts = attempt;
     try {
       proposed = await callProvider(provider, structuredClone(request), timeoutMs);
@@ -93,11 +97,12 @@ async function generateTeachingCard(input, provider, { timeoutMs = DEFAULT_TIMEO
     } catch (error) {
       if (error?.code === 'TIMEOUT' || error?.code === 'TIMEOUT_UNCANCELLED') timeoutEvents++;
       const transient = ['TIMEOUT', 'RATE_LIMITED', 'NETWORK_ERROR'].includes(error?.code);
-      if (!transient || attempt === 2) return { ...fail('provider-error', transient ? 'transient-failure' : 'provider-failure'),
+      if (!transient || attempt === maxAttempts) return { ...fail('provider-error', transient ? 'transient-failure' : 'provider-failure'),
         attempts: attempt, timeoutEvents, authoredFallbackAvailable: true };
     }
   }
   let draft;
+  let sourceReference = null;
   try {
     if (typeof proposed === 'string') {
       if (proposed.length > MAX_RESPONSE_CHARS) throw new Error('Response too large');
@@ -107,6 +112,11 @@ async function generateTeachingCard(input, provider, { timeoutMs = DEFAULT_TIMEO
       if (!serialized || serialized.length > MAX_RESPONSE_CHARS) throw new Error('Response too large');
       draft = JSON.parse(serialized);
     }
+    if (provider.outputProtocolVersion === MODEL_OUTPUT_PROTOCOL_VERSION) {
+      const assembled = assembleModelTeachingDraft(draft, context);
+      draft = assembled.draft;
+      sourceReference = assembled.sourceReference;
+    }
     validateTeachingDraft(draft, context);
     validateFactualClaims(draft, context.factPack);
     const publicCard = projectPublicCard(draft, context);
@@ -115,7 +125,9 @@ async function generateTeachingCard(input, provider, { timeoutMs = DEFAULT_TIMEO
       generationMetadata: structuredClone(draft.metadata),
       evaluationTrace: { caseId: context.caseId, caseVersion: context.caseVersion,
         conceptId: context.conceptId, requirementId: context.targetSelection.requirementId,
-        reviewId: context.targetSelection.reviewId, evidenceQuote: context.diagnosis.evidence.quote },
+        reviewId: context.targetSelection.reviewId, evidenceQuote: context.diagnosis.evidence.quote,
+        ...(sourceReference ? { modelOutputProtocolVersion: MODEL_OUTPUT_PROTOCOL_VERSION,
+          sourceReference } : {}) },
       attempts, timeoutEvents, reviewStatus: 'human-review-required' };
     generatedDrafts.set(result, { snapshot: structuredClone(result), fingerprint: digest(result),
       decision: 'generated-pending-review' });

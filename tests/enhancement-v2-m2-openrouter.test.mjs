@@ -8,6 +8,12 @@ import { execFileSync } from 'node:child_process';
 const require = createRequire(import.meta.url);
 const { fixtures } = require('../enhancement-v2/m2-preflight/diagnosis-fixtures.json');
 const { createMockTeachingProvider } = require('../enhancement-v2/m2-demo-mock.cjs');
+const { proposalFromMockDraft } = require('./m2-model-proposal-fixture.cjs');
+const { MODEL_OUTPUT_PROTOCOL_VERSION, PROMPT_VERSION, validateModelProposal } =
+  require('../enhancement-v2/m2-model-proposal.cjs');
+const { buildFactPack, buildTeachingContext, validateTeachingDraft, projectPublicCard,
+  assembleModelTeachingDraft } =
+  require('../enhancement-v2/m2-teaching-contract.cjs');
 const { generateTeachingCard, studentTeachingResponse, reviewTeachingCard } =
   require('../enhancement-v2/m2-teaching-generator.cjs');
 const { createOpenRouterProvider, createAuthorizedLiveProvider, createQuotaTestSession, prepareOutputDirectory,
@@ -27,8 +33,8 @@ function responseFor(options, change = {}) {
   const request = JSON.parse(body.messages[1].content);
   const proposal = createMockTeachingProvider().generate(request);
   return Promise.resolve(proposal).then((draft) => {
-    draft.metadata.promptVersion = 'm2-real-v1';
-    const payload = { model: body.model, choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(draft) } }],
+    const modelProposal = proposalFromMockDraft(draft);
+    const payload = { model: body.model, choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(modelProposal) } }],
       usage: usage(), openrouter_metadata: { endpoints: { available: [{ provider: 'FakeHost', selected: true }] } },
       ...change };
     return new Response(JSON.stringify(payload), { status: 200 });
@@ -60,8 +66,28 @@ test('OpenRouter request is bounded, non-thinking, structured and source-safe', 
   assert.equal(body.max_completion_tokens, 1200);
   assert.match(body.messages[0].content, /untrusted data/);
   assert.match(body.messages[0].content, /JSON schema/);
+  assert.match(body.messages[0].content, /application owns those source and authority fields/);
+  assert.match(body.messages[0].content, /publicContent\.objective under 200 characters/);
+  assert.match(body.messages[0].content, /internalProposal\.targetGap under 160/);
+  assert.equal(body.response_format.json_schema.name, 'skillloop_model_proposal_v2');
+  const schema = body.response_format.json_schema.schema;
+  assert.equal(schema.properties.protocolVersion.const, MODEL_OUTPUT_PROTOCOL_VERSION);
+  assert.equal(schema.properties.publicContent.properties.objective.maxLength, 240);
+  assert.equal(schema.properties.publicContent.properties.explanation.maxLength, 1200);
+  assert.equal(schema.properties.publicContent.properties.codeTracePrompt.maxLength, 300);
+  assert.equal(schema.properties.publicContent.properties.exercise.properties.prompt.maxLength, 400);
+  assert.equal(schema.properties.publicContent.properties.exercise.properties.publicHints.maxItems, 3);
+  assert.equal(schema.properties.publicContent.properties.exercise.properties.publicHints.items.maxLength, 180);
+  assert.equal(schema.properties.internalProposal.properties.targetGap.maxLength, 200);
+  assert.equal(schema.properties.internalProposal.properties.expectedElements.items.maxLength, 240);
+  assert.equal(schema.properties.internalProposal.properties.observableCriteria.items.maxLength, 240);
+  assert.equal(schema.properties.internalProposal.properties.followUpPolicy.properties.correct.maxLength, 240);
+  for (const forbidden of ['diagnosisEvidence', 'codeExample', 'requirementRefs', 'caseId', 'metadata'])
+    assert.equal(JSON.stringify(schema).includes(`"${forbidden}"`), false);
   const request = JSON.parse(body.messages[1].content);
   assert.equal(request.target.requirementId, 'empty-cart');
+  assert.equal(typeof request.target.evidence.quote, 'string');
+  assert.equal(request.case.selectedTraceExcerpt, 'return total / count;');
   for (const privateName of ['referenceCode', 'hiddenAssertions', 'reviewId', 'internalAssessment'])
     assert.equal(body.messages[1].content.includes(`"${privateName}"`), false);
   assert.equal(body.messages[1].content.includes(env.OPENROUTER_API_KEY), false);
@@ -73,6 +99,49 @@ test('OpenRouter request is bounded, non-thinking, structured and source-safe', 
   assert.equal(events[0].billedCostUsd, 0.0001);
   assert.equal(JSON.stringify(events).includes(env.OPENROUTER_API_KEY), false);
   assert.deepEqual(provider.drainTelemetry(), []);
+});
+
+test('model proposal cannot author evidence, identity or public code and remains pending review', async () => {
+  const factPack = buildFactPack({ caseId: 'cart-checkout', caseVersion: 1,
+    conceptId: 'edge-cases', requirementIds: ['empty-cart'] });
+  const context = buildTeachingContext({ fixture: fixtures[0], factPack });
+  const request = { case: { caseId: context.caseId, caseVersion: context.caseVersion,
+    conceptId: context.conceptId }, target: { requirementId: 'empty-cart',
+    evidence: { quote: context.diagnosis.evidence.quote } } };
+  const mockDraft = await createMockTeachingProvider().generate(request);
+  const proposal = proposalFromMockDraft(mockDraft);
+  assert.equal(validateModelProposal(proposal), proposal);
+  const { draft, sourceReference } = assembleModelTeachingDraft(proposal, context);
+  assert.equal(draft.metadata.schemaVersion, 1);
+  assert.equal(draft.metadata.promptVersion, PROMPT_VERSION);
+  assert.equal(draft.internalAssessment.diagnosisEvidence, context.diagnosis.evidence.quote);
+  assert.equal(draft.publicCard.requirementRefs[0], 'empty-cart');
+  assert.equal(draft.publicCard.codeExample.excerpt,
+    context.factPack.starterCode.slice(sourceReference.excerptStart,
+      sourceReference.excerptStart + sourceReference.excerptLength));
+  assert.equal(validateTeachingDraft(draft, context), draft);
+  const publicCard = projectPublicCard(draft, context);
+  assert.equal('internalAssessment' in publicCard, false);
+  assert.equal(JSON.stringify(publicCard).includes(context.diagnosis.evidence.quote), false);
+  for (const [field, value] of [['diagnosisEvidence', 'fabricated'],
+    ['codeExample', { excerpt: 'return 999;' }], ['requirementRefs', ['discount']],
+    ['caseId', 'other']]) {
+    const invalid = structuredClone(proposal);
+    invalid[field] = value;
+    assert.throws(() => assembleModelTeachingDraft(invalid, context), /model proposal protocol/);
+  }
+  const verbose = structuredClone(proposal);
+  verbose.publicContent.objective = 'x'.repeat(257);
+  assert.throws(() => assembleModelTeachingDraft(verbose, context), /model-authored public content/);
+  verbose.publicContent.objective = 'x'.repeat(240);
+  verbose.internalProposal.targetGap = 'x'.repeat(251);
+  assert.throws(() => assembleModelTeachingDraft(verbose, context), /model-authored assessment proposal/);
+  verbose.internalProposal.targetGap = 'x'.repeat(200);
+  assert.equal(validateTeachingDraft(assembleModelTeachingDraft(verbose, context).draft, context).publicCard.objective.length, 240);
+  const leaked = structuredClone(proposal);
+  leaked.publicContent.explanation = context.diagnosis.evidence.quote;
+  assert.throws(() => assembleModelTeachingDraft(leaked, context), /Private diagnosis evidence/);
+  assert.throws(() => assembleModelTeachingDraft(proposal, structuredClone(context)), /requires review/);
 });
 
 test('injected fake transport ignores configured keys; errors omit upstream bodies', async () => {
@@ -125,14 +194,33 @@ test('unsupported draft reaches existing validators and cannot become student ma
   const provider = createOpenRouterProvider({ env, fetchImpl: async (_, options) => {
     const ordinary = await responseFor(options);
     const payload = await ordinary.json();
-    const draft = JSON.parse(payload.choices[0].message.content);
-    draft.publicCard.explanation = 'The empty-cart requirement is to return 999.';
-    payload.choices[0].message.content = JSON.stringify(draft);
+    const proposal = JSON.parse(payload.choices[0].message.content);
+    proposal.publicContent.explanation = 'The empty-cart requirement is to return 999.';
+    payload.choices[0].message.content = JSON.stringify(proposal);
     return new Response(JSON.stringify(payload));
   } });
   const result = await generateTeachingCard(input(), provider);
   assert.equal(result.status, 'invalid-output');
   assert.deepEqual(studentTeachingResponse(result), { state: 'rejected' });
+});
+
+test('fake transport cannot inject source-owned fields into model proposal', async () => {
+  const provider = createOpenRouterProvider({ fetchImpl: async (_, options) => {
+    const response = await responseFor(options);
+    const payload = await response.json();
+    const proposal = JSON.parse(payload.choices[0].message.content);
+    proposal.diagnosisEvidence = 'fabricated';
+    proposal.codeExample = { excerpt: 'return 999;' };
+    payload.choices[0].message.content = JSON.stringify(proposal);
+    return new Response(JSON.stringify(payload), { status: 200 });
+  } });
+  const result = await generateTeachingCard(input(), provider);
+  assert.equal(result.status, 'invalid-output');
+  assert.equal(result.publicCard, null);
+  assert.deepEqual(studentTeachingResponse(result), { state: 'rejected' });
+  const [event] = provider.drainTelemetry();
+  assert.equal(event.status, 'success'); // Transport succeeded; application validation rejected it.
+  assert.match(event.rawContent, /fabricated/);
 });
 
 test('transport abort settles for retry; ignored cancellation prevents overlap and late publish', async () => {
@@ -198,12 +286,27 @@ test('offline fake run records nine generations outside repo with blinded review
     assert.equal(Object.values(worksheet[0].dimensions).every((x) => x.score === null), true);
     const record = JSON.parse(await fs.readFile(path.join(directory, `${worksheet[0].candidateId}.json`)));
     assert.equal(record.humanReviewStatus, 'pending');
-    assert.equal(record.model, DEFAULT_MODEL); assert.equal(record.promptVersion, 'm2-real-v1');
+    assert.equal(record.model, DEFAULT_MODEL); assert.equal(record.promptVersion, PROMPT_VERSION);
+    assert.equal(record.modelOutputProtocolVersion, MODEL_OUTPUT_PROTOCOL_VERSION);
     assert.equal(record.generationStatus, 'success'); assert.equal(record.attempts, 1);
     assert.equal(record.usage.cacheHitTokens, 20); assert.equal(record.billedCostUsd, 0.0001);
     assert.equal(record.internalDraft.internalAssessment.status, 'untrusted-proposal');
     assert.equal(JSON.stringify(record).includes(env.OPENROUTER_API_KEY), false);
     assert.deepEqual(record.rawResponses.length, 1);
+    const modelRecords = await Promise.all(names.filter((name) => /^[0-9a-f-]{36}\.json$/.test(name))
+      .map(async (name) => JSON.parse(await fs.readFile(path.join(directory, name), 'utf8'))));
+    assert.deepEqual(new Set(modelRecords.map((item) => item.scenario)),
+      new Set(['student-a', 'student-b', 'reviewed-paraphrase']));
+    for (const item of modelRecords) {
+      const excerpt = item.scenario === 'student-b'
+        ? 'return total * (1 - discountPercent / 100);' : 'return total / count;';
+      assert.equal(item.internalDraft.publicCard.codeExample.excerpt, excerpt);
+      assert.equal(item.internalDraft.evaluationTrace.sourceReference.excerptLength, excerpt.length);
+      assert.equal(item.internalDraft.internalAssessment.diagnosisEvidence,
+        item.internalDraft.evaluationTrace.evidenceQuote);
+      assert.equal(item.internalDraft.evaluationTrace.modelOutputProtocolVersion, 2);
+      assert.equal(item.internalDraft.reviewStatus, 'human-review-required');
+    }
   });
 });
 

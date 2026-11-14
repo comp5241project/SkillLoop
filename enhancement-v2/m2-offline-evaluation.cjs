@@ -6,7 +6,8 @@ const { performance } = require('node:perf_hooks');
 const { fixtures, reviewedVariants } = require('./m2-preflight/diagnosis-fixtures.json');
 const { buildFactPack } = require('./m2-teaching-contract.cjs');
 const { createAuthorizedLiveProvider, createQuotaTestSession, prepareOutputDirectory,
-  assertOutputDirectory, LIVE_TOKEN, DEFAULT_MODEL, DEFAULT_PRICE_CEILING, PROMPT_VERSION } =
+  assertOutputDirectory, LIVE_TOKEN, DEFAULT_MODEL, DEFAULT_PRICE_CEILING,
+  PROMPT_VERSION, MODEL_OUTPUT_PROTOCOL_VERSION } =
   require('./m2-openrouter-provider.cjs');
 const authored = structuredClone(require('../knowledge-map/learning-content.js')['cart-checkout']);
 
@@ -44,7 +45,8 @@ async function writePrivate(file, value, key) {
 async function runOfflineEvaluation({ mode = 'fake', fetchImpl, env = process.env,
   model = env.M2_OPENROUTER_MODEL || DEFAULT_MODEL, priceCeiling = DEFAULT_PRICE_CEILING,
   outputDirectory, repetitions = 3, budgetUsd = 1, liveOptIn = null,
-  transportTimeoutMs = 19000, outerTimeoutMs = 20000 } = {}) {
+  transportTimeoutMs = 19000, outerTimeoutMs = 20000, smoke = false,
+  smokeScenario = 'student-a', campaignId = null } = {}) {
   const directory = assertOutputDirectory(outputDirectory);
   if (model !== DEFAULT_MODEL && priceCeiling === DEFAULT_PRICE_CEILING)
     throw new Error('A different model requires verified price ceilings');
@@ -53,21 +55,29 @@ async function runOfflineEvaluation({ mode = 'fake', fetchImpl, env = process.en
       !Number.isInteger(outerTimeoutMs) || outerTimeoutMs < 1 || outerTimeoutMs > 20000 ||
       transportTimeoutMs >= outerTimeoutMs) throw new Error('Invalid experiment limits');
   if (!['fake', 'live'].includes(mode)) throw new Error('Invalid experiment mode');
+  if (typeof smoke !== 'boolean' || (smoke && repetitions !== 1))
+    throw new Error('Single-call smoke mode requires one repetition');
+  if (smoke && !scenarios.some((scenario) => scenario.label === smokeScenario) ||
+      campaignId !== null && !['m2-06b-real-evaluation', 'm2-06b-contract-v2-smoke'].includes(campaignId))
+    throw new Error('Invalid experiment scenario or campaign');
   if (mode === 'fake' && (typeof fetchImpl !== 'function' || fetchImpl === globalThis.fetch))
     throw new Error('Fake mode requires injected fake fetch, not global fetch');
+  const activeScenarios = smoke ? scenarios.filter((scenario) => scenario.label === smokeScenario) : scenarios;
+  const limits = smoke ? { generationLimit: 1, attemptLimit: 1 } : {};
   const prepared = mode === 'live'
     ? await createAuthorizedLiveProvider({ env, liveOptIn, outputDirectory: directory, model,
-      priceCeiling, repetitions, budgetUsd, transportTimeoutMs, outerTimeoutMs })
+      priceCeiling, repetitions, budgetUsd, transportTimeoutMs, outerTimeoutMs, ...limits })
     : { directory: await prepareOutputDirectory(directory), session: createQuotaTestSession({
-      fetchImpl, model, priceCeiling, transportTimeoutMs, outerTimeoutMs, repetitions, budgetUsd }) };
+      fetchImpl, model, priceCeiling, transportTimeoutMs, outerTimeoutMs, repetitions, budgetUsd,
+      ...limits }) };
   const session = prepared.session;
   const runId = randomUUID();
   const rows = []; const sourceMap = []; const candidates = []; const recordFiles = [];
   let spentUsd = 0; let attemptedCalls = 0; let stopReason = null;
-  for (const scenario of scenarios) {
+  for (const scenario of activeScenarios) {
     for (let runNumber = 1; runNumber <= repetitions; runNumber++) {
-      // Reserve a conservative 5 cents per possible attempt before either call.
-      if (spentUsd + 0.10 > budgetUsd) { stopReason = 'budget-reservation'; break; }
+      // Local precheck: five cents per permitted attempt; the session guards transport.
+      if (spentUsd + (smoke ? 0.05 : 0.10) > budgetUsd) { stopReason = 'budget-reservation'; break; }
       const factPack = buildFactPack({ caseId: 'cart-checkout', caseVersion: 1,
         conceptId: 'edge-cases', requirementIds: [scenario.requirementId] });
       const started = performance.now();
@@ -87,7 +97,8 @@ async function runOfflineEvaluation({ mode = 'fake', fetchImpl, env = process.en
       spentUsd += knownBilledCostUsd;
       const candidateId = randomUUID();
       const record = { candidateId, scenario: scenario.label, runNumber, caseId: 'cart-checkout',
-        caseVersion: 1, conceptId: 'edge-cases', factPackHash: hash(factPack), promptVersion: PROMPT_VERSION,
+        caseVersion: 1, conceptId: 'edge-cases', factPackHash: hash(factPack),
+        promptVersion: PROMPT_VERSION, modelOutputProtocolVersion: MODEL_OUTPUT_PROTOCOL_VERSION,
         requestHashes: events.map((event) => event.requestHash), model,
         routedProviders: events.map((event) => event.routedProvider),
         generationStatus: result.status, validationOutcome: result.status === 'success' ?
@@ -110,6 +121,7 @@ async function runOfflineEvaluation({ mode = 'fake', fetchImpl, env = process.en
         internalDraft: result.status === 'success' ? result : null,
         rawResponses: events.map((event) => event.rawContent),
         attemptCodes: events.map((event) => event.code) };
+      if (campaignId) record.campaignId = campaignId;
       const file = path.join(directory, `${candidateId}.json`);
       await writePrivate(file, record, env.OPENROUTER_API_KEY);
       recordFiles.push(file);
@@ -126,14 +138,15 @@ async function runOfflineEvaluation({ mode = 'fake', fetchImpl, env = process.en
       sourceMap.push({ candidateId, source: 'model-proposal', scenario: scenario.label });
       if (events.some((event) => event.code === 'COST_EXCEEDS_ESTIMATE')) stopReason = 'pricing-exceeded';
       else if (!verifiable) stopReason = 'usage-or-cost-unverifiable';
+      else if (smoke && result.status !== 'success') stopReason = 'generation-failed';
       else if (record.usage.inputTokens > 6000) stopReason = 'input-token-threshold';
       else if (spentUsd > budgetUsd) stopReason = 'budget-exceeded';
-      else if (attemptedCalls > 18) stopReason = 'attempt-limit';
+      else if (attemptedCalls > (smoke ? 1 : 18)) stopReason = 'attempt-limit';
       if (stopReason) break;
     }
     if (stopReason) break;
   }
-  for (const scenario of scenarios) {
+  for (const scenario of activeScenarios) {
     for (const conceptId of scenario.label === 'student-a' ? ['edge-cases', 'code-reading'] : ['edge-cases']) {
       const candidateId = randomUUID();
       const card = authored[conceptId];
@@ -151,7 +164,7 @@ async function runOfflineEvaluation({ mode = 'fake', fetchImpl, env = process.en
   await writePrivate(path.join(directory, `${runId}-review-candidates.json`), candidates, env.OPENROUTER_API_KEY);
   await writePrivate(path.join(directory, `${runId}-source-map.json`), sourceMap, env.OPENROUTER_API_KEY);
   return { status: stopReason ? 'stopped' : 'ready-for-human-review', stopReason,
-    plannedGenerations: scenarios.length * repetitions, completedGenerations: recordFiles.length,
+    plannedGenerations: activeScenarios.length * repetitions, completedGenerations: recordFiles.length,
     attemptedCalls, billedCostUsd: stopReason === 'usage-or-cost-unverifiable' ? null : spentUsd,
     outputDirectory: directory, runId };
 }
