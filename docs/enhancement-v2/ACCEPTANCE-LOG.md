@@ -15,7 +15,7 @@
 | M1 — Contract | IN PROGRESS | M1-01/02 conditionally approved; isolated M1-03–05 evidence below. Shared interface approval remains open. |
 | M2 — Dynamic AI learning | NOT STARTED | No A/B teaching-generation experiment yet |
 | M3 — Teacher drafts | NOT STARTED | Legacy teacher functionality does not establish new case editor acceptance |
-| M4 — Persistence and permissions | NOT STARTED | Actual DB migrations, RLS and publishing unverified |
+| M4 — Persistence and permissions | REVIEW | Local PostgreSQL and real Chrome verified. Independent read-only acceptance pending. |
 | M5 — New case | NOT STARTED | Requires module-owner cooperation and real fixture assessment |
 
 ## 3. M0 findings (reported; not independently re-tested)
@@ -256,6 +256,13 @@
 - The local Studio renders one student lesson from the existing `draftPreview` projection. The projection adds only canonical public requirements referenced by its objectives or exercises. The panel is labeled **Student-facing draft preview — not published** and shows the title, objectives, requirements, explanation, code and reading prompt, exercises and expandable public hints. Teacher answer guidance, private fixtures, reference solutions, proposal internals, provenance internals, credentials and editing controls stay outside the preview. There is no publication action or route.
 - Evidence: the actual client handlers ran against loopback HTTP with a simulated DOM. They exercised manual empty-cart material, Mock adoption, editing, import and checkpoint reopen, invalid preview rejection, conflict preservation and a delayed reply after an edit was reverted. The discount Mock HTTP scenario exercised explicit adoption, teacher edits, checkpoint save and reopen, export and import, and verified identical restored public projections. HTML-like text stayed literal in the handler test. Real browser interaction was attempted but not observed: the browser connection timed out, and native Chrome automation stopped because it could not verify the active URL. Reproducible browser steps are in `M3-TEACHER-STUDIO.md`.
 - Verification: M3 targeted **36/36 PASS**, `npm test` **281/281 PASS**, and `git diff --check` PASS. **CONDITIONAL PASS** in the independent HTTP and simulated DOM review. The user deferred real-browser acceptance to final project closeout. Production handoff, persistence, authorization and publishing remain deferred. Resolve standalone mini-course authoring as a separate product architecture decision before designing M4 persistence.
+
+### M4 course publication — development verification
+
+- M4-01–06 implemented for `cart-checkout@1 / edge-cases`. Teacher drafts reopen after re-login and app restart. Review binds to a saved revision, publication produces an immutable student version, and student practice contributes persisted start and submission counts for that version. The learner-facing view is built from canonical public case facts and approved material.
+- `npm test` passed the static checks and **282/282** tests. The M4 suite applies every tracked migration to real PostgreSQL 18.6. Real HTTP and database checks covered ownership and role denial, invalid and stale writes, review persistence, concurrent publish retries, immutable history, attempt isolation and anonymous sample routes. Supabase Auth ran as a loopback fixture.
+- The real Chrome workflow passed at 1360px and 390px. It covered Mock-assisted editing, sign-out and reopen, review, publication, anonymous reading, keyboard hints, learner sign-in and submission, teacher counts, and preserving version 1 after a new edit. The deployment static build check found the expected browser assets and excluded private server files.
+- **REVIEW pending independent read-only acceptance.** See [verification and setup](M4-COURSE-PUBLICATION.md) and [progress](M4-PROGRESS.md). Production stage handoffs remain deferred to M5. M3-05 remains CONDITIONAL PASS with its final closeout reminder below.
 
 ## 5. Open decisions
 

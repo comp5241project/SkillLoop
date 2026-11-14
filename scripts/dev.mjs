@@ -4,6 +4,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { dirname, extname, resolve, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import knowledge from '../api/knowledge.mjs';
+import courses from '../api/courses.mjs';
 import knowledgeLearning from '../api/knowledge-learning.mjs';
 import correction from '../api/correction.js';
 import dialogue from '../api/dialogue.js';
@@ -17,7 +18,7 @@ createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
     const route = url.pathname.replace(/\/$/, '');
-    if (['/api/knowledge-learning', '/api/knowledge', '/api/correction', '/api/learning-path', '/api/dialogue'].includes(route)) {
+    if (['/api/knowledge-learning', '/api/knowledge', '/api/correction', '/api/learning-path', '/api/dialogue', '/api/courses'].includes(route)) {
       const chunks = [];
       let size = 0;
       for await (const chunk of req) {
@@ -26,8 +27,9 @@ createServer(async (req, res) => {
         chunks.push(chunk);
       }
       const body = Buffer.concat(chunks);
-      if (route === '/api/knowledge' || route === '/api/knowledge-learning') {
-        const response = await (route === '/api/knowledge' ? knowledge : knowledgeLearning).fetch(new Request(url, {
+      const api = { '/api/knowledge': knowledge, '/api/knowledge-learning': knowledgeLearning, '/api/courses': courses }[route];
+      if (api) {
+        const response = await api.fetch(new Request(url, {
           method: req.method, headers: req.headers,
           ...(body.length ? { body } : {}),
         }));
@@ -55,14 +57,20 @@ createServer(async (req, res) => {
     if (pathname.split('/').some((part) => part.startsWith('.'))) throw Error('Private path');
     let file = resolve(root, '.' + pathname);
     const local = relative(root, file);
-    if (local.startsWith('..') || (local && local !== 'index.html' && !assets.has(local.split(sep)[0]))) throw Error('Private path');
+    const publicPath = local.split(sep).join('/');
+    if (['enhancement-v2/studio/course', 'enhancement-v2/studio/learner'].includes(publicPath)) file += '.html';
+    const studioAsset = /^enhancement-v2\/studio\/(?:course\.html|learner\.html|course\.js|learner\.js|studio\.js|studio\.css|course\.css|course-client\.js)$/
+      .test(relative(root, file).split(sep).join('/'));
+    if (local.startsWith('..') || (local && local !== 'index.html' && !studioAsset && !assets.has(local.split(sep)[0]))) throw Error('Private path');
     if (!extname(file)) {
       try { if ((await stat(file)).isDirectory()) file = resolve(file, 'index.html'); else throw Error(); }
       catch { file += '.html'; }
     }
     if (!mime[extname(file)] || file.endsWith('.test.mjs') || file.endsWith('.test.cjs')) throw Error('Private file');
     const content = await readFile(file);
-    res.writeHead(200, { 'Content-Type': mime[extname(file)], 'Cache-Control': 'no-store' });
+    res.writeHead(200, { 'Content-Type': mime[extname(file)], 'Cache-Control': 'no-store',
+      ...(studioAsset ? { 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy':
+        "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" } : {}) });
     res.end(req.method === 'HEAD' ? undefined : content);
   } catch {
     if (!res.headersSent) res.writeHead(404, { 'Content-Type': 'text/plain' });

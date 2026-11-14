@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillLoop · Published lesson</title>
+  <link rel="stylesheet" href="/enhancement-v2/studio/studio.css">
+  <link rel="stylesheet" href="/enhancement-v2/studio/course.css">
+  <script src="/enhancement-v2/studio/course-client.js" defer></script>
+  <script src="/enhancement-v2/studio/learner.js" defer></script>
+</head>
+<body>
+  <header>
+    <p class="eyebrow" id="lesson-version">SkillLoop · Published lesson</p>
+    <h1 id="lesson-title">Published lesson</h1>
+  </header>
+  <main class="learner">
+    <p id="lesson-status" role="status">Loading lesson…</p>
+    <article class="panel lesson" id="student-lesson" hidden></article>
+    <section class="panel" id="practice" hidden aria-labelledby="practice-title">
+      <h2 id="practice-title">Try the exercises</h2>
+      <p id="practice-status" role="status"></p>
+      <form id="learner-sign-in" hidden>
+        <p>Sign in to save your practice to this course version.</p>
+        <label>Email <input name="email" type="email" autocomplete="username" required></label>
+        <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+        <button>Sign in</button>
+      </form>
+      <div class="actions">
+        <button type="button" id="start-practice" hidden>Start practice</button>
+        <button type="button" id="learner-sign-out" class="secondary" hidden>Sign out</button>
+      </div>
+      <form id="response-form" hidden>
+        <div id="responses"></div>
+        <button id="submit-practice">Submit practice</button>
+      </form>
+      <p class="muted">Submitting records your responses. Automatic feedback and runnable verification are not connected yet.</p>
+    </section>
+  </main>
+</body>
+</html>

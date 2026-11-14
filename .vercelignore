@@ -1,6 +1,10 @@
-docs/
+docs/*
+!docs/team-samples/
+docs/team-samples/*
+!docs/team-samples/samples.json
 knowledge-map/docs/
-scripts/
+scripts/*
+!scripts/build-static.mjs
 supabase/
 tests/
 api/*.test.mjs

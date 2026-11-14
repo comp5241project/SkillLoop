@@ -8,6 +8,7 @@ let dirty = false;
 let checkpointInfo = null;
 let importSource = null;
 let previewGeneration = 0;
+const courseMode = Boolean($('#course-studio'));
 const expectedRevision = () => acceptedDraft?.revision ?? null;
 const expectedDraftId = () => acceptedDraft?.draftId ?? null;
 function updateLocalStatus() {
@@ -53,6 +54,7 @@ function field(parent, caption, name, value = '', kind = 'input', errorKey) {
 }
 function markDirty() {
   dirty = true;
+  if (courseMode) { updateCourseStatus(); invalidatePreview(); return; }
   $('#editing-state').textContent = acceptedDraft
     ? 'Unsaved form changes. The accepted draft remains in local process memory.'
     : 'Unsaved form changes. No accepted local draft yet.';
@@ -127,10 +129,13 @@ function renderForm(draft) {
   $('#exercises').replaceChildren();
   (content.exercises?.length ? content.exercises : [{}]).forEach(addExercise);
   dirty = false;
-  $('#editing-state').textContent = acceptedDraft
-    ? `Local process-memory draft · ${acceptedDraft.origin} · draft-only. Form matches this snapshot.`
-    : 'No accepted draft. Form changes are unsaved and disappear on refresh.';
-  updateLocalStatus();
+  if (courseMode) updateCourseStatus();
+  else {
+    $('#editing-state').textContent = acceptedDraft
+      ? `Local process-memory draft · ${acceptedDraft.origin} · draft-only. Form matches this snapshot.`
+      : 'No accepted draft. Form changes are unsaved and disappear on refresh.';
+    updateLocalStatus();
+  }
   clearErrors();
 }
 const value = (row, name) => $(`[data-field="${name}"]`, row).value;
@@ -367,4 +372,4 @@ async function init() {
     $('#message').textContent = 'Latest local draft loaded. Previous form edits were replaced.';
   }));
 }
-init().catch(showError);
+if (!courseMode) init().catch(showError);

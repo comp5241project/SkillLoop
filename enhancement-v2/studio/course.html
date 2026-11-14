@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillLoop · Course Studio</title>
+  <link rel="stylesheet" href="/enhancement-v2/studio/studio.css">
+  <link rel="stylesheet" href="/enhancement-v2/studio/course.css">
+  <script src="/enhancement-v2/studio/studio.js" defer></script>
+  <script src="/enhancement-v2/studio/course-client.js" defer></script>
+  <script src="/enhancement-v2/studio/course.js" defer></script>
+</head>
+<body id="course-studio">
+  <header>
+    <p class="eyebrow">SkillLoop · Teaching</p>
+    <h1>Course Studio</h1>
+    <p>Turn a checkout bug into a lesson students can investigate and practice.</p>
+  </header>
+  <main>
+    <section class="panel" id="course-account" aria-labelledby="account-title">
+      <h2 id="account-title">Teacher account</h2>
+      <form id="course-sign-in" hidden>
+        <div class="grid">
+          <label>Email <input name="email" type="email" autocomplete="username" required></label>
+          <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+        </div>
+        <button>Sign in</button>
+      </form>
+      <p id="account-status" role="status">Checking your session…</p>
+      <button type="button" id="course-sign-out" class="secondary" hidden>Sign out</button>
+    </section>
+    <div id="teacher-workspace" hidden>
+      <section class="panel" aria-labelledby="course-list-title">
+        <h2 id="course-list-title">Your courses</h2>
+        <div class="actions">
+          <label>Saved draft <select id="course-list"><option value="">Choose a course</option></select></label>
+          <button type="button" id="open-course" class="secondary">Reopen draft</button>
+          <button type="button" id="new-course">New draft</button>
+        </div>
+        <p id="course-status" role="status"></p>
+      </section>
+      <div id="course-work" hidden>
+        <section class="panel" aria-labelledby="facts-title">
+          <p class="eyebrow">Case · cart-checkout@1 · Edge cases</p>
+          <h2 id="facts-title"></h2>
+          <p id="case-scenario"></p>
+          <p id="case-claim"></p>
+          <details><summary>Case requirements and starter code</summary>
+            <ul id="requirements"></ul><pre id="starter-code"></pre>
+          </details>
+        </section>
+        <section class="panel" aria-labelledby="start-title">
+          <h2 id="start-title">Choose a teaching focus</h2>
+          <p>Start with a blank draft or use a Mock example. Check the teaching material and answer guidance before publishing.</p>
+          <div class="actions">
+            <button type="button" id="empty-template" class="secondary">Draft an empty-cart lesson</button>
+            <button type="button" id="discount-template" class="secondary">Draft a discount-boundary lesson</button>
+          </div>
+        </section>
+    <form id="editor" novalidate>
+      <section class="panel" aria-labelledby="brief-title">
+        <h2 id="brief-title">Teaching brief</h2>
+        <div class="grid">
+          <label>Course topic <input id="topic" maxlength="160" autocomplete="off"><small data-error-for="brief.topic"></small></label>
+          <label>Learner level <select id="learner-level"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select><small data-error-for="brief.learnerLevel"></small></label>
+        </div>
+        <h3>Learning objectives</h3>
+        <div id="objectives"></div><small data-error-for="brief.objectives"></small>
+        <button type="button" id="add-objective" class="secondary">Add objective</button>
+        <label>Teaching constraints <textarea id="constraints" maxlength="500" rows="2"></textarea><small data-error-for="brief.constraints"></small></label>
+      </section>
+      <section class="panel" aria-labelledby="material-title">
+        <h2 id="material-title">Editable material</h2>
+        <label>Title <input id="title" maxlength="120"><small data-error-for="content.title"></small></label>
+        <p>Teaching objective text is editable beside each learning objective above.</p>
+        <label>Explanation <textarea id="explanation" maxlength="2000" rows="7"></textarea><small data-error-for="content.explanation"></small></label>
+        <label>Public code excerpt <textarea id="code-excerpt" maxlength="600" rows="4" spellcheck="false"></textarea><small data-error-for="content.codeExample.excerpt"></small></label>
+        <label>Code-reading prompt <textarea id="code-prompt" maxlength="400" rows="2"></textarea><small data-error-for="content.codeExample.prompt"></small></label>
+        <h3>Exercises</h3><div id="exercises"></div><small data-error-for="content.exercises"></small>
+        <button type="button" id="add-exercise" class="secondary">Add exercise</button>
+      </section>
+      <section class="panel" aria-label="Draft actions">
+        <div class="actions">
+          <button type="submit" id="save-course">Save draft</button>
+          <button type="button" id="preview-button" class="secondary">Preview current form</button>
+        </div>
+        <p id="editing-state" role="status"></p>
+        <p id="revision-state"></p>
+        <p id="message" role="alert"></p><small data-error-for="form"></small>
+        <p id="conflict-warning" role="alert" hidden></p>
+        <button type="button" id="reload-latest" class="secondary" hidden>Reopen saved draft</button>
+      </section>
+    </form>
+
+        <section class="panel preview" id="preview-panel" hidden aria-labelledby="preview-title">
+          <h2 id="preview-title" tabindex="-1">Student-facing draft preview — not published</h2>
+          <article id="preview-content"></article>
+        </section>
+        <section class="panel" id="release-panel" aria-labelledby="release-title">
+          <h2 id="release-title">Review and publish</h2>
+          <p id="release-status"></p>
+          <button type="button" id="review-course" class="secondary" disabled>Review saved revision</button>
+          <div id="review-card" hidden>
+            <h3 id="review-title" tabindex="-1">Review student content</h3>
+            <article id="review-lesson"></article>
+            <label class="check"><input type="checkbox" id="review-confirm">
+              I checked the requirements, code activity, exercises and hints students will see.
+            </label>
+            <button type="button" id="approve-course" disabled>Approve this revision</button>
+          </div>
+          <button type="button" id="publish-course" disabled>Publish new version</button>
+        </section>
+        <section class="panel" aria-labelledby="version-title">
+          <h2 id="version-title">Published versions and learner activity</h2>
+          <p>Activity counts come from signed-in learners who started or submitted practice in the published lesson.</p>
+          <ul id="release-list" class="release-list"></ul>
+          <p class="muted">Diagnosis, personalized teaching, repair dialogue and runnable verification will connect in a later milestone.</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

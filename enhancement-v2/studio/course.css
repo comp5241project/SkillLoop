@@ -1,0 +1,19 @@
+[hidden] { display: none !important; }
+button:disabled { cursor: default; opacity: .55; }
+button[hidden] { display: none; }
+summary { cursor: pointer; font-weight: 650; }
+a { color: #164c40; text-underline-offset: .2em; }
+.check { display: flex; align-items: baseline; gap: .75rem; }
+.check input { width: auto; margin: 0; }
+.release-list { padding-left: 1.25rem; }
+.release-list li + li { margin-top: .8rem; }
+.muted { color: #4b6059; }
+#review-card { margin: 1rem 0; padding: 1rem; border: 1px solid #a9b9b2; border-radius: 8px; }
+.lesson, #review-lesson { line-height: 1.65; overflow-wrap: anywhere; }
+.learner { max-width: 820px; }
+.lesson p, #review-lesson p { white-space: pre-wrap; }
+.lesson h2:first-child { margin-top: 0; }
+.lesson h2 { margin-top: 1.5rem; }
+.lesson details { margin: .5rem 0 1rem; }
+#course-list { min-width: min(19rem, 65vw); }
+#release-panel > button { margin: .35rem .35rem .35rem 0; }
