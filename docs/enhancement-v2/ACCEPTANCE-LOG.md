@@ -16,7 +16,7 @@
 | M2 — Dynamic AI learning | NOT STARTED | No A/B teaching-generation experiment yet |
 | M3 — Teacher drafts | NOT STARTED | Legacy teacher functionality does not establish new case editor acceptance |
 | M4 — Persistence and permissions | REVIEW | Local PostgreSQL and real Chrome verified. Independent read-only acceptance pending. |
-| M5 — New case and integrated journey | REVIEW | Local implementation verified. Independent read-only review and production gates are pending. |
+| M5 — New case and integrated journey | PASS (LOCAL) | M5-R1 passed independent read-only acceptance for the documented local journey. Production gates remain open. |
 
 ## 3. M0 findings (reported; not independently re-tested)
 
@@ -288,6 +288,17 @@
 - Real Chrome passed **2/2** across M4 and M5. The M5 run published the fourth case in the teacher UI, traversed the existing four routes for both checkout targets and the retry queue, and read only aggregate activity in the teacher view. Static packaging included the browser client and excluded the new server sources and private inputs.
 - **REVIEW pending separate read-only M5 acceptance.** See [M5 learning journey handoff](M5-LEARNING-JOURNEY.md). The local environment used real PostgreSQL and a Supabase Auth fixture. Real Supabase Auth, hosting, live AI approval and module owner signoff for rollout remain open. M3-05 remains CONDITIONAL PASS and its final closeout reminder is below.
 
+### M5 original independent acceptance — FAIL
+
+- The independent review at `ec388ee649a0a3f4b75d6887e79ab50abe202ae5` passed the main teacher-to-student journey. In Chrome, asking for guidance after a successful `retry-queue@1` verification returned HTTP `200` and showed the reply. PostgreSQL showed that the request had erased the saved repair plan, selected changes and current verification result. Reopening Part 4 returned `409` until the learner saved the plan again. This remains the historical verdict for the original implementation.
+
+### M5-R1 focused independent acceptance — PASS (LOCAL)
+
+- Accepted repair committed as `79934aef065d95dcf0702151da2617a2cc95519b`. The independent review used real Chrome, actual HTTP routes and disposable PostgreSQL with a Supabase Auth fixture.
+- Whole-row PostgreSQL comparisons after guidance showed only dialogue and revision updates. The saved plan and choices survived before verification, after a passing result and after a failed result. Repeated guidance preserved the current result, run history, prior stage evidence and the locked publication. Chrome retained the selected changes and reopened the original **3/3** result after refreshing. A material repair edit invalidated the current result while retaining the verification history. A new run detected the expected `ordinary-retry` failure.
+- Stale revision, wrong learner and wrong publication writes returned `409` with unchanged records. Two guidance requests at the same revision returned one `200` and one `409`. PostgreSQL recorded one additional dialogue turn.
+- At the accepted code checkpoint, M5 targeted tests passed **2/2**, M4 learner ownership passed **1/1**, real Chrome passed **2/2**, `npm test` passed **284/284**, and `git diff --check` passed. M5 is accepted for the documented local `cart-checkout@1` and `retry-queue@1` journey. Real Supabase Auth, hosted database policies and hosted deployment still need verification. Live AI integration and full R04 adaptive follow-up remain deferred.
+
 ## 5. Open decisions
 
 | ID | Decision needed | Default proposal | Status |
@@ -342,3 +353,28 @@
 - [ ] New cases without execution fixtures labeled correctly.
 - [ ] Reviewer, commit, PR and known limitations recorded.
 - [ ] FINAL PROJECT CLOSEOUT: Complete M3-05 real-browser acceptance, including manual and Mock-assisted lesson preview, private-answer exclusion, focus behavior, expandable hints, responsive layout and restored content.
+
+## 9. Final project closeout inventory
+
+Use the [PRD](PRD.md), [implementation gates](IMPLEMENTATION-PLAN.md), and the evidence above when recording closeout. The COMP5241 Week 1 course information (slides 3–4) lists a tentative project weight of 13% and presentations in weeks 12 and 13. The project handoff identifies personalized GenAI teaching, teacher manual and AI-assisted authoring, course and participation management, and self-study pathways as course directions. Confirm the current project-specific rubric, allocated slot, deadline and submission format from the course brief or LMS.
+
+### Required unfinished acceptance
+
+- [ ] **First action — M3-05 independent real-Chrome acceptance.** Run `npm run dev:m3-studio` on loopback, using an unused `M3_STUDIO_PORT` if needed. Replay the manual empty-cart lesson and the edited Mock-assisted discount lesson, including checkpoint or JSON restore. Record the commit, Chrome version, desktop and narrow viewport sizes, steps and screenshots. Verify focus moves to the draft preview, public hints expand by keyboard, requirements and content match the restored form, and teacher-only answers are absent from the student projection and preview DOM. The local Mock replay needs no cloud credentials or paid AI. Record the verdict after the replay. M3-05 is currently **CONDITIONAL PASS**. [Studio walkthrough](M3-TEACHER-STUDIO.md)
+- [ ] **Teaching-quality review pending.** Have two independent reviewers apply the existing eight-dimension rubric to the retained A, B, paraphrase and authored comparisons. Keep evidence and adjudicated scores private. Record the distinction between engineering validation and evidence of teaching benefit. This review can use the retained samples. [Teaching evaluation protocol](M2-TEACHING-DESIGN.md)
+- [ ] **Four module-owner sign-offs pending.** Record each owner's approval of the shared case/version handoffs, declared runner coverage and legacy behavior, tied to the reviewed commit. [Case contract](CASE-CONTRACT.md)
+
+### Real environment integration and deployment
+
+- [ ] **Real Supabase Auth and hosted database policies unverified.** Obtain explicit owner approval for the test project, any hosted migration or write, and the test accounts. Use separate teacher and learner accounts and a least-privileged server database login. Have the owner provision access and configure secrets in the approved environment. Capture redacted evidence for role and owner denials, attempt isolation, stale writes, immutable releases and persisted teacher counts. [Environment and database setup](M4-COURSE-PUBLICATION.md)
+- [ ] **Hosted deployment unverified.** With explicit approval and account access, verify the exact reviewed commit on an authorized Vercel preview. Record deployment/build status and exercise the four routes, public reading, role-gated publishing and the learner journey against the approved environment. Confirm that private fixtures and server secrets are absent from browser assets. Any push, merge or production deployment requires separate authorization. [Deployment instructions](../DEPLOYMENT.md)
+
+### Explicitly deferred product capabilities
+
+- [ ] **Full R04 adaptation and live AI integration deferred.** Local teaching uses deterministic templates, authored fallback and choice feedback. Full free-text adaptation and live learner delivery would require separate product approval and quality evidence. Additional paid calls require explicit approval, a configured provider and verified spending controls.
+- [ ] **R14 cross-domain mini-course and learner path remain optional and outside the local acceptance scope.** The current demo covers the two documented software engineering cases.
+
+### Documentation, demonstration and submission readiness
+
+- [ ] Confirm the current COMP5241 rubric and submission instructions with the course owner or LMS. Align the presentation and evidence packet to the stated criteria and confirm the PRD requirement mapping with the team. Record the reviewed commit, run commands, test counts, reviewer sign-offs and remaining scope limits.
+- [ ] Rehearse the local demo from teacher authoring and versioned publication through student diagnosis, targeted teaching, repair, execution and teacher-visible activity. Show the two checkout paths, the retry-queue case and version locking. Label Mock and deterministic outputs and report activity as participation. Keep credentials, private examples and protected evaluation records out of submission materials.
