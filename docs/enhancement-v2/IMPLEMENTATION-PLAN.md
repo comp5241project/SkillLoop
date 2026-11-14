@@ -49,7 +49,7 @@ Work in an isolated worktree and `feature/enhancement-v2` (or another approved n
 ### M3 — Teacher authoring
 
 - M3-01: Review existing teacher components and authorization assumptions.
-- M3-02: Generate AI drafts from objectives, learner level and constraints.
+- M3-02: Isolated case-bound TeacherDraft and deterministic Mock proposal for reviewed objective/learner-level combinations; record teacher constraints without claiming arbitrary constraint satisfaction. Label Mock output and defer real AI, UI, saving and publishing.
 - M3-03: Edit explanations, exercises and references; validate and preview.
 - M3-04: Handle draft revisions and conflict UX.
 - M3-05: Clearly label `Draft preview only` until M4 real publishing is complete.
