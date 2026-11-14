@@ -5,7 +5,11 @@
   const say=text=>{$('status').textContent=text;};
   function save(){if(session && !session.confirmed){window.SkillLoopFlow.invalidatePlan(app,session.context.case.caseId);$('continue-verification').hidden=true;}const ok=app.write('codeReview',records);$('storage-note').hidden=ok;if(!ok)say('Storage is unavailable. Export your record before leaving.');return ok;}
   function download(data,name){const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));const a=el('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-  function lock(value){busy=value;document.querySelectorAll('button,select,input,textarea').forEach(n=>n.disabled=value);$('reply').disabled=value||session?.pending;$('send').disabled=value||session?.pending;$('start-live').disabled=value||!available;$('case-select').disabled=value||Boolean(imported);$('retry').hidden=!session?.pending;$('retry').textContent=session?.messages.length===0?'Retry opening':'Retry reply';$('review-plan').disabled=value||session?.pending;}
+  function lock(value){busy=value;document.querySelectorAll('button,select,input,textarea').forEach(n=>n.disabled=value);$('reply').disabled=value||session?.pending;$('send').disabled=value||session?.pending;$('start-live').disabled=value||!available;$('case-select').disabled=value||Boolean(imported);$('retry').hidden=!session?.pending;$('retry').textContent=session?.messages.length===0?'Retry opening':'Retry reply';
+    const cannotFinish=value||!session||session.pending||!session.messages.some(m=>m.role==='user');
+    $('review-plan').disabled=cannotFinish;$('finish-chat').disabled=cannotFinish;
+    $('confirm-plan').disabled=value||!session||session.confirmed||!M.hasReview(session)||session.context.case.issues.some(i=>!session.requests[i.issueId]?.request?.trim());
+  }
   function persistEdit(){if(!session)return;session.draft=$('reply').value;save();}
   function render(scroll=true){
     if(!session)return;
@@ -26,6 +30,7 @@
     $('reply').value=session.draft||'';
     const recorded=session.context.case.issues.filter(i=>session.requests[i.issueId]).length;
     $('progress').textContent=recorded+' of '+session.context.case.issues.length+' requests recorded';
+    $('ready-note').hidden=recorded!==session.context.case.issues.length;
     $('memory').replaceChildren(...Object.values(session.requests).map(r=>el('li',r.request)),...session.rejected.map(r=>el('li','Rejected: '+r)));
     $('confirmed-note').hidden=!session.confirmed;
     lock(busy);
@@ -47,7 +52,7 @@
     event.preventDefault();if(busy||!session||session.pending)return;
     const text=$('reply').value.trim();if(!text)return;
     session.messages.push({role:'user',text,assisted:session.assisted||false});session.assisted=false;
-    session.draft='';session.pending=true;session.confirmed=false;session.output=null;save();render();$('main-content').scrollIntoView({block:'start'});getReply();
+    session.draft='';session.pending=true;session.confirmed=false;session.output=null;session.review=null;save();render();$('main-content').scrollIntoView({block:'start'});getReply();
   });
   $('reply').addEventListener('input',persistEdit);
   $('reply').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){$('compose').requestSubmit();}});
@@ -64,7 +69,7 @@
   $('new-task').onclick=()=>{if(busy)return;$('workspace').hidden=true;$('plan').hidden=true;$('start').hidden=false;session=null;say('');showHistory();};
   function showHistory(){
     $('history').replaceChildren();
-    for(const s of [...records].reverse()) {const b=el('button',s.context.case.title+' · '+s.messages.filter(m=>m.role==='user').length+' replies','rd-btn');b.onclick=()=>{session=s;render();say(s.pending?'A response is pending. Select Retry to continue.':'');};$('history').append(b);}
+    for(const s of [...records].reverse()) {const b=el('button',s.context.case.title+' · '+s.messages.filter(m=>m.role==='user').length+' replies','rd-btn');b.onclick=()=>{if(busy)return;session=s;render();if(s.phase==='review'||(!s.phase&&M.hasReview(s)))showPlan();say(s.pending?'A response is pending. Select Retry to continue.':'');};$('history').append(b);}
   }
   $('history-toggle').onclick=()=>{$('history').hidden=!$('history').hidden;showHistory();};
   $('import-input').onchange=async e=>{
@@ -73,23 +78,50 @@
   };
   $('reset-input').onclick=()=>{imported=null;$('case-select').disabled=false;$('input-label').hidden=true;$('input-label').textContent='';$('import-input').value='';};
   $('export-record').onclick=()=>download(session,'skillloop-dialogue-record.json');
-  $('review-plan').onclick=()=>{
+  function renderSummary(){
+    const ready=M.hasReview(session);
+    $('plan-feedback').textContent=ready?session.review.feedback:'Generate a summary of your conversation and current requests.';
+    $('refresh-summary').hidden=ready;
+    $('refresh-summary').textContent='Generate AI summary';
+    lock(busy);
+  }
+  function showPlan(){
     if(!session||busy||session.pending)return;
-    $('plan').hidden=false;$('plan-items').replaceChildren();
+    session.phase='review';save();
+    $('workspace').hidden=true;$('plan').hidden=false;$('plan-items').replaceChildren();
     for(const i of session.context.case.issues){
       const card=el('article');card.append(el('h3',i.title));
       if(!session.requests[i.issueId])card.append(el('p','Not discussed yet. Add a request or ask Maya.','missing'));
       const label=el('label','Your repair request');const box=el('textarea');box.maxLength=1000;box.value=session.requests[i.issueId]?.request||'';box.setAttribute('aria-label',i.title+' repair request');
-      box.oninput=()=>{session.requests[i.issueId]={request:box.value,quote:'',manual:true};session.confirmed=false;session.output=null;save();$('confirm-plan').disabled=false;$('download-output').hidden=true;say('Request changed. Confirm the updated plan before exporting.');};
+      box.oninput=()=>{session.requests[i.issueId]={request:box.value,quote:'',manual:true};session.confirmed=false;session.output=null;session.review=null;save();renderSummary();$('refresh-summary').textContent='Update AI summary';$('download-output').hidden=true;say('Request changed. Update the summary before confirming.');};
       label.append(box);card.append(label);
       const checks=el('details');checks.append(el('summary','Acceptance checks'));
       const ul=el('ul');for(const id of i.suggestedChecks){const t=session.context.case.tests.find(t=>t.testId===id);ul.append(el('li',t.action+' → '+t.expected));}checks.append(ul);card.append(checks);$('plan-items').append(card);
     }
-    $('plan-feedback').textContent=session.feedback||'No AI feedback yet.';
-    $('download-output').hidden=!session.confirmed;$('continue-verification').hidden=!session.confirmed||!window.SkillLoopFlow.readPlan(app,session.context.case.caseId);$('continue-verification').href='/correction-lab/?case='+encodeURIComponent(session.context.case.caseId);$('confirm-plan').disabled=false;$('plan-title').focus();$('plan').scrollIntoView({behavior:'smooth',block:'start'});
-  };
-  $('back-chat').onclick=()=>{$('plan').hidden=true;$('reply').focus();$('compose').scrollIntoView({behavior:'smooth',block:'center'});};
-  $('confirm-plan').onclick=()=>{try{const output=M.handoff(session);session.output=output;session.confirmed=true;const handed=window.SkillLoopFlow.savePlan(app,output,session.learningCompletedAt);$('continue-verification').hidden=!handed;$('continue-verification').href='/correction-lab/?case='+encodeURIComponent(output.caseId);session.revisions.push({at:new Date().toISOString(),output});session.revisions=session.revisions.slice(-20);const ok=save();$('download-output').hidden=false;$('confirm-plan').disabled=true;say(ok && handed?'Plan saved. Continue to verification.':'Plan confirmed for this visit. Download it before leaving.');}catch(error){say(error.message);}};
+    renderSummary();
+    $('download-output').hidden=!session.confirmed;$('continue-verification').hidden=!session.confirmed||!window.SkillLoopFlow.readPlan(app,session.context.case.caseId);$('continue-verification').href='/correction-lab/?case='+encodeURIComponent(session.context.case.caseId);$('plan-title').focus();$('plan').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  async function summarize(){
+    if(!session||busy||session.pending)return;
+    const target=session,key=M.reviewKey(target);
+    lock(true);$('refresh-summary').hidden=true;$('plan-feedback').textContent='Summarizing your conversation…';say('');
+    try{
+      const response=await fetch('/api/dialogue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'summary',session:target}),signal:AbortSignal.timeout(60000)});
+      const data=await response.json();if(!response.ok)throw Error(data.error||'Summary request failed.');
+      if(data.aiSource!=='api')throw Error('Summary source mismatch.');
+      M.applyReview(target,data.result,key);save();renderSummary();
+      say(target.context.case.issues.some(i=>!target.requests[i.issueId]?.request?.trim())?'Add the missing requests or continue the conversation.':'Check the summary, then confirm your plan.');
+    }catch(error){$('plan-feedback').textContent='The AI summary could not be generated. Your conversation and requests are saved.';$('refresh-summary').hidden=false;$('refresh-summary').textContent='Retry AI summary';say(error.name==='TimeoutError'?'Summary timed out. Try again.':error.message);}
+    finally{lock(false);}
+  }
+  async function finish(){
+    if(!session||busy||session.pending||!session.messages.some(m=>m.role==='user'))return;
+    if($('reply').value.trim()){say('Send or clear your draft before finishing.');$('reply').focus();return;}
+    showPlan();if(!M.hasReview(session))await summarize();
+  }
+  $('finish-chat').onclick=finish;$('review-plan').onclick=finish;$('refresh-summary').onclick=summarize;
+  $('back-chat').onclick=()=>{if(busy)return;session.phase='chat';save();render();say('');$('reply').focus();$('compose').scrollIntoView({behavior:'smooth',block:'center'});};
+  $('confirm-plan').onclick=()=>{if(busy)return;try{const output=M.confirm(session);session.output=output;session.confirmed=true;const handed=window.SkillLoopFlow.savePlan(app,output,session.learningCompletedAt);$('continue-verification').hidden=!handed;$('continue-verification').href='/correction-lab/?case='+encodeURIComponent(output.caseId);session.revisions.push({at:new Date().toISOString(),output});session.revisions=session.revisions.slice(-20);const ok=save();$('download-output').hidden=false;lock(false);say(ok && handed?'Plan saved. Continue to verification.':'Plan confirmed for this visit. Download it before leaving.');}catch(error){say(error.message);}};
   $('download-output').onclick=()=>download(session.output,'skillloop-part3-output.json');
   try {
     const response=await fetch('/api/dialogue');if(!response.ok)throw Error('Could not load the cases.');const data=await response.json();catalog=data.catalog;available=data.available;
@@ -102,6 +134,6 @@
     }if(catalog.cases[selected])$('case-select').value=selected;
     records=M.restore(app.read('codeReview',[]),catalog);$('start-live').disabled=!available;
     $('connection').textContent=available?'':'AI is unavailable. Please try again later.';showHistory();say('');
-    if(records.length&&!selected){session=records.at(-1);render();if(session.pending)say('A response is pending. Select Retry to continue.');}
+    if(records.length&&!selected){session=records.at(-1);render();if(session.phase==='review'||(!session.phase&&M.hasReview(session)))showPlan();if(session.pending)say('A response is pending. Select Retry to continue.');}
   }catch(error){say(error.message+' Please reload to try again.');}
 })();

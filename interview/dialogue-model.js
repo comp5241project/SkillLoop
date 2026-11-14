@@ -51,9 +51,31 @@
     session.rejected=[...new Set([...session.rejected,...result.rejected])].slice(-30);
     if(result.proposal) session.proposal=result.proposal;
     if(result.proposalCode) session.proposalCode=result.proposalCode;
-    session.feedback=result.coach;
+    if(result.coach.trim()) session.feedback=result.coach;
+    session.review=null;
     session.messages.push({role:'assistant',text:result.reply,coach:result.coach,proposal:result.proposal,code:result.proposalCode});
     session.pending=false; session.confirmed=false; session.output=null;
+  }
+  function reviewKey(s) {
+    // Cache identity only; server-side validation still owns the AI response contract.
+    const raw=JSON.stringify([s.context,s.messages,s.requests,s.rejected,s.proposal,s.proposalCode]);
+    let a=2166136261,b=5381;
+    for(let i=0;i<raw.length;i++){a=Math.imul(a^raw.charCodeAt(i),16777619);b=Math.imul(b,33)^raw.charCodeAt(i);}
+    return raw.length+':'+(a>>>0)+':'+(b>>>0);
+  }
+  function validReview(r) {
+    return r && Object.keys(r).length===1 && text(r.feedback,1800);
+  }
+  function hasReview(s) {
+    return Boolean(s.review && validReview({feedback:s.review.feedback}) && s.review.key===reviewKey(s));
+  }
+  function applyReview(s,r,key=reviewKey(s)) {
+    if(s.pending || !s.messages.some(m=>m.role==='user') || !validReview(r) || key!==reviewKey(s)) throw Error('The conversation changed. Generate a new AI summary.');
+    s.review={feedback:r.feedback,key};
+  }
+  function confirm(s) {
+    if(!hasReview(s)) throw Error('Generate the AI summary before confirming your plan.');
+    return handoff(s);
   }
   function handoff(session) {
     if (session.pending || !session.messages.some(m=>m.role==='user')) throw Error('Finish a conversation turn first.');
@@ -62,7 +84,7 @@
     return {caseId:c.caseId,aiSource:session.mode,dialogue:{
       plan:c.issues.map(i=>({issueId:i.issueId,problem:i.observed,changeRequest:session.requests[i.issueId].request,
         checks:i.suggestedChecks.map(id=>{const t=c.tests.find(t=>t.testId===id); return {testId:id,input:t.action,expected:t.expected};})})),
-      feedback:session.feedback || 'Review the conversation and the requests you confirmed. No tests have run in this dialogue.',confirmed:true}};
+      feedback:hasReview(session)?session.review.feedback:session.feedback || 'Review the conversation and the requests you confirmed. No tests have run in this dialogue.',confirmed:true}};
   }
   function restore(value,catalog) {
     const records=[];
@@ -82,6 +104,6 @@
     }
     return records.slice(-20);
   }
-  const api={input,freshInput,create,validOpening,applyOpening,validTurn,apply,handoff,restore};
+  const api={input,freshInput,create,validOpening,applyOpening,validTurn,apply,handoff,restore,reviewKey,validReview,hasReview,applyReview,confirm};
   if(typeof module!=='undefined'&&module.exports) module.exports=api; else root.SkillLoopDialogue=api;
 })(globalThis);
