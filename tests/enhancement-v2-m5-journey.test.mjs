@@ -122,6 +122,38 @@ test('published M5 journey binds diagnosis, teaching, repair and executed verifi
   const fv = await writeFourth(await readFourth('verification'), 'verification', {});
   assert.equal(fv.result.outcome, 'passed');
   assert.equal(fv.result.tests.length, 3);
+
+  const readRetryAttempt = async () => (await stack.admin.query(
+    'select * from skillloop_courses.attempts where attempt_id = $1', [fd.attemptId])).rows[0];
+  const beforeGuidance = await readRetryAttempt();
+  const savedRepair = await readFourth('repair');
+  const message = 'What does the passing cap check tell me?';
+  const guided = await writeFourth(savedRepair, 'repair', { message, choices: { 'delay-cap': 1 } });
+  const afterGuidance = await readRetryAttempt();
+  assert.equal(guided.result.dialogue.at(-1).message, message);
+  assert.equal(guided.revision, savedRepair.revision + 1);
+  assert.deepEqual(afterGuidance, {
+    ...beforeGuidance,
+    journey: { ...beforeGuidance.journey, revision: guided.revision,
+      repair: { ...beforeGuidance.journey.repair, dialogue: guided.result.dialogue } },
+  });
+  assert.deepEqual(guided, {
+    ...savedRepair, revision: savedRepair.revision + 1,
+    result: { ...savedRepair.result, dialogue: guided.result.dialogue },
+  });
+  assert.deepEqual((await readFourth('verification')).result, fv.result);
+
+  await call('journey', { cookie: b, status: 409,
+    body: { ...fourthIdentity, stage: 'repair', attemptId: savedRepair.attemptId,
+      revision: savedRepair.revision, input: { message: 'A stale question.' } } });
+  assert.deepEqual(await readRetryAttempt(), afterGuidance);
+
+  await writeFourth(guided, 'repair', {
+    choices: { ...guided.result.choices, 'delay-cap': 1 }, requests: guided.result.requests,
+  });
+  assert.equal((await readFourth('verification')).result, null);
+  assert.deepEqual((await readRetryAttempt()).journey.verificationHistory, beforeGuidance.journey.verificationHistory);
+
   const legacy = await (await fetch(stack.base + '/api/dialogue')).text();
   assert.doesNotMatch(legacy, /referenceCode|implementationNote/);
 });

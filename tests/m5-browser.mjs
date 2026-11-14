@@ -132,7 +132,23 @@ test('real Chrome runs the published learning journey on all four student routes
   await page.getByLabel('What delay should be scheduled when the raw delay is 1,600 ms?').waitFor();
   await learn(1, 'Cap the delay at the maximum before scheduling.');
   await repair({ 'delay-cap': 0, 'invalid-attempt': 1 });
-  assert.equal(await page.locator('main li').filter({ hasText: / · pass · / }).count(), 3);
+  const passingChecks = page.locator('main li').filter({ hasText: / · pass · / });
+  const verifiedChecks = await passingChecks.allTextContents();
+  assert.equal(verifiedChecks.length, 3);
+  await page.reload();
+  await heading('All tests passed');
+  await next('Return to repair', '/interview/');
+  const followUp = 'What does the passing cap check tell me?';
+  await page.getByLabel('Your question or repair request').fill(followUp);
+  await click('Ask for repair guidance');
+  await page.getByText('You: ' + followUp, { exact: true }).waitFor();
+  assert.equal(await page.locator('select[name="delay-cap"]').inputValue(), '0');
+  assert.equal(await page.locator('select[name="invalid-attempt"]').inputValue(), '1');
+  assert.equal(await page.locator('textarea[name="delay-cap-request"]').inputValue(),
+    'Apply the requirement and verify the relevant boundary.');
+  await next('Continue to verification', '/correction-lab/');
+  await heading('All tests passed');
+  assert.deepEqual(await passingChecks.allTextContents(), verifiedChecks);
   await studio.getByRole('button', { name: 'Reopen draft', exact: true }).click();
   await studio.getByText('1 diagnosed · 1 practised · 1 ran verification').waitFor();
   assert.deepEqual(errors, []);

@@ -144,15 +144,14 @@ function repair(item, input, previous) {
   return { choices, requests, plan, dialogue: previous?.dialogue ?? [] };
 }
 
-function respondToRepair(item, diagnosis, previous, input) {
-  if (!text(input.message, 1000) || !input.message.trim())
+function repairDialogue(item, diagnosis, history, message) {
+  if (!text(message, 1000) || !message.trim())
     throw new JourneyError(422, 'Write a repair request or a question first.');
-  const history = previous?.dialogue ?? [];
   const focus = item.definition.publicIssues.find(({ issueId }) => issueId === diagnosis.issueId);
   const feedback = history.length === 0 ? focus.observed + ' What observable result should the change produce?'
     : history.length === 1 ? 'What boundary or invalid input would distinguish your repair from the original delivery?'
     : 'Before you save the plan, compare each request with the checks below. The runner will verify the selected changes.';
-  return { dialogue: [...history.slice(-9), { message: input.message.trim(), feedback }] };
+  return [...history.slice(-9), { message: message.trim(), feedback }];
 }
 
 async function verify(item, plan) {
@@ -174,10 +173,13 @@ async function advance(item, current, action, input) {
       if (current.diagnosis) return { ...history, diagnosis: current.diagnosis, learning: learn(item, current, input) };
       break;
     case 'repair':
-      if (current.learning) return { ...history, diagnosis: current.diagnosis, learning: current.learning,
-        repair: input?.message !== undefined ? respondToRepair(item, current.diagnosis, current.repair, input)
-          : repair(item, input, current.repair) };
-      break;
+      if (!current.learning) break;
+      if (input?.message !== undefined) {
+        const dialogue = repairDialogue(item, current.diagnosis, current.repair?.dialogue ?? [], input.message);
+        return { ...current, repair: { ...current.repair, dialogue } };
+      }
+      return { ...history, diagnosis: current.diagnosis, learning: current.learning,
+        repair: repair(item, input, current.repair) };
     case 'verification':
       if (current.repair?.choices) {
         const verification = await verify(item, current.repair);
