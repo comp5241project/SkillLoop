@@ -7,6 +7,7 @@ let shownProposal = null;
 let dirty = false;
 let checkpointInfo = null;
 let importSource = null;
+let previewGeneration = 0;
 const expectedRevision = () => acceptedDraft?.revision ?? null;
 const expectedDraftId = () => acceptedDraft?.draftId ?? null;
 function updateLocalStatus() {
@@ -58,6 +59,7 @@ function markDirty() {
   invalidatePreview();
 }
 function invalidatePreview() {
+  previewGeneration++;
   $('#preview-panel').hidden = true;
   $('#preview-content').replaceChildren();
 }
@@ -219,15 +221,33 @@ function renderProposal(proposal) {
 }
 function renderPreview(preview) {
   const host = $('#preview-content'); host.replaceChildren();
-  section(host, 'Title', preview.title);
-  for (const objective of preview.objectives) section(host, 'Learning objective', objective.text);
-  section(host, 'Explanation', preview.explanation);
-  section(host, 'Code reading', `${preview.codeExample.excerpt}\n${preview.codeExample.prompt}`, 'pre');
-  for (const exercise of preview.exercises) {
-    section(host, 'Exercise', exercise.prompt);
-    section(host, 'Public hints', exercise.publicHints.join('\n'));
+  const list = (items) => {
+    const node = element('ul');
+    node.append(...items.map((text) => element('li', text)));
+    return node;
+  };
+  host.append(element('h3', preview.title, 'lesson-title'),
+    element('h4', 'Learning objectives'), list(preview.objectives.map(({ text }) => text)),
+    element('h4', 'Case requirements'), list(preview.requirements.map(({ text }) => text)));
+  const code = element('pre');
+  code.append(element('code', preview.codeExample.excerpt));
+  host.append(element('h4', 'Explanation'), element('p', preview.explanation),
+    element('h4', 'Read the code'), code, element('p', preview.codeExample.prompt),
+    element('h4', 'Practice'));
+  const exercises = element('ol');
+  for (const { prompt, publicHints } of preview.exercises) {
+    const exercise = element('li');
+    exercise.append(element('p', prompt));
+    if (publicHints.length) {
+      const hints = element('details');
+      hints.append(element('summary', 'Hints'), list(publicHints));
+      exercise.append(hints);
+    }
+    exercises.append(exercise);
   }
+  host.append(exercises);
   $('#preview-panel').hidden = false;
+  $('#preview-title').focus();
 }
 function run(task) { clearErrors(); Promise.resolve().then(task).catch(showError); }
 function loadExample(kind) {
@@ -283,8 +303,15 @@ async function init() {
   $('#preview-button').addEventListener('click', () => run(async () => {
     const form = collectForm();
     invalidatePreview();
-    const result = await request('/api/preview', form);
-    if (JSON.stringify(collectForm()) === JSON.stringify(form)) renderPreview(result.preview);
+    const generation = previewGeneration;
+    const isCurrent = () => generation === previewGeneration &&
+      JSON.stringify(collectForm()) === JSON.stringify(form);
+    try {
+      const result = await request('/api/preview', form);
+      if (isCurrent()) renderPreview(result.preview);
+    } catch (error) {
+      if (isCurrent()) throw error;
+    }
   }));
   $('#reject').addEventListener('click', () => run(async () => {
     await request('/api/reject', { proposalId: shownProposal.proposalId });

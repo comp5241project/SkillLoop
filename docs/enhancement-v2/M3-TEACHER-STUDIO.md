@@ -1,4 +1,4 @@
-# M3-03 local Teacher Authoring Studio
+# M3 local Teacher Authoring Studio
 
 **Status:** isolated implementation submitted for independent acceptance. This page is a local draft editor, not a production teacher service.
 
@@ -10,9 +10,9 @@ The page reads canonical `cart-checkout@1 / edge-cases` requirements and starter
 
 `Validate current form` checks but does not store it. `Keep manual draft in memory` creates a validated manual `TeacherDraft`. `Generate Mock Proposal` checks the brief and displays the proposed title, objectives, explanation, code activity, exercise, hints, teacher-only answer guidance and deterministic source label. The fixed templates do not satisfy arbitrary free-text constraints. The review panel lists which brief and content fields differ from the current form; the replacement confirmation repeats that list. `Reject proposal` leaves both the accepted draft and unsaved browser form intact. `Accept and replace draft` requires an explicit browser confirmation when the form is edited or a draft exists. The server also rejects replacing an existing draft without `confirmReplace: true`.
 
-`Preview current form` validates the form and calls the existing M3 `draftPreview` allowlist. The panel says **Draft preview only** and excludes teacher answers, proposal internals, digest, private evaluation and publication state. All user text is inserted with DOM `textContent` or form `value`; the page never uses `innerHTML`. Answer guidance is visible only in the separate teacher editing and proposal review areas.
+`Preview current form` validates the form and calls the M3 `draftPreview` allowlist. Focus moves to **Student-facing draft preview — not published**. The lesson shows the title, learning objectives, referenced canonical case requirements, explanation, code excerpt and reading prompt, and exercises with expandable public hints. Teacher answers, editing controls, proposal internals, digest, private evaluation fixtures and reference solutions are outside the lesson. The renderer inserts teacher text with DOM `textContent`. Answer guidance remains in the teacher editor, proposal review and private JSON export.
 
-M3-03R preview state: any form edit or successful replacement of the form (including proposal adoption and manual snapshot reload) hides and clears a previous preview. A preview request hides the old result before validation; a response is displayed only if the form still matches the request snapshot. After adoption, the teacher must click `Preview current form` again to inspect the new material. Rejected or canceled proposals leave the current form unchanged. This prevents an older preview from appearing to describe newly adopted or invalid material.
+Any form edit or successful replacement hides and clears the preview. A fresh request also clears the prior result. Only the current request can display a result or a validation error, and the form must still match its snapshot. This applies even when edits return the form to its original values. After adoption, import or reopening a checkpoint, click `Preview current form` to read the restored material.
 
 ## State and provenance boundary
 
@@ -20,9 +20,28 @@ The browser may hold incomplete edits. The accepted draft and the **original** c
 
 Refreshing the page loses unsaved form edits but reloads the accepted in-memory draft. Restarting the server loses drafts and proposals. M3-04 adds an in-memory checkpoint and private JSON export/import; see `M3-DRAFT-CHECKPOINT.md` for its newer revision and import rules. The loopback server checks Host, same-origin POSTs and a studio-only request header, caps request size and applies a restrictive CSP. These controls are appropriate for a local prototype; they do not authenticate a teacher, isolate multiple local users or make teacher answer guidance safe to expose through a production API. Do not publish this server or proxy its routes to a remote audience.
 
-There is no Publish action or route, database, account save, real AI call or production Module 2 integration. R06/R07 remain in progress. M4 handles durable persistence, identity and publishing authority. M2-06B remains deferred.
+M3-04 and its imported-source UI fix are in local commit `4702005`, separate from M2-06B (`156416c`). See the acceptance log for the historical M3-04 CONDITIONAL PASS and repair evidence.
 
-## Browser verification steps
+R06/R07 remain in progress. M4 handles durable persistence, identity and publishing authority. Production learning handoff is deferred. Standalone mini-course authoring is a separate product architecture decision to resolve before designing M4 persistence.
+
+## Reproducible M3-05 demos
+
+### A. Manual empty-cart lesson
+
+1. Click **Load beginner brief** to seed the brief and select `empty-cart`. Set **Teaching objective text** to “Trace an empty cart and return numeric zero.”
+2. Set the title to “Trace the empty-cart average” and the explanation to “The empty cart must return numeric zero for its average. Check the count before dividing to avoid a zero denominator.”
+3. Enter the exact code excerpt `return total / count;` and the code-reading prompt “Trace count and total when averagePrice receives an empty item array.”
+4. Keep the exercise linked to `empty-cart`. Set the prompt to “What should averagePrice([]) return, and when should the function stop?” Add the public hint “Check the empty-cart requirement.” Enter “Avoid dividing by zero.” as teacher-only answer guidance.
+5. Click **Keep manual draft in memory**, then **Preview current form**. Verify the empty-cart rule, the code and prompt, the exercise, and the expandable hint. The teacher-only guidance stays in the editor.
+
+### B. Mock-assisted discount lesson
+
+1. Click **Load intermediate brief**, then **Generate Mock Proposal**. Review the proposed discount endpoint activity, its references and teacher-only guidance. Click **Accept and replace draft** and confirm.
+2. Append “Compare both endpoints before checking the invalid neighbors.” to the explanation and click **Save Checkpoint**. Optionally export private JSON.
+3. Change the explanation, then click **Reopen Checkpoint** and confirm. Alternatively, select the downloaded file, click **Import JSON** and confirm replacement.
+4. Click **Preview current form**. Verify that the saved explanation returns, the relevant discount rule replaces the empty-cart rule from scenario A, and the lesson contains the code activity, exercise and public hints. Confirm that guidance and editor actions are outside the preview.
+
+## Historical M3-03 browser verification
 
 1. Open the URL and verify the five published `cart-checkout` requirements and public starter code.
 2. Click **Load beginner brief**, then **Generate Mock Proposal**. Inspect its source, objective, explanation, code observation, exercise and teacher-only answer guidance.

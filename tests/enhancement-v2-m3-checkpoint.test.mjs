@@ -133,6 +133,38 @@ test('exported controlled Mock draft imports without recovering process-local tr
   });
 });
 
+test('edited discount Mock lesson survives checkpoint and JSON restore as a public preview', async () => withServer(async ({ post }) => {
+  const brief = { topic: 'Discount boundary validation', learnerLevel: 'intermediate',
+    objectives: [{ objectiveId: 'obj-discount', text: 'Check both inclusive discount endpoints.',
+      requirementIds: ['discount'] }], constraints: 'Check both endpoints.' };
+  const generated = await post('/api/proposal', { brief });
+  assert.equal(generated.status, 200);
+  const accepted = await post('/api/accept', { expectedRevision: null,
+    proposalId: generated.body.proposal.proposalId, confirmReplace: true });
+  assert.equal(accepted.body.draft.origin, 'mock-proposal');
+  const edited = { brief, content: clone(accepted.body.draft.content) };
+  edited.content.explanation += ' Compare both endpoints before checking the invalid neighbors.';
+  const checkpoint = await post('/api/checkpoint', { expectedRevision: 1, form: edited });
+  assert.equal(checkpoint.status, 200);
+  const exported = await post('/api/export', { expectedRevision: 2 });
+  assert.equal(exported.status, 200);
+  const later = clone(edited);
+  later.content.explanation += ' This later edit should not survive restore.';
+  assert.equal((await post('/api/manual', { expectedRevision: 2, form: later })).status, 200);
+  assert.equal((await post('/api/reopen-checkpoint', { expectedRevision: 3, confirmReplace: true })).status, 200);
+  const reopened = await post('/api/preview-accepted', {});
+  assert.equal(reopened.status, 200);
+  assert.equal(reopened.body.preview.explanation, edited.content.explanation);
+  assert.deepEqual(reopened.body.preview.requirements.map(({ requirementId }) => requirementId), ['discount']);
+  assert.match(reopened.body.preview.codeExample.excerpt, /discountPercent/);
+  assert.equal(reopened.body.preview.exercises[0].publicHints.length, 2);
+  assert.doesNotMatch(JSON.stringify(reopened.body), /teacherAnswerGuidance|Reject -1 and 101/);
+  const imported = await post('/api/import', { expectedRevision: 4, confirmReplace: true,
+    jsonText: JSON.stringify(exported.body.document) });
+  assert.equal(imported.body.draft.origin, 'imported');
+  assert.deepEqual((await post('/api/preview-accepted', {})).body, reopened.body);
+}));
+
 test('corrupt JSON, wrong case facts and invalid references never partially import', async () => withServer(async ({ post, getState }) => {
   await post('/api/checkpoint', { expectedRevision: null, form: form() });
   const valid = (await post('/api/export', { expectedRevision: 1 })).body.document;

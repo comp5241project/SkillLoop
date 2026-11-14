@@ -95,7 +95,7 @@ test('rejecting Mock keeps accepted draft and unsaved form content untouched', a
   assert.match(unsaved.content.explanation, /Unsaved teacher edit/);
 }));
 
-test('editing explanation and exercise passes through HTTP validation and preview projection', async () => withServer(async ({ post }) => {
+test('editing explanation and exercise passes through HTTP validation and preview projection', async () => withServer(async ({ post, get }) => {
   const edited = form();
   edited.content.explanation += ' A teacher can discuss this branch before the return.';
   edited.content.exercises[0].prompt += ' Explain the relevant branch.';
@@ -104,6 +104,9 @@ test('editing explanation and exercise passes through HTTP validation and previe
   assert.equal(preview.status, 200);
   assert.match(preview.body.preview.explanation, /teacher can discuss/);
   assert.match(preview.body.preview.exercises[0].prompt, /relevant branch/);
+  const { case: publicCase } = await (await get('/api/state')).json();
+  assert.deepEqual(preview.body.preview.requirements,
+    publicCase.requirements.filter(({ requirementId }) => requirementId === 'empty-cart'));
   const publicJson = JSON.stringify(preview.body.preview);
   assert.equal(publicJson.includes('teacherAnswerGuidance'), false);
   assert.equal(publicJson.includes('zero-count guard'), false);
@@ -138,6 +141,7 @@ test('static browser surface renders text safely and has no publish route', asyn
   assert.match(js, /textContent/);
   assert.doesNotMatch(js, /innerHTML|document\.write|\beval\s*\(/);
   assert.doesNotMatch(html, /<button[^>]*>\s*Publish\s*<\/button>/i);
+  assert.match(html, /Student-facing draft preview — not published/);
   const page = await get('/');
   assert.match(page.headers.get('content-security-policy'), /script-src 'self'/);
   assert.equal((await post('/api/publish', {})).status, 404);
@@ -164,7 +168,7 @@ test('loopback server rejects foreign host and cross-origin or non-studio POSTs'
   assert.equal(wrongHostStatus, 403);
 }));
 
-test('real studio event handlers invalidate previews across edits, rejection and adoption', async () =>
+test('real studio event handlers preview current manual, adopted, imported and restored material', async () =>
   withServer(async ({ base, get, session }) => {
     class Element {
       constructor(tag = 'div', id = '') {
@@ -178,6 +182,7 @@ test('real studio event handlers invalidate previews across edits, rejection and
       remove() { if (this.parent) this.parent.children = this.parent.children.filter((child) => child !== this); }
       addEventListener(type, listener) { this.listeners.set(type, listener); }
       dispatch(type) { this.listeners.get(type)?.(); }
+      focus() { this.focused = true; }
       get selectedOptions() { return this.children.filter((child) => child.selected); }
       querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
       querySelectorAll(selector) {
@@ -198,7 +203,7 @@ test('real studio event handlers invalidate previews across edits, rejection and
     const root = new Element();
     const ids = ['requirements', 'starter-code', 'topic', 'learner-level', 'constraints',
       'title', 'explanation', 'code-excerpt', 'code-prompt', 'objectives', 'exercises',
-      'editing-state', 'preview-panel', 'preview-content', 'proposal-panel', 'proposal-content',
+      'editing-state', 'preview-panel', 'preview-title', 'preview-content', 'proposal-panel', 'proposal-content',
       'editor', 'message', 'add-objective', 'add-exercise', 'example-beginner',
       'example-intermediate', 'validate', 'manual', 'generate', 'preview-button', 'reject', 'accept',
       'checkpoint', 'reopen-checkpoint', 'export-json', 'import-file', 'import-json',
@@ -211,9 +216,18 @@ test('real studio event handlers invalidate previews across edits, rejection and
       querySelector: (selector) => root.querySelector(selector),
       querySelectorAll: (selector) => root.querySelectorAll(selector) };
     let confirmReplace = true;
+    let holdPreview = false;
+    let releasePreview;
     const source = await (await get('/studio.js')).text();
     vm.runInNewContext(source, { document, window: { confirm: () => confirmReplace },
-      fetch: (route, options) => fetch(base + route, options) }, { filename: 'studio.js' });
+      fetch: async (route, options) => {
+        const hold = route === '/api/preview' && holdPreview;
+        const response = await fetch(base + route, options);
+        if (!hold) return response;
+        const body = await response.json();
+        await new Promise((resolve) => { releasePreview = resolve; });
+        return { ok: response.ok, status: response.status, json: async () => body };
+      } }, { filename: 'studio.js' });
     const waitFor = async (condition) => {
       for (let attempt = 0; attempt < 300; attempt++) {
         if (condition()) return;
@@ -250,6 +264,18 @@ test('real studio event handlers invalidate previews across edits, rejection and
     await waitFor(() => !nodes['preview-panel'].hidden);
     assert.match(nodes['preview-content'].textContent, /PREVIEW BEFORE REPLACEMENT/);
     assert.doesNotMatch(nodes['preview-content'].textContent, /Avoid dividing by zero/);
+    assert.equal(nodes['preview-title'].focused, true);
+
+    holdPreview = true;
+    click('preview-button');
+    await waitFor(() => releasePreview);
+    input('explanation', 'An intervening edit invalidates the pending preview.');
+    input('explanation', `${marker}: the empty cart must return numeric zero before division.`);
+    holdPreview = false;
+    releasePreview();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(nodes['preview-panel'].hidden, true);
+    assert.equal(nodes['preview-content'].textContent, '');
 
     input('explanation', `${marker}: edit after preview, still numeric zero before division.`);
     assert.equal(nodes['preview-panel'].hidden, true);
@@ -376,4 +402,20 @@ test('real studio event handlers invalidate previews across edits, rejection and
     click('checkpoint');
     await waitFor(() => nodes['revision-state'].textContent.includes('revision 2 · manual'));
     assert.doesNotMatch(nodes['revision-state'].textContent, /imported from declared/);
+    const checkpointExplanation = nodes.explanation.value;
+    const htmlLike = '<img src=x onerror=alert(1)>';
+    input('explanation', `${checkpointExplanation} Later edit ${htmlLike}`);
+    click('manual');
+    await waitFor(() => nodes['revision-state'].textContent.includes('revision 3 · manual'));
+    click('preview-button');
+    await waitFor(() => !nodes['preview-panel'].hidden);
+    assert.ok(nodes['preview-content'].textContent.includes(htmlLike));
+    click('reopen-checkpoint');
+    await waitFor(() => nodes.message.textContent.startsWith('Checkpoint content restored'));
+    assert.equal(nodes['preview-panel'].hidden, true);
+    assert.equal(nodes.explanation.value, checkpointExplanation);
+    click('preview-button');
+    await waitFor(() => !nodes['preview-panel'].hidden);
+    assert.ok(nodes['preview-content'].textContent.includes(checkpointExplanation));
+    assert.doesNotMatch(nodes['preview-content'].textContent, /Later edit|Return numeric 0/);
   }));

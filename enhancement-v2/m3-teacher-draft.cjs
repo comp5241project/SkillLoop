@@ -138,7 +138,7 @@ function validateContent(content, brief, publicCase) {
   return content;
 }
 
-function validateTeacherDraft(draft) {
+function validateDraftAndGetPublicCase(draft) {
   if (!exact(draft, ['schemaVersion', 'draftId', 'status', 'revision', 'caseRef', 'brief', 'content', 'provenance']) ||
       draft.schemaVersion !== 1 || !UUID.test(draft.draftId) || draft.status !== 'draft-only' ||
       !Number.isSafeInteger(draft.revision) || draft.revision < 1)
@@ -154,6 +154,11 @@ function validateTeacherDraft(draft) {
         (p.origin === 'unverified-provider' && UUID.test(p.proposalId) && p.templateVersion === null) ||
         (p.origin === 'imported' && p.proposalId === null && p.templateVersion === null)))
     fail('Invalid draft provenance');
+  return publicCase;
+}
+
+function validateTeacherDraft(draft) {
+  validateDraftAndGetPublicCase(draft);
   return draft;
 }
 
@@ -253,11 +258,15 @@ function rejectTeacherProposal(proposal, draft = null) {
 }
 
 function draftPreview(draft) {
-  validateTeacherDraft(draft);
+  const publicCase = validateDraftAndGetPublicCase(draft);
   const { caseRef, content } = draft;
+  const referenced = new Set([...content.objectives, ...content.exercises]
+    .flatMap(({ requirementIds }) => requirementIds));
   return { status: 'draft-preview-only', caseRef: { kind: caseRef.kind, caseId: caseRef.caseId,
     caseVersion: caseRef.caseVersion, conceptId: caseRef.conceptId },
   title: content.title,
+  requirements: publicCase.requirements.filter(({ requirementId }) => referenced.has(requirementId))
+    .map(({ requirementId, text }) => ({ requirementId, text })),
   objectives: content.objectives.map(({ objectiveId, text: objectiveText, requirementIds }) =>
     ({ objectiveId, text: objectiveText, requirementIds: [...requirementIds] })),
   explanation: content.explanation,
