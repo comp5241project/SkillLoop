@@ -108,6 +108,11 @@ async function loadLesson() {
   renderLesson(get('student-lesson'), lesson);
   get('lesson-status').textContent = '';
   get('student-lesson').hidden = false;
+  const journey = get('open-journey');
+  const journeyUrl = new URL('/learning-path/', location.origin);
+  journeyUrl.search = new URLSearchParams({ journey: '1', ...query });
+  journey.href = journeyUrl;
+  journey.hidden = false;
   get('practice').hidden = false;
   try {
     const session = await courseRequest('session');

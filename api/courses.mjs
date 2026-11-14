@@ -1,4 +1,5 @@
-import { CourseError, UUID, caseContext, createConfiguredStore } from '../enhancement-v2/m4-courses.mjs';
+import { CourseError, UUID, caseContext, createConfiguredStore, supportedCourses } from '../enhancement-v2/m4-courses.mjs';
+import journey from '../enhancement-v2/m5-journey.cjs';
 import studio from '../enhancement-v2/m3-studio-session.cjs';
 
 const sessionCookie = 'sl_course_access';
@@ -97,7 +98,10 @@ export function createCourseApi({ getStore = createConfiguredStore, getAuth = su
         const op = query.get('op');
         const get = request.method === 'GET';
         const post = request.method === 'POST';
-        if (get && op === 'case') return json({ case: caseContext() });
+        if (get && op === 'cases') return json({ cases: supportedCourses() });
+        if (get && op === 'case') return json({ case: caseContext(query.has('caseId')
+          ? { caseId: query.get('caseId'), caseVersion: positive(query.get('caseVersion'), 'case version'),
+              conceptId: query.get('conceptId') } : undefined) });
         if (get && op === 'published') {
           return json(await database().read(id(query.get('course')), positive(query.get('version'), 'version')));
         }
@@ -124,7 +128,7 @@ export function createCourseApi({ getStore = createConfiguredStore, getAuth = su
         if (!actor) throw new CourseError(401, 'Sign in to continue.');
         if (get && op === 'list') return json({ courses: await database().list(actor) });
         if (get && op === 'open') return json(await database().open(actor, id(query.get('course'))));
-        if (post && op === 'preview') return json({ lesson: await database().preview(actor, data.form) });
+        if (post && op === 'preview') return json({ lesson: await database().preview(actor, data.form, data.caseRef) });
         if (post && op === 'mock') {
           if (await database().role(actor) !== 'teacher') throw new CourseError(403, 'Teacher access required.');
           return json(await studio.createStudioSession().generate({ brief: data.brief }));
@@ -132,11 +136,20 @@ export function createCourseApi({ getStore = createConfiguredStore, getAuth = su
         if (post && op === 'save') {
           const courseId = data.courseId === null ? null : id(data.courseId);
           const revision = courseId ? positive(data.revision, 'draft revision') : null;
-          return json(await database().save(actor, courseId, revision, data.form), courseId ? 200 : 201);
+          return json(await database().save(actor, courseId, revision, data.form, data.caseRef), courseId ? 200 : 201);
         }
         if (post && (op === 'review' || op === 'publish')) {
           if (data.confirm !== true) throw new CourseError(400, 'Confirm this action for the saved revision.');
           return json(await database()[op](actor, id(data.courseId), positive(data.revision, 'draft revision')));
+        }
+        if (op === 'journey') {
+          const stage = get ? query.get('stage') : data.stage;
+          if (!journey.stages.includes(stage)) throw new CourseError(400, 'Choose a valid learning stage.');
+          if (post && (!Number.isSafeInteger(data.revision) || data.revision < 0))
+            throw new CourseError(400, 'Reopen the stage to load your learning record.');
+          return json(await database().journey(actor, id(get ? query.get('course') : data.courseId),
+            positive(get ? query.get('version') : data.version, 'version'), stage,
+            post ? { attemptId: practiceAttemptId(data.attemptId), revision: data.revision, input: data.input } : null));
         }
         if ((get && op === 'attempt') || (post && ['start', 'submit'].includes(op))) {
           const params = get ? { courseId: query.get('course'), version: query.get('version') } : data;
@@ -149,7 +162,7 @@ export function createCourseApi({ getStore = createConfiguredStore, getAuth = su
         }
         throw new CourseError(404, 'Course action unavailable.');
       } catch (error) {
-        if (error instanceof CourseError || error instanceof studio.StudioError) {
+        if (error instanceof CourseError || error instanceof studio.StudioError || error instanceof journey.JourneyError) {
           return json({ error: error.message, fields: error.fields, code: error.code }, error.status);
         }
         if (['22P05', '22021'].includes(error.code)) {

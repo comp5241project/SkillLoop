@@ -1,0 +1,254 @@
+{
+  "definition": {
+    "schemaVersion": 1,
+    "caseId": "retry-queue",
+    "caseVersion": 1,
+    "status": "published",
+    "title": "Retry queue backoff",
+    "scenario": "A delivery queue retries failed requests. During an incident, large retry delays kept recovery jobs waiting long after the service became available.",
+    "aiClaim": "The delivery handover claims that exponential delay is capped and invalid attempt counts are rejected.",
+    "requirements": [
+      {
+        "requirementId": "backoff-cap",
+        "text": "Use 100 ms times two to the power of the attempt count, capped at 1,000 ms."
+      },
+      {
+        "requirementId": "attempt-count",
+        "text": "Reject negative and fractional attempt counts. The first retry is attempt zero."
+      }
+    ],
+    "starterCode": "function retryDelay(attempt) {\n  return 100 * 2 ** attempt;\n}",
+    "topicIds": [
+      "edge-cases",
+      "requirements",
+      "software-testing",
+      "code-reading"
+    ],
+    "conceptIds": [
+      "edge-cases",
+      "requirements",
+      "software-testing",
+      "code-reading"
+    ],
+    "publicIssues": [
+      {
+        "issueId": "delay-cap",
+        "title": "Cap the retry delay",
+        "topicIds": [
+          "edge-cases"
+        ],
+        "observed": "The fifth retry is scheduled long beyond the maximum delay.",
+        "suggestedChange": "Keep the growth below the cap and use the cap above it.",
+        "suggestedChecks": [
+          "retry-cap",
+          "ordinary-retry"
+        ]
+      },
+      {
+        "issueId": "invalid-attempt",
+        "title": "Reject invalid attempt counts",
+        "topicIds": [
+          "requirements"
+        ],
+        "observed": "A fractional attempt is accepted.",
+        "suggestedChange": "Require a nonnegative integer.",
+        "suggestedChecks": [
+          "invalid-retry"
+        ]
+      }
+    ],
+    "publicTests": [
+      {
+        "testId": "ordinary-retry",
+        "issueId": null,
+        "action": "Calculate the first retry and the third retry.",
+        "expected": "The delays are 100 ms and 400 ms."
+      },
+      {
+        "testId": "retry-cap",
+        "issueId": "delay-cap",
+        "action": "Calculate delay well above the cap.",
+        "expected": "The delay is 1,000 ms."
+      },
+      {
+        "testId": "invalid-retry",
+        "issueId": "invalid-attempt",
+        "action": "Pass negative and fractional counts.",
+        "expected": "Both inputs are rejected."
+      }
+    ],
+    "capabilities": {
+      "diagnosis": true,
+      "learning": true,
+      "repairDialogue": true,
+      "executableVerification": true
+    }
+  },
+  "diagnosis": {
+    "id": "retry-queue",
+    "title": "Retry queue backoff",
+    "knowledgePoints": [
+      "edge-cases",
+      "requirements",
+      "software-testing",
+      "code-reading"
+    ],
+    "questions": [
+      {
+        "id": "retry-cap-check",
+        "conceptId": "edge-cases",
+        "prompt": "What should happen when a retry produces a raw 1,600 ms delay?",
+        "strength": "Apply the 1,000 ms cap.",
+        "gap": "Trace the ordinary interval and the cap separately.",
+        "options": [
+          {
+            "id": "best",
+            "score": 2,
+            "label": "Apply the 1,000 ms cap",
+            "feedback": "Apply the 1,000 ms cap."
+          },
+          {
+            "id": "partial",
+            "score": 1,
+            "label": "Flag it for manual review",
+            "feedback": "Trace the ordinary interval and the cap separately."
+          },
+          {
+            "id": "off",
+            "score": 0,
+            "label": "Schedule the full 1,600 ms",
+            "feedback": "Trace the ordinary interval and the cap separately."
+          }
+        ]
+      },
+      {
+        "id": "retry-count-check",
+        "conceptId": "requirements",
+        "prompt": "Which retry counts should callers be allowed to pass?",
+        "strength": "Nonnegative integers including zero.",
+        "gap": "Compare attempt zero with invalid negative or fractional counts.",
+        "options": [
+          {
+            "id": "best",
+            "score": 2,
+            "label": "Nonnegative integers including zero",
+            "feedback": "Nonnegative integers including zero."
+          },
+          {
+            "id": "partial",
+            "score": 1,
+            "label": "Positive integers only",
+            "feedback": "Compare attempt zero with invalid negative or fractional counts."
+          },
+          {
+            "id": "off",
+            "score": 0,
+            "label": "Any number",
+            "feedback": "Compare attempt zero with invalid negative or fractional counts."
+          }
+        ]
+      },
+      {
+        "id": "retry-tests",
+        "conceptId": "software-testing",
+        "prompt": "Which tests would verify the queue policy?",
+        "strength": "Ordinary delay, cap and invalid counts.",
+        "gap": "Check expected results at the boundary and for invalid inputs.",
+        "options": [
+          {
+            "id": "best",
+            "score": 2,
+            "label": "Ordinary delay, cap and invalid counts",
+            "feedback": "Ordinary delay, cap and invalid counts."
+          },
+          {
+            "id": "partial",
+            "score": 1,
+            "label": "Ordinary delay only",
+            "feedback": "Check expected results at the boundary and for invalid inputs."
+          },
+          {
+            "id": "off",
+            "score": 0,
+            "label": "A timing screenshot only",
+            "feedback": "Check expected results at the boundary and for invalid inputs."
+          }
+        ]
+      },
+      {
+        "id": "retry-trace",
+        "conceptId": "code-reading",
+        "prompt": "Where does this function enforce the delay cap?",
+        "strength": "It does not cap the computed delay.",
+        "gap": "Trace the return expression without assuming an extra guard.",
+        "options": [
+          {
+            "id": "best",
+            "score": 2,
+            "label": "It does not cap the computed delay",
+            "feedback": "It does not cap the computed delay."
+          },
+          {
+            "id": "partial",
+            "score": 1,
+            "label": "The multiplication sets some limit",
+            "feedback": "Trace the return expression without assuming an extra guard."
+          },
+          {
+            "id": "off",
+            "score": 0,
+            "label": "The exponent enforces the cap",
+            "feedback": "Trace the return expression without assuming an extra guard."
+          }
+        ]
+      }
+    ]
+  },
+  "teaching": {
+    "conceptId": "edge-cases",
+    "targets": [
+      {
+        "questionId": "retry-cap-check",
+        "requirementId": "backoff-cap",
+        "issueId": "delay-cap",
+        "explanation": "Below the maximum, the delay doubles on each retry. Once the raw delay exceeds 1,000 ms, the scheduled delay stays at 1,000 ms. Test ordinary growth separately from the cap.",
+        "excerpt": "return 100 * 2 ** attempt;",
+        "practice": {
+          "prompt": "What delay should be scheduled when the raw delay is 1,600 ms?",
+          "options": [
+            "1,600 ms",
+            "1,000 ms",
+            "Reject the attempt"
+          ],
+          "correct": 1,
+          "followUp": [
+            "Compare the raw delay with the maximum before scheduling.",
+            "Now predict which result should remain unchanged for attempt zero.",
+            "The count may still be valid. Cap the delay instead."
+          ]
+        }
+      },
+      {
+        "questionId": "retry-count-check",
+        "requirementId": "attempt-count",
+        "issueId": "invalid-attempt",
+        "explanation": "The first retry uses attempt zero. Only nonnegative integers represent retry counts. Rounding a fractional count would hide the invalid input.",
+        "excerpt": "return 100 * 2 ** attempt;",
+        "practice": {
+          "prompt": "What should happen for an attempt count of 1.5?",
+          "options": [
+            "Round down",
+            "Schedule normally",
+            "Reject the count"
+          ],
+          "correct": 2,
+          "followUp": [
+            "Rounding would change the caller's request.",
+            "Review the requirement before applying the delay formula.",
+            "Now contrast 1.5 with the valid attempt zero."
+          ]
+        }
+      }
+    ]
+  }
+}

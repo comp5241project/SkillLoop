@@ -23,6 +23,16 @@ function verifiedInventory() {
 
 function hasTrustedRunner(definition) {
   const key = `${definition.caseId}@${definition.caseVersion}`;
+  if (key === 'retry-queue@1') {
+    const file = require.resolve('./m5-retry-runner.cjs');
+    const source = fs.readFileSync(file, 'utf8');
+    if (createHash('sha256').update(source).digest('hex') !== 'f43b94f1e73c440057a71137d66d3dca26e8372cf4491d37ad558e24c3cff42f')
+      throw new Error('Reviewed retry runner source changed');
+    const { level } = require(file);
+    const ids = ['ordinary-retry', 'retry-cap', 'invalid-retry'];
+    return JSON.stringify(level.checks.map((check) => check.testId)) === JSON.stringify(ids) &&
+      JSON.stringify(definition.publicTests.map((test) => test.testId)) === JSON.stringify(ids);
+  }
   const registered = REVIEWED_TEST_IDS[key];
   if (!registered) return false;
   const runner = verifiedInventory()?.[definition.caseId];
@@ -31,4 +41,4 @@ function hasTrustedRunner(definition) {
     JSON.stringify(definition.publicTests.map((test) => test.testId)) === JSON.stringify(registered));
 }
 
-module.exports = { hasTrustedRunner };
+module.exports = { hasTrustedRunner, verifiedInventory };

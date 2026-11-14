@@ -24,7 +24,7 @@ class StudioError extends Error {
   }
 }
 
-function fieldErrors(form, briefOnly = false) {
+function fieldErrors(form, briefOnly = false, source = publicCase()) {
   const fields = {};
   const set = (key, message) => { if (!fields[key]) fields[key] = message; };
   if (!form || typeof form !== 'object' || Array.isArray(form)) {
@@ -44,7 +44,7 @@ function fieldErrors(form, briefOnly = false) {
     set('brief.learnerLevel', 'Choose a learner level.');
   if (typeof brief.constraints !== 'string' || brief.constraints.length > 500)
     set('brief.constraints', 'Constraints must be at most 500 characters.');
-  const allowed = new Set(publicCase().requirements.map((item) => item.requirementId));
+  const allowed = new Set(source.requirements.map((item) => item.requirementId));
   if (!Array.isArray(brief.objectives) || brief.objectives.length < 1 || brief.objectives.length > 3)
     set('brief.objectives', 'Add 1–3 learning objectives.');
   else brief.objectives.forEach((objective, index) => {
@@ -72,7 +72,7 @@ function fieldErrors(form, briefOnly = false) {
       set(`content.objectives[${index}].text`, 'Teaching objective must be 8–240 characters.');
   });
   if (typeof content.codeExample?.excerpt !== 'string' || content.codeExample.excerpt.trim().length < 8 ||
-      !publicCase().starterCode.includes(content.codeExample.excerpt))
+      !source.starterCode.includes(content.codeExample.excerpt))
     set('content.codeExample.excerpt', 'Copy an exact excerpt from the public starter code.');
   if (typeof content.codeExample?.prompt !== 'string' || content.codeExample.prompt.trim().length < 12 ||
       content.codeExample.prompt.length > 400)

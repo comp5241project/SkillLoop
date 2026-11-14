@@ -2,13 +2,13 @@
 const { convertStudentCatalog } = require('./legacy-adapter.cjs');
 const path = require('node:path');
 
-function validateFactualClaims(draft, factPack) {
+function validateFactualClaims(draft, factPack, canonicalCase) {
   const card = draft.publicCard;
   if (card.caseId !== factPack.caseId || card.caseVersion !== factPack.caseVersion ||
       card.conceptId !== factPack.conceptId) throw new Error('Case identity differs from Fact Pack');
   const facts = new Map(factPack.requirements.map(({ requirementId, text }) => [requirementId, text]));
   if (card.requirementRefs.some((id) => !facts.has(id))) throw new Error('Unknown requirement reference');
-  const publicSource = convertStudentCatalog(path.resolve(__dirname, '..'))[factPack.caseId];
+  const publicSource = canonicalCase ?? convertStudentCatalog(path.resolve(__dirname, '..'))[factPack.caseId];
   if (!publicSource || publicSource.starterCode !== factPack.starterCode ||
       !factPack.starterCode.includes(card.codeExample.excerpt)) throw new Error('Unproven public code excerpt');
   const prose = [card.objective, card.explanation, card.codeExample.prompt,

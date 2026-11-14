@@ -1,14 +1,14 @@
 import { isDeepStrictEqual } from 'node:util';
-import { fileURLToPath } from 'node:url';
 import pg from 'pg';
-import adapter from './legacy-adapter.cjs';
 import teacherDraft from './m3-teacher-draft.cjs';
 import studio from './m3-studio-session.cjs';
+import journey from './m5-journey.cjs';
+import caseLibrary from './m5-case-library.cjs';
 
-const { convertStudentCatalog } = adapter;
 const { makeCaseRef, createManualDraft, validateTeacherDraft, draftPreview } = teacherDraft;
 const { fieldErrors } = studio;
-const root = fileURLToPath(new URL('../', import.meta.url));
+const { journeyCase, supportedCourses } = caseLibrary;
+export { supportedCourses };
 export const UUID = /^[\da-f]{8}-[\da-f]{4}-[1-8][\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i;
 
 export class CourseError extends Error {
@@ -20,18 +20,25 @@ export class CourseError extends Error {
   }
 }
 
-export function caseContext() {
+export function caseContext(ref = { caseId: 'cart-checkout', caseVersion: 1, conceptId: 'edge-cases' }) {
+  const source = journeyCase(ref?.caseId, ref?.caseVersion, ref?.conceptId);
+  if (!source) throw new CourseError(404, 'This case and version are not available.');
   const { caseId, caseVersion, title, scenario, aiClaim, requirements, starterCode } =
-    convertStudentCatalog(root)['cart-checkout'];
-  return { caseId, caseVersion, conceptId: 'edge-cases', title, scenario, aiClaim, requirements, starterCode };
+    source.publicCase;
+  return { caseId, caseVersion, conceptId: ref.conceptId, title, scenario, aiClaim, requirements, starterCode };
 }
 
-function canonicalDraft(form, current) {
-  const fields = fieldErrors(form);
+function canonicalDraft(form, current, selectedCase) {
+  const source = caseContext(current?.caseRef ?? selectedCase);
+  const { caseId, caseVersion, conceptId } = source;
+  if (current && selectedCase && (selectedCase.caseId !== caseId ||
+      selectedCase.caseVersion !== caseVersion || selectedCase.conceptId !== conceptId))
+    throw new CourseError(409, 'Start a new draft to select a different case.');
+  const fields = fieldErrors(form, false, source);
   if (Object.keys(fields).length) throw new CourseError(422, 'Correct the highlighted fields.', fields);
   try {
     const draft = createManualDraft({
-      caseRef: makeCaseRef({ caseId: 'cart-checkout', caseVersion: 1, conceptId: 'edge-cases' }),
+      caseRef: makeCaseRef({ caseId, caseVersion, conceptId }),
       brief: form.brief,
       content: form.content,
       ...(current ? { draftId: current.draftId } : {}),
@@ -45,7 +52,7 @@ function canonicalDraft(form, current) {
 
 function snapshot(draft) {
   const { status, ...lesson } = draftPreview(draft);
-  const { title, scenario, aiClaim } = caseContext();
+  const { title, scenario, aiClaim } = caseContext(draft.caseRef);
   return { schemaVersion: 1, ...lesson, context: { title, scenario, aiClaim } };
 }
 
@@ -136,19 +143,20 @@ export function courseStore(pool) {
       const { rows } = await db.query(`select version, snapshot->>'title' as title, draft_revision, published_at
         from skillloop_courses.versions where course_id = $1 order by version desc`, [courseId]);
       const { rows: engagement } = await db.query('select * from skillloop_courses.engagement($1)', [courseId]);
-      return { id: row.id, draft: row.draft, reviewed: row.reviewed_revision === row.draft_revision,
+      const { rows: journeyEngagement } = await db.query('select * from skillloop_courses.journey_engagement($1)', [courseId]);
+      return { id: row.id, draft: row.draft, reviewed: row.reviewed_revision === row.draft_revision, journeyEngagement,
         versions: rows.map(versionSummary), engagement };
     }),
-    save: (actor, courseId, expectedRevision, form) => transaction(actor, 'teacher', async (db) => {
+    save: (actor, courseId, expectedRevision, form, selectedCase) => transaction(actor, 'teacher', async (db) => {
       if (!courseId) {
-        const draft = canonicalDraft(form);
+        const draft = canonicalDraft(form, null, selectedCase);
         const { rows: [row] } = await db.query(`insert into skillloop_courses.courses(owner_id, draft)
           values (skillloop_courses.actor(), $1) returning id`, [draft]);
         return { id: row.id, draft };
       }
       const row = await courseRow(db, courseId, true);
       checkDraft(row, expectedRevision);
-      const draft = canonicalDraft(form, row.draft);
+      const draft = canonicalDraft(form, row.draft, selectedCase);
       if (isDeepStrictEqual(draft.brief, row.draft.brief) && isDeepStrictEqual(draft.content, row.draft.content)) {
         return { id: courseId, draft: row.draft };
       }
@@ -157,7 +165,7 @@ export function courseStore(pool) {
         where id = $1`, [courseId, draft, draft.revision]);
       return { id: courseId, draft };
     }),
-    preview: (actor, form) => transaction(actor, 'teacher', () => snapshot(canonicalDraft(form))),
+    preview: (actor, form, selectedCase) => transaction(actor, 'teacher', () => snapshot(canonicalDraft(form, null, selectedCase))),
     review: (actor, courseId, expectedRevision) => transaction(actor, 'teacher', async (db) => {
       const row = await courseRow(db, courseId, true);
       checkDraft(row, expectedRevision);
@@ -184,6 +192,25 @@ export function courseStore(pool) {
       return { version: release.version, publishedAt: release.published_at };
     }),
     read: (courseId, version) => transaction(null, null, (db) => publishedRow(db, courseId, version)),
+    journey: (actor, courseId, version, stage, mutation) => transaction(actor, 'student', async (db) => {
+      const publication = await publishedRow(db, courseId, version);
+      const item = journey.context(publication);
+      const { rows: [attempt] } = await db.query(`select attempt_id, journey from skillloop_courses.attempts
+        where course_id = $1 and version = $2 and learner_id = skillloop_courses.actor()${mutation ? ' for update' : ''}`,
+      [courseId, version]);
+      if (!attempt || (mutation && attempt.attempt_id !== mutation.attemptId))
+        throw new CourseError(409, 'This exercise is not open under the current account. Sign in to the original account or reopen it.',
+          undefined, 'attempt-mismatch');
+      if (mutation) {
+        if ((attempt.journey.revision || 0) !== mutation.revision)
+          throw new CourseError(409, 'Your learning record changed in another tab. Reopen this stage to continue.');
+        const next = await journey.advance(item, attempt.journey, stage, mutation.input);
+        attempt.journey = { ...next, revision: mutation.revision + 1 };
+        await db.query(`update skillloop_courses.attempts set journey = $4 where course_id = $1 and version = $2
+          and attempt_id = $3 and learner_id = skillloop_courses.actor()`, [courseId, version, attempt.attempt_id, attempt.journey]);
+      }
+      return journey.journeyView(publication, item, attempt, stage);
+    }),
     attempt: (actor, courseId, version) => transaction(actor, 'student', async (db) => {
       await publishedRow(db, courseId, version);
       return attemptRow(db, courseId, version);

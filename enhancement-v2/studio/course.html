@@ -14,7 +14,7 @@
   <header>
     <p class="eyebrow">SkillLoop · Teaching</p>
     <h1>Course Studio</h1>
-    <p>Turn a checkout bug into a lesson students can investigate and practice.</p>
+    <p>Turn a software defect into a lesson students can investigate and practice.</p>
   </header>
   <main>
     <section class="panel" id="course-account" aria-labelledby="account-title">
@@ -41,7 +41,8 @@
       </section>
       <div id="course-work" hidden>
         <section class="panel" aria-labelledby="facts-title">
-          <p class="eyebrow">Case · cart-checkout@1 · Edge cases</p>
+          <label>Case for a new draft <select id="course-case"></select></label>
+          <p class="eyebrow" id="case-identity"></p>
           <h2 id="facts-title"></h2>
           <p id="case-scenario"></p>
           <p id="case-claim"></p>
@@ -52,7 +53,7 @@
         <section class="panel" aria-labelledby="start-title">
           <h2 id="start-title">Choose a teaching focus</h2>
           <p>Start with a blank draft or use a Mock example. Check the teaching material and answer guidance before publishing.</p>
-          <div class="actions">
+          <div class="actions" id="cart-templates">
             <button type="button" id="empty-template" class="secondary">Draft an empty-cart lesson</button>
             <button type="button" id="discount-template" class="secondary">Draft a discount-boundary lesson</button>
           </div>

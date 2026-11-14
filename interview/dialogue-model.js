@@ -57,12 +57,14 @@
   }
   function handoff(session) {
     if (session.pending || !session.messages.some(m=>m.role==='user')) throw Error('Finish a conversation turn first.');
-    const c=session.context.case;
-    if (c.issues.some(i=>!text(session.requests[i.issueId]?.request,1000))) throw Error('Discuss or write a request for each issue before confirming.');
-    return {caseId:c.caseId,aiSource:session.mode,dialogue:{
-      plan:c.issues.map(i=>({issueId:i.issueId,problem:i.observed,changeRequest:session.requests[i.issueId].request,
+    return confirmedRepairPlan(session.context.case, session.requests, session.feedback, session.mode);
+  }
+  function confirmedRepairPlan(c, requests, feedback, mode) {
+    if (c.issues.some(i=>!text(requests[i.issueId]?.request,1000))) throw Error('Discuss or write a request for each issue before confirming.');
+    return {caseId:c.caseId,aiSource:mode,dialogue:{
+      plan:c.issues.map(i=>({issueId:i.issueId,problem:i.observed,changeRequest:requests[i.issueId].request,
         checks:i.suggestedChecks.map(id=>{const t=c.tests.find(t=>t.testId===id); return {testId:id,input:t.action,expected:t.expected};})})),
-      feedback:session.feedback || 'Review the conversation and the requests you confirmed. No tests have run in this dialogue.',confirmed:true}};
+      feedback:feedback || 'Review the conversation and the requests you confirmed. No tests have run in this dialogue.',confirmed:true}};
   }
   function restore(value,catalog) {
     const records=[];
@@ -82,6 +84,6 @@
     }
     return records.slice(-20);
   }
-  const api={input,freshInput,create,validOpening,applyOpening,validTurn,apply,handoff,restore};
+  const api={input,freshInput,create,validOpening,applyOpening,validTurn,apply,handoff,confirmedRepairPlan,restore};
   if(typeof module!=='undefined'&&module.exports) module.exports=api; else root.SkillLoopDialogue=api;
 })(globalThis);

@@ -67,11 +67,15 @@ test('M4 publication runs through HTTP, migrated PostgreSQL and a fresh applicat
 
   for (const path of ['/', '/learning-path/', '/knowledge-map/', '/interview/', '/correction-lab/',
     studioPath + 'course.html', studioPath + 'course/', studioPath + 'learner.html', studioPath + 'learner/', studioPath + 'course.js']) {
-    assert.equal((await fetch(stack.base + path)).status, 200, path);
+    const result = await fetch(stack.base + path);
+    await result.arrayBuffer();
+    assert.equal(result.status, 200, path);
   }
   for (const path of ['/enhancement-v2/m4-courses.mjs', '/enhancement-v2/m3-teacher-draft.cjs',
     '/supabase/migrations/20261114181729_m4_course_publication.sql']) {
-    assert.equal((await fetch(stack.base + path)).status, 404, path);
+    const result = await fetch(stack.base + path);
+    await result.arrayBuffer();
+    assert.equal(result.status, 404, path);
   }
   await expect(call('login', { body: { email: stack.accounts.teacher.email, password: 'wrong' } }), 401);
   await expect(call('save', { body: { courseId: null, form } }), 401);
@@ -121,6 +125,7 @@ test('M4 publication runs through HTTP, migrated PostgreSQL and a fresh applicat
   next.content.title = 'A clearer empty-cart lesson';
   const concurrent = await Promise.all([next, { ...next, content: { ...next.content, title: 'Another lesson title' } }]
     .map((edit) => check('save', reLogged, { ...first, form: edit })));
+  await Promise.all(concurrent.map((result) => result.arrayBuffer()));
   assert.deepEqual(concurrent.map((r) => r.status).sort(), [200, 409]);
   const second = { ...first, revision: 2 };
   await expect(check('publish', reLogged), 409);

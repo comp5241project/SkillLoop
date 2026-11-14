@@ -1,4 +1,5 @@
 (async function () {
+  if (new URLSearchParams(location.search).get('journey') === '1') return;
   const $=id=>document.getElementById(id), M=window.SkillLoopDialogue, app=window.SkillLoop;
   let catalog,available=false,session=null,busy=false,records=[], imported=null;
   const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};

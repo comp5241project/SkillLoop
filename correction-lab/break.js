@@ -7,6 +7,7 @@
  * Test statuses and the outcome always come from the runner, never from the AI.
  */
 (function () {
+  if (new URLSearchParams(location.search).get('journey') === '1') return;
   const app = window.SkillLoop;
   const shared = window.SkillLoopShared;
   const levels = window.SkillLoopLevels;

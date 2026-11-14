@@ -2,7 +2,7 @@
 const path = require('node:path');
 const { createHash, randomUUID } = require('node:crypto');
 const { isDeepStrictEqual } = require('node:util');
-const { convertStudentCatalog, convertEvaluationCatalog } = require('./legacy-adapter.cjs');
+const { convertEvaluationCatalog } = require('./legacy-adapter.cjs');
 const { isControlledMockTeacherAuthor } = require('./m3-mock-author.cjs');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -39,13 +39,9 @@ function stableSerialize(value) {
 }
 
 function publicCaseFor({ caseId, caseVersion, conceptId }) {
-  if (caseId !== 'cart-checkout' || caseVersion !== 1 || conceptId !== 'edge-cases')
-    fail('Unsupported case, version or concept for M3-02');
-  const view = convertStudentCatalog(ROOT)[caseId];
-  if (!view || view.caseId !== caseId || view.caseVersion !== caseVersion ||
-      !view.conceptIds.includes(conceptId) || view.capabilities.learning !== true)
-    fail('Canonical public case is unavailable');
-  return view;
+  const registered = require('./m5-case-library.cjs').journeyCase(caseId, caseVersion, conceptId);
+  if (!registered?.publicCase.capabilities.learning) fail('Unsupported case, version or concept for authoring');
+  return registered.publicCase;
 }
 
 function makeCaseRef(identity = { caseId: 'cart-checkout', caseVersion: 1, conceptId: 'edge-cases' }) {
@@ -129,11 +125,11 @@ function validateContent(content, brief, publicCase) {
   if (!unique(exerciseIds)) fail('Duplicate exerciseId');
   // This narrow check prevents copying the exact reviewed repair into public prose.
   // The private value never enters the Mock provider request or preview object.
-  const referenceCode = convertEvaluationCatalog(ROOT)[publicCase.caseId].referenceCode;
+  const referenceCode = convertEvaluationCatalog(ROOT)[publicCase.caseId]?.referenceCode;
   const publicText = [content.title, content.explanation, content.codeExample.prompt,
     ...content.objectives.map((objective) => objective.text),
     ...content.exercises.flatMap((exercise) => [exercise.prompt, ...exercise.publicHints])];
-  if (publicText.some((value) => value.includes(referenceCode)))
+  if (referenceCode && publicText.some((value) => value.includes(referenceCode)))
     fail('Reference repair cannot appear in public teaching text');
   return content;
 }

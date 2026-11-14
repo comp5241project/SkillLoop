@@ -16,7 +16,7 @@
 | M2 — Dynamic AI learning | NOT STARTED | No A/B teaching-generation experiment yet |
 | M3 — Teacher drafts | NOT STARTED | Legacy teacher functionality does not establish new case editor acceptance |
 | M4 — Persistence and permissions | REVIEW | Local PostgreSQL and real Chrome verified. Independent read-only acceptance pending. |
-| M5 — New case | NOT STARTED | Requires module-owner cooperation and real fixture assessment |
+| M5 — New case and integrated journey | REVIEW | Local implementation verified. Independent read-only review and production gates are pending. |
 
 ## 3. M0 findings (reported; not independently re-tested)
 
@@ -275,6 +275,18 @@
 - Reproduced the original failure before the repair with `node --test tests/m4-browser.mjs` using real Chrome. After repair the same two-tab flow returned `409` with B already started. SQL snapshots of A and B were identical before and after rejection, and the teacher saw **2 started, 0 submitted**. The original tab kept the entered response until the learner explicitly confirmed reopening. Signing back in as A allowed a normal submission, and the teacher then saw **2 started, 1 submitted**.
 - `node --test tests/enhancement-v2-m4-courses.test.mjs` passed **1/1** on real PostgreSQL 18.6. It covered the stale cookie, forged owner and attempt identifiers, wrong versions, unchanged attempt rows and counts, and concurrent same-account retries with no duplicate submission. The existing publication and public-read checks passed. A disposable database upgrade check preserved both pending and submitted legacy rows while assigning distinct IDs, and RLS prevented B from updating A by ID.
 - Real Chrome passed **1/1**, `npm test` passed **282/282**, and `git diff --check` passed. **M4-R1 is ready for focused independent read-only acceptance.** Real Supabase Auth and hosted deployment remain separate verification gates.
+
+### M4-R1 independent acceptance and local checkpoint
+
+- The focused read-only review passed for the local scope. Real Chrome and PostgreSQL showed that switching accounts rejects the stale submission with HTTP 409. The original answer remains available and both learner records stay intact. Returning to the original account allows the original submission. The accepted repair is local commit `4a3cf7b5698b3f603416062204d47374e3ed466e`. The original M4 FAIL above remains part of the record.
+
+### M5 integrated published learning journey — development verification
+
+- A signed-in learner enters Parts 1–4 from an immutable published lesson. The same owned attempt carries the release and canonical case identity through diagnosis, targeted teaching, repair dialogue and approved execution. The teacher sees counts by publication. The current scope supports `cart-checkout@1` and the fourth case, `retry-queue@1`.
+- The local diagnosis uses actual answer selections. Empty-cart and discount answers select distinct requirements and activities. Matching teacher material comes from the pinned release. The service validates supported M2 deterministic templates and uses authored content when a proposal fails. The local option feedback does not satisfy the complete R04 requirement. Live inference remains gated.
+- `npm test` passed static checks and **284/284** tests. The M5 HTTP and real PostgreSQL test verifies both diagnosis paths, ownership, stale writes, publication stability, teacher-private exclusion, stage persistence, an actual failed repair and the later passing repair, and the fourth case. The authored fallback test verifies both a failed provider and an invalid proposal.
+- Real Chrome passed **2/2** across M4 and M5. The M5 run published the fourth case in the teacher UI, traversed the existing four routes for both checkout targets and the retry queue, and read only aggregate activity in the teacher view. Static packaging included the browser client and excluded the new server sources and private inputs.
+- **REVIEW pending separate read-only M5 acceptance.** See [M5 learning journey handoff](M5-LEARNING-JOURNEY.md). The local environment used real PostgreSQL and a Supabase Auth fixture. Real Supabase Auth, hosting, live AI approval and module owner signoff for rollout remain open. M3-05 remains CONDITIONAL PASS and its final closeout reminder is below.
 
 ## 5. Open decisions
 

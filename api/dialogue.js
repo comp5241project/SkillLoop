@@ -1,7 +1,13 @@
 const service=require('../interview/dialogue-server.cjs');
 module.exports=async function handler(req,res) {
   res.setHeader('Cache-Control','no-store');
-  if(req.method==='GET') return res.status(200).json({available:service.configured(),catalog:{cases:service.catalog.cases,topics:service.catalog.topics}});
+  if(req.method==='GET') {
+    const cases = Object.fromEntries(Object.entries(service.catalog.cases).map(([id, item]) => {
+      const { caseId, title, scenario, aiClaim, requirements, topicIds, starterCode, issues, tests } = item;
+      return [id, { caseId, title, scenario, aiClaim, requirements, topicIds, starterCode, issues, tests }];
+    }));
+    return res.status(200).json({available:service.configured(),catalog:{cases,topics:service.catalog.topics}});
+  }
   if(req.method!=='POST') return res.status(405).json({error:'Use GET or POST.'});
   let body,session;
   try {

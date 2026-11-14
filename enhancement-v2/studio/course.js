@@ -2,9 +2,10 @@ let courseId = null;
 let courseReviewed = false;
 let publishedVersions = [];
 let courseActivity = [];
+let journeyActivity = [];
 let busy = false;
 let reviewedPreview = false;
-let caseLoaded = false;
+let availableCases = [];
 
 function updateCourseStatus() {
   $('#editing-state').textContent = dirty ? 'Unsaved edits. Save before reviewing.' :
@@ -23,6 +24,7 @@ function updateCourseStatus() {
   $('#new-course').disabled = busy;
   $('#course-sign-out').disabled = busy;
   $('#save-course').disabled = busy;
+  $('#course-case').disabled = busy || Boolean(courseId);
 }
 
 function action(task, target = '#message') {
@@ -57,15 +59,19 @@ function action(task, target = '#message') {
   };
 }
 
-async function loadCase() {
-  if (caseLoaded) return;
-  ({ case: caseFacts } = await courseRequest('case'));
+const caseIdentity = () => ({ caseId: caseFacts.caseId, caseVersion: caseFacts.caseVersion, conceptId: caseFacts.conceptId });
+
+async function loadCase(ref = availableCases[0]) {
+  const { caseId, caseVersion, conceptId } = ref;
+  ({ case: caseFacts } = await courseRequest('case', { query: { caseId, caseVersion, conceptId } }));
+  $('#course-case').value = caseId;
+  $('#case-identity').textContent = `${caseId}@${caseVersion} · ${conceptId}`;
+  $('#cart-templates').hidden = caseId !== 'cart-checkout';
   $('#facts-title').textContent = caseFacts.title;
   $('#case-scenario').textContent = caseFacts.scenario;
   $('#case-claim').textContent = caseFacts.aiClaim;
   $('#requirements').replaceChildren(...caseFacts.requirements.map(({ text }) => element('li', text)));
   $('#starter-code').textContent = caseFacts.starterCode;
-  caseLoaded = true;
 }
 
 async function refreshCourseList() {
@@ -77,7 +83,7 @@ async function refreshCourseList() {
   }));
   $('#course-list').options[0].value = '';
   $('#course-list').value = courseId || '';
-  $('#course-status').textContent = courses.length ? '' : 'Create your first course from the checkout case.';
+  $('#course-status').textContent = courses.length ? '' : 'Choose a case and create your first draft.';
   updateCourseStatus();
 }
 
@@ -87,6 +93,7 @@ function selectCourse(data) {
   courseReviewed = data?.reviewed ?? false;
   publishedVersions = data?.versions ?? [];
   courseActivity = data?.engagement ?? [];
+  journeyActivity = data?.journeyEngagement ?? [];
   reviewedPreview = false;
   $('#review-confirm').checked = false;
   $('#review-lesson').replaceChildren();
@@ -104,8 +111,11 @@ function selectCourse(data) {
     link.target = '_blank';
     link.rel = 'noopener';
     const activity = courseActivity.find(({ version }) => version === release.version);
+    const journeyCounts = journeyActivity.find(({ version }) => version === release.version);
     item.append(link, element('div', `Draft revision ${release.draftRevision} · ${new Date(release.publishedAt).toLocaleString()}`),
       element('div', `${activity.started} started · ${activity.submitted} submitted`));
+    if (journeyCounts) item.append(element('div',
+      `${journeyCounts.diagnosed} diagnosed · ${journeyCounts.learned} practised · ${journeyCounts.verified} ran verification`));
     releaseList.append(item);
   }
 }
@@ -116,6 +126,7 @@ async function reopen(id, confirm = true) {
     return;
   }
   const data = await courseRequest('open', { query: { course: id } });
+  await loadCase(data.draft.caseRef);
   selectCourse(data);
   $('#course-list').value = courseId;
   $('#course-status').textContent = `Opened ${data.draft.content.title}.`;
@@ -136,7 +147,13 @@ async function account(role, accountId) {
     role ? 'This Studio requires a teacher account. Sign out to switch accounts.' : 'Sign in to open your courses.';
   if (role === 'teacher') {
     try {
-      await loadCase();
+      ({ cases: availableCases } = await courseRequest('cases'));
+      $('#course-case').replaceChildren(...availableCases.map(({ caseId, title }) => {
+        const option = element('option', title);
+        option.value = caseId;
+        return option;
+      }));
+      await loadCase(acceptedDraft?.caseRef);
       await refreshCourseList();
       $('#teacher-workspace').hidden = false;
     } catch (error) {
@@ -172,6 +189,7 @@ $('#course-sign-out').addEventListener('click', action(async () => {
 }, '#account-status'));
 $('#new-course').addEventListener('click', action(async () => {
   if (dirty && !window.confirm('Create a new draft and discard unsaved edits?')) return;
+  await loadCase();
   selectCourse(null);
   $('#course-list').value = '';
   $('#start-title').setAttribute('tabindex', '-1');
@@ -180,6 +198,15 @@ $('#new-course').addEventListener('click', action(async () => {
 $('#open-course').addEventListener('click', action(() => reopen($('#course-list').value), '#course-status'));
 $('#reload-latest').addEventListener('click', action(() => reopen(courseId)));
 $('#course-list').addEventListener('change', updateCourseStatus);
+$('#course-case').addEventListener('change', action(async () => {
+  const ref = availableCases.find(({ caseId }) => caseId === $('#course-case').value);
+  if (dirty && !window.confirm('Change the case and discard the unsaved draft?')) {
+    $('#course-case').value = caseFacts.caseId;
+    return;
+  }
+  await loadCase(ref);
+  renderForm(null);
+}));
 $('#editor').addEventListener('input', () => { reviewedPreview = false; markDirty(); });
 $('#editor').addEventListener('change', markDirty);
 $('#add-objective').addEventListener('click', () => { addObjective(); markDirty(); });
@@ -187,16 +214,17 @@ $('#add-exercise').addEventListener('click', () => { addExercise(); markDirty();
 $('#empty-template').addEventListener('click', action(() => applyTemplate('beginner')));
 $('#discount-template').addEventListener('click', action(() => applyTemplate('intermediate')));
 $('#editor').addEventListener('submit', action(async () => {
-  const saved = await courseRequest('save', { body: { ...revisionRequest(), form: collectForm() } });
+  const saved = await courseRequest('save', { body: { ...revisionRequest(), caseRef: caseIdentity(), form: collectForm() } });
   const sameCourse = saved.id === courseId;
   selectCourse({ ...saved, reviewed: sameCourse && courseReviewed && saved.draft.revision === acceptedDraft?.revision,
-    versions: sameCourse ? publishedVersions : [], engagement: sameCourse ? courseActivity : [] });
+    versions: sameCourse ? publishedVersions : [], engagement: sameCourse ? courseActivity : [],
+    journeyEngagement: sameCourse ? journeyActivity : [] });
   await refreshCourseList();
   $('#message').textContent = `Saved revision ${acceptedDraft.revision}.`;
 }));
 $('#preview-button').addEventListener('click', action(async () => {
   invalidatePreview();
-  const { lesson } = await courseRequest('preview', { body: { form: collectForm() } });
+  const { lesson } = await courseRequest('preview', { body: { caseRef: caseIdentity(), form: collectForm() } });
   renderPreview(lesson);
 }));
 $('#review-course').addEventListener('click', action(async () => {
@@ -205,7 +233,7 @@ $('#review-course').addEventListener('click', action(async () => {
     throw Object.assign(new Error('A newer draft was saved. Reopen it before review.'), { status: 409 });
   }
   const { brief, content } = saved.draft;
-  const { lesson } = await courseRequest('preview', { body: { form: { brief, content } } });
+  const { lesson } = await courseRequest('preview', { body: { caseRef: saved.draft.caseRef, form: { brief, content } } });
   renderLesson($('#review-lesson'), lesson, 4);
   $('#review-title').textContent = `Review revision ${saved.draft.revision} · ${lesson.title}`;
   $('#review-confirm').checked = false;

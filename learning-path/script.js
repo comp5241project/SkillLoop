@@ -1,5 +1,6 @@
 (function () {
   'use strict';
+  if (new URLSearchParams(location.search).get('journey') === '1') return;
 
   const data = window.LearningPathDiagnosisData;
   const model = window.LearningPathDiagnosisModel;

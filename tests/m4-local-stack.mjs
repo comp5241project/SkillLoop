@@ -69,10 +69,15 @@ export async function startM4Stack(t) {
       process.kill();
       await exit;
     }
+    process.stdout.destroy();
+    process.stderr.destroy();
   };
   const close = async () => {
     await closeApp();
-    if (server?.listening) await new Promise((resolve) => server.close(resolve));
+    if (server?.listening) await new Promise((resolve) => {
+      server.close(resolve);
+      server.closeAllConnections();
+    });
     await runtime?.end();
     await admin?.end();
     if (started) await db.stop();
@@ -110,7 +115,7 @@ export async function startM4Stack(t) {
       if (name.endsWith('teacher')) await admin.query("insert into skillloop_roles values ($1, 'teacher')", [account.id]);
     }
     const databaseUrl = `postgres://course_test_login:${password}@127.0.0.1:${port}/postgres`;
-    runtime = new pg.Pool({ connectionString: databaseUrl });
+    runtime = new pg.Pool({ connectionString: databaseUrl, allowExitOnIdle: true });
     server = authFixture(accounts, key);
     server.listen(0, '127.0.0.1');
     await once(server, 'listening');

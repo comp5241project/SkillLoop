@@ -1,4 +1,5 @@
 (function () {
+  if (new URLSearchParams(location.search).get('journey') === '1') return;
   const samples = window.SkillLoopSamples;
   const contract = window.SkillLoopLearningContract;
   const content = window.SkillLoopLearningContent;
