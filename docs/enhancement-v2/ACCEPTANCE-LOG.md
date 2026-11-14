@@ -264,6 +264,18 @@
 - The real Chrome workflow passed at 1360px and 390px. It covered Mock-assisted editing, sign-out and reopen, review, publication, anonymous reading, keyboard hints, learner sign-in and submission, teacher counts, and preserving version 1 after a new edit. The deployment static build check found the expected browser assets and excluded private server files.
 - **REVIEW pending independent read-only acceptance.** See [verification and setup](M4-COURSE-PUBLICATION.md) and [progress](M4-PROGRESS.md). Production stage handoffs remain deferred to M5. M3-05 remains CONDITIONAL PASS with its final closeout reminder below.
 
+### M4 independent read-only acceptance — FAIL
+
+- Reviewed `feature/enhancement-v2` at `181435e327f812df577c899268eec8e930395d26`. Local teacher publication and public reading passed. The independent verdict was **FAIL** because an old Chrome tab could submit Student A's answer after the browser signed in as Student B. The request returned HTTP `200`; PostgreSQL left A's attempt unsubmitted and saved A's answer to B's attempt for the same published version.
+- The authorization evidence used real local PostgreSQL and a loopback Auth fixture. Real Supabase Auth and hosted deployment verification remained open.
+
+### M4-R1 student activity ownership — development verification
+
+- The additive `20261114191820_m4_attempt_identity.sql` migration assigns a unique, persistent UUID to each existing and new attempt. Start and resume return the UUID with the authenticated learner's attempt. Submission and retry match it to the authenticated learner, course and published version in PostgreSQL. A mismatch returns HTTP `409` without revealing another learner's attempt.
+- Reproduced the original failure before the repair with `node --test tests/m4-browser.mjs` using real Chrome. After repair the same two-tab flow returned `409` with B already started. SQL snapshots of A and B were identical before and after rejection, and the teacher saw **2 started, 0 submitted**. The original tab kept the entered response until the learner explicitly confirmed reopening. Signing back in as A allowed a normal submission, and the teacher then saw **2 started, 1 submitted**.
+- `node --test tests/enhancement-v2-m4-courses.test.mjs` passed **1/1** on real PostgreSQL 18.6. It covered the stale cookie, forged owner and attempt identifiers, wrong versions, unchanged attempt rows and counts, and concurrent same-account retries with no duplicate submission. The existing publication and public-read checks passed. A disposable database upgrade check preserved both pending and submitted legacy rows while assigning distinct IDs, and RLS prevented B from updating A by ID.
+- Real Chrome passed **1/1**, `npm test` passed **282/282**, and `git diff --check` passed. **M4-R1 is ready for focused independent read-only acceptance.** Real Supabase Auth and hosted deployment remain separate verification gates.
+
 ## 5. Open decisions
 
 | ID | Decision needed | Default proposal | Status |

@@ -12,10 +12,11 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 export const UUID = /^[\da-f]{8}-[\da-f]{4}-[1-8][\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i;
 
 export class CourseError extends Error {
-  constructor(status, message, fields) {
+  constructor(status, message, fields, code) {
     super(message);
     this.status = status;
     this.fields = fields;
+    this.code = code;
   }
 }
 
@@ -72,10 +73,14 @@ async function publishedRow(db, courseId, version) {
   return { courseId, version: row.version, publishedAt: row.published_at, lesson: row.snapshot };
 }
 
+function attemptView(row) {
+  return { attemptId: row.attempt_id, startedAt: row.started_at, submittedAt: row.submitted_at, responses: row.responses };
+}
+
 async function attemptRow(db, courseId, version) {
-  const { rows: [row] } = await db.query(`select started_at, submitted_at, responses from skillloop_courses.attempts
+  const { rows: [row] } = await db.query(`select attempt_id, started_at, submitted_at, responses from skillloop_courses.attempts
     where course_id = $1 and version = $2 and learner_id = skillloop_courses.actor()`, [courseId, version]);
-  return row ? { startedAt: row.started_at, submittedAt: row.submitted_at, responses: row.responses } : null;
+  return row ? attemptView(row) : null;
 }
 
 function validResponses(responses, lesson) {
@@ -189,17 +194,26 @@ export function courseStore(pool) {
         values ($1, $2, skillloop_courses.actor()) on conflict do nothing`, [courseId, version]);
       return attemptRow(db, courseId, version);
     }),
-    submit: (actor, courseId, version, responses) => transaction(actor, 'student', async (db) => {
+    submit: (actor, courseId, version, attemptId, responses) => transaction(actor, 'student', async (db) => {
       const { lesson } = await publishedRow(db, courseId, version);
       const valid = validResponses(responses, lesson);
-      const result = await db.query(`update skillloop_courses.attempts set responses = $3, submitted_at = now()
-        where course_id = $1 and version = $2 and learner_id = skillloop_courses.actor()
-          and submitted_at is null`, [courseId, version, valid]);
-      const attempt = await attemptRow(db, courseId, version);
-      if (!result.rowCount && !isDeepStrictEqual(attempt?.responses, valid)) {
-        throw new CourseError(409, attempt?.submittedAt ? 'This attempt has already been submitted.' : 'Start practice before submitting.');
+      const binding = [courseId, version, attemptId];
+      const target = 'course_id = $1 and version = $2 and attempt_id = $3 and learner_id = skillloop_courses.actor()';
+      const { rows: [updated] } = await db.query(`update skillloop_courses.attempts
+        set responses = $4, submitted_at = now() where ${target} and submitted_at is null
+        returning attempt_id, started_at, submitted_at, responses`, [...binding, valid]);
+      if (updated) return attemptView(updated);
+
+      const { rows: [existing] } = await db.query(`select attempt_id, started_at, submitted_at, responses
+        from skillloop_courses.attempts where ${target}`, binding);
+      if (!existing) {
+        throw new CourseError(409, 'Your sign-in account or exercise attempt changed. Sign in to the original account or reopen the exercise.',
+          undefined, 'attempt-mismatch');
       }
-      return attempt;
+      if (!isDeepStrictEqual(existing.responses, valid)) {
+        throw new CourseError(409, 'This attempt has already been submitted.');
+      }
+      return attemptView(existing);
     }),
   };
 }

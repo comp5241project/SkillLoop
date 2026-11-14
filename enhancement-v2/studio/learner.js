@@ -8,6 +8,7 @@ let attempt;
 let practiceBusy = false;
 
 function renderPractice() {
+  get('reopen-practice').hidden = true;
   get('learner-sign-in').hidden = Boolean(role);
   get('learner-sign-out').hidden = !role;
   get('start-practice').hidden = role !== 'student' || Boolean(attempt);
@@ -41,7 +42,14 @@ async function learnerAccount(nextRole) {
   renderPractice();
 }
 
-function practiceError(error) {
+function practiceError(error, submitting = false) {
+  if (submitting && (error.code === 'attempt-mismatch' || error.status === 401)) {
+    get('reopen-practice').hidden = false;
+    get('practice-status').textContent = error.status === 401
+      ? 'Sign in to the original account in another tab to retry, or reopen the exercise. Your response is still here.'
+      : error.message;
+    return;
+  }
   if (error.status === 401) {
     role = null;
     attempt = null;
@@ -50,14 +58,14 @@ function practiceError(error) {
   get('practice-status').textContent = error.message;
 }
 
-function practiceAction(task) {
+function practiceAction(task, { submitting = false } = {}) {
   return async (event) => {
     event.preventDefault();
     if (practiceBusy) return;
     practiceBusy = true;
-    const controls = [start, submit, signOut];
+    const controls = [start, submit, signOut, reopen];
     controls.forEach((button) => { button.disabled = true; });
-    try { await task(); } catch (error) { practiceError(error); }
+    try { await task(); } catch (error) { practiceError(error, submitting); }
     finally {
       controls.forEach((button) => { button.disabled = false; });
       practiceBusy = false;
@@ -74,14 +82,22 @@ start.addEventListener('click', practiceAction(async () => {
 const submit = get('submit-practice');
 get('response-form').addEventListener('submit', practiceAction(async () => {
   const responses = Object.fromEntries(new FormData(get('response-form')));
-  ({ attempt } = await courseRequest('submit', { body: { ...identity, responses } }));
+  ({ attempt } = await courseRequest('submit', {
+    body: { ...identity, attemptId: attempt.attemptId, responses },
+  }));
   renderPractice();
-}));
+}, { submitting: true }));
 const signOut = get('learner-sign-out');
 signOut.addEventListener('click', practiceAction(async () => {
   await courseRequest('logout', { body: {} });
   await learnerAccount(null);
 }));
+const reopen = get('reopen-practice');
+reopen.addEventListener('click', () => {
+  if (window.confirm('Reopen the exercise with your current sign-in? Unsaved responses in this tab will be discarded.')) {
+    window.location.reload();
+  }
+});
 
 async function loadLesson() {
   release = await courseRequest('published', { query });

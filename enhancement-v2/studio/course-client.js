@@ -7,7 +7,9 @@ async function courseRequest(op, { query = {}, body } = {}) {
     body: JSON.stringify(body),
   });
   const payload = await response.json();
-  if (!response.ok) throw Object.assign(new Error(payload.error), { status: response.status, fields: payload.fields });
+  if (!response.ok) throw Object.assign(new Error(payload.error), {
+    status: response.status, fields: payload.fields, code: payload.code,
+  });
   return payload;
 }
 

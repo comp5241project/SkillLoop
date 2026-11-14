@@ -69,6 +69,45 @@ test('real Chromium teacher and student publication journey', { timeout: 180000 
   assert.equal(await learner.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await signIn(learner, stack.accounts.student, '#learner-sign-in');
   await learner.getByRole('button', { name: 'Start practice' }).click();
+  const answer = learner.locator('#responses textarea');
+  const unsent = 'This answer was entered by the original student.';
+  await answer.fill(unsent);
+
+  const switchedTab = await learnerContext.newPage();
+  switchedTab.on('pageerror', (error) => errors.push(error.message));
+  await switchedTab.goto(publishedUrl);
+  await switchedTab.getByRole('button', { name: 'Sign out' }).click();
+  await signIn(switchedTab, stack.accounts['other-student'], '#learner-sign-in');
+  await switchedTab.getByRole('button', { name: 'Start practice' }).click();
+  await visible(switchedTab.locator('#responses textarea'));
+
+  const attempts = async () => (await stack.admin.query(`select *
+    from skillloop_courses.attempts where course_id = $1 and version = 1 order by learner_id`,
+  [new URL(publishedUrl).searchParams.get('course')])).rows;
+  const beforeSwitchSubmission = await attempts();
+  assert.equal(beforeSwitchSubmission.length, 2);
+  assert.ok(beforeSwitchSubmission.every((row) => row.submitted_at === null && row.responses === null));
+  const staleResponse = learner.waitForResponse((response) =>
+    new URL(response.url()).searchParams.get('op') === 'submit');
+  await learner.getByRole('button', { name: 'Submit practice' }).click();
+  const staleStatus = (await staleResponse).status();
+  const afterSwitchSubmission = await attempts();
+  assert.equal(staleStatus, 409, `Stale tab submission returned ${staleStatus}; answer saved under new account: ${
+    afterSwitchSubmission.some((row) => row.learner_id === stack.accounts['other-student'].id &&
+      Object.values(row.responses ?? {}).includes(unsent))}`);
+  assert.deepEqual(afterSwitchSubmission, beforeSwitchSubmission);
+  await visible(learner.getByText('Your sign-in account or exercise attempt changed.', { exact: false }));
+  assert.equal(await answer.inputValue(), unsent);
+
+  await teacher.getByRole('button', { name: 'Reopen draft', exact: true }).click();
+  await visible(teacher.getByText('2 started · 0 submitted', { exact: true }));
+  learner.once('dialog', (dialog) => dialog.accept());
+  await learner.getByRole('button', { name: 'Reopen exercise' }).click();
+  await visible(answer);
+  assert.equal(await answer.inputValue(), '');
+  await learner.getByRole('button', { name: 'Sign out' }).click();
+  await signIn(learner, stack.accounts.student, '#learner-sign-in');
+
   await learner.locator('#responses textarea').fill('Test 0, 100, and the values just outside the valid interval.');
   await learner.getByRole('button', { name: 'Submit practice' }).click();
   await visible(learner.getByText('Practice submitted. Your responses are saved to this version.'));
@@ -77,7 +116,7 @@ test('real Chromium teacher and student publication journey', { timeout: 180000 
   assert.match(await learner.locator('#responses textarea').inputValue(), /just outside/);
 
   await teacher.getByRole('button', { name: 'Reopen draft', exact: true }).click();
-  await visible(teacher.getByText('1 started · 1 submitted', { exact: true }));
+  await visible(teacher.getByText('2 started · 1 submitted', { exact: true }));
   await teacher.getByLabel('Title', { exact: true }).fill('Discount boundaries, revised for the next lesson');
   await teacher.getByRole('button', { name: 'Save draft', exact: true }).click();
   await visible(teacher.getByText('Saved revision 2.', { exact: true }));

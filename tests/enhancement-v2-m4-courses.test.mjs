@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import { test } from 'node:test';
 import { startM4Stack } from './m4-local-stack.mjs';
 
@@ -134,16 +135,52 @@ test('M4 publication runs through HTTP, migrated PostgreSQL and a fresh applicat
   await expect(check('start', reLogged, practice), 403);
   await expect(check('start', null, practice), 401);
   await expect(check('start', student, { ...practice, version: 999 }), 404);
-  await expect(check('submit', student, { ...practice, responses }), 409);
+  await expect(check('submit', student, { ...practice, responses }), 400);
+  const mismatch = { error: 'Your sign-in account or exercise attempt changed. Sign in to the original account or reopen the exercise.',
+    code: 'attempt-mismatch' };
+  assert.deepEqual(await expect(check('submit', student, { ...practice, attemptId: randomUUID(), responses }), 409), mismatch);
   const started = await expect(check('start', student, practice));
+  const submission = { ...practice, attemptId: started.attempt.attemptId, responses };
   assert.deepEqual(await expect(check('start', student, practice)), started);
-  await expect(check('submit', student, { ...practice, responses: { extra: 'wrong exercise' } }), 422);
-  const submitted = await expect(check('submit', student, { ...practice, responses }));
-  assert.deepEqual(await expect(check('submit', student, { ...practice, responses })), submitted);
-  await expect(check('submit', student, { ...practice, responses: { 'ex-empty': 'A replacement' } }), 409);
+  assert.deepEqual(await expect(call('attempt', { query, cookie: student })), started);
+
+  // A stale tab sends A's attempt ID and answer while the cookie authenticates B.
+  assert.deepEqual(await expect(check('submit', otherStudent, submission), 409), mismatch);
   assert.deepEqual(await expect(call('attempt', { query, cookie: otherStudent })), { attempt: null });
+  const otherStarted = await expect(check('start', otherStudent, practice));
+  const newer = await expect(check('start', student, { ...practice, version: 2 }));
+  assert.ok(started.attempt.attemptId);
+  assert.equal(new Set([started, otherStarted, newer].map(({ attempt }) => attempt.attemptId)).size, 3);
+  const attemptRows = async () => (await stack.admin.query(`select * from skillloop_courses.attempts
+    where course_id = $1 order by version, learner_id`, [courseId])).rows;
+  const initialRows = await attemptRows();
+  assert.equal(initialRows.length, 3);
+  assert.ok(initialRows.every((row) => row.responses === null && row.submitted_at === null));
+  assert.deepEqual(await expect(check('submit', otherStudent, { ...submission,
+    learnerId: stack.accounts.student.id, ownerId: stack.accounts.student.id }), 409), mismatch);
+  assert.deepEqual(await expect(check('submit', student, { ...submission, attemptId: otherStarted.attempt.attemptId }), 409), mismatch);
+  assert.deepEqual(await expect(check('submit', student, { ...submission, version: 2 }), 409), mismatch);
+  assert.deepEqual(await expect(check('submit', student, { ...submission, attemptId: newer.attempt.attemptId }), 409), mismatch);
+  assert.deepEqual(await attemptRows(), initialRows);
   assert.deepEqual((await expect(open(reLogged))).engagement, [
-    { version: 2, started: 0, submitted: 0 }, { version: 1, started: 1, submitted: 1 },
+    { version: 2, started: 1, submitted: 0 }, { version: 1, started: 2, submitted: 0 },
+  ]);
+
+  await expect(check('submit', student, { ...submission, responses: { extra: 'wrong exercise' } }), 422);
+  const [submitted, retried] = await Promise.all([
+    expect(check('submit', student, submission)),
+    expect(check('submit', student, submission)),
+  ]);
+  assert.equal(submitted.attempt.attemptId, started.attempt.attemptId);
+  assert.deepEqual(submitted.attempt.responses, responses);
+  assert.ok(submitted.attempt.submittedAt);
+  assert.deepEqual(retried, submitted);
+  await expect(check('submit', student, { ...submission, responses: { 'ex-empty': 'A replacement' } }), 409);
+  // Retrying A's submitted attempt as B cannot return A's stored answer.
+  assert.deepEqual(await expect(check('submit', otherStudent, submission), 409), mismatch);
+  assert.deepEqual(await expect(call('attempt', { query, cookie: otherStudent })), otherStarted);
+  assert.deepEqual((await expect(open(reLogged))).engagement, [
+    { version: 2, started: 1, submitted: 0 }, { version: 1, started: 2, submitted: 1 },
   ]);
 
   await stack.restartApp();

@@ -30,6 +30,13 @@ function id(value) {
   return value;
 }
 
+function practiceAttemptId(value) {
+  if (typeof value !== 'string' || !UUID.test(value)) {
+    throw new CourseError(400, 'Reopen the exercise to load a valid practice attempt.');
+  }
+  return value;
+}
+
 async function input(request) {
   if (request.headers.get('x-skillloop-course') !== '1' ||
       request.headers.get('origin') !== new URL(request.url).origin) {
@@ -133,13 +140,17 @@ export function createCourseApi({ getStore = createConfiguredStore, getAuth = su
         }
         if ((get && op === 'attempt') || (post && ['start', 'submit'].includes(op))) {
           const params = get ? { courseId: query.get('course'), version: query.get('version') } : data;
-          const attempt = await database()[op](actor, id(params.courseId), positive(params.version, 'version'), data.responses);
+          const courseId = id(params.courseId);
+          const version = positive(params.version, 'version');
+          const attempt = op === 'submit'
+            ? await database().submit(actor, courseId, version, practiceAttemptId(data.attemptId), data.responses)
+            : await database()[op](actor, courseId, version);
           return json({ attempt });
         }
         throw new CourseError(404, 'Course action unavailable.');
       } catch (error) {
         if (error instanceof CourseError || error instanceof studio.StudioError) {
-          return json({ error: error.message, fields: error.fields }, error.status);
+          return json({ error: error.message, fields: error.fields, code: error.code }, error.status);
         }
         if (['22P05', '22021'].includes(error.code)) {
           return json({ error: 'Remove unsupported characters and try again.' }, 422);
