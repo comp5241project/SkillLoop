@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { AIError } from '../server/ai.mjs';
 import { generate, validateFeedback, validateReflection, validateRequest, buildPrompt } from './learning-server.mjs';
 import { handleLearningRequest } from './learning-api.mjs';
+import route from '../api/knowledge-learning.mjs';
 const require = createRequire(import.meta.url);
 const cases = require('./learning-part1-cases.js');
 const priorities = { 'cart-checkout': ['requirements'], 'quiz-permissions': ['communication'], 'notes-save': ['edge-cases'] };
@@ -15,6 +16,28 @@ const request = (id, action = 'feedback') => ({ action, input: structuredClone(i
   answer: action === 'feedback' ? 'I would check the actual result against the case brief.' : null,
   observations: action === 'feedback' ? null : priorities[id].map((topicId) =>
     ({ topicId, judgment: 'incomplete', needsPractice: true, practiceFocus: 'Check the actual behavior.' })) });
+
+test('deployed fetch entry ignores runtime context instead of treating it as the AI function', async () => {
+  const keys = ['AI_API_KEY', 'AI_BASE_URL', 'AI_MODEL'];
+  const saved = Object.fromEntries(keys.map(k => [k, process.env[k]]));
+  const fetchBefore = globalThis.fetch;
+  Object.assign(process.env, { AI_API_KEY: 'test-only', AI_BASE_URL: 'https://example.invalid/v1', AI_MODEL: 'test-model' });
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    return Response.json({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ judgment: 'incomplete', explanation: 'Check the boundary.', followUp: null, needsPractice: true, practiceFocus: 'Test an invalid quantity.' }) } }] });
+  };
+  try {
+    const req = new Request('https://example.invalid/api/knowledge-learning', { method: 'POST', body: JSON.stringify(request('cart-checkout')), headers: { 'Content-Type': 'application/json' } });
+    const response = await route.fetch(req, { waitUntil() {} });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).result.aiSource, 'api');
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = fetchBefore;
+    for (const k of keys) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
+  }
+});
 
 for (const id of Object.keys(cases)) test(`${id}: prompt carries Part 1 case, dimension and next steps`, async () => {
   const body = request(id);
