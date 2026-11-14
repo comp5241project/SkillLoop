@@ -299,6 +299,13 @@
 - Stale revision, wrong learner and wrong publication writes returned `409` with unchanged records. Two guidance requests at the same revision returned one `200` and one `409`. PostgreSQL recorded one additional dialogue turn.
 - At the accepted code checkpoint, M5 targeted tests passed **2/2**, M4 learner ownership passed **1/1**, real Chrome passed **2/2**, `npm test` passed **284/284**, and `git diff --check` passed. M5 is accepted for the documented local `cart-checkout@1` and `retry-queue@1` journey. Real Supabase Auth, hosted database policies and hosted deployment still need verification. Live AI integration and full R04 adaptive follow-up remain deferred.
 
+### M3-05 final independent real-browser acceptance — PASS (LOCAL)
+
+- Independently verified on `feature/enhancement-v2` at `c8a6a95c7af6e416e8777d282af3b4a862b0604a`, using Chrome `157.0.8103.52`, an isolated loopback Studio server and a temporary browser session. The earlier **CONDITIONAL PASS** remains the historical verdict for the HTTP and simulated DOM review.
+- The manual empty-cart lesson was saved and previewed with its public objectives, requirements, explanation, code activity, exercise and hints. The discount Mock Proposal was explicitly adopted, and its explanation and exercise were edited. Reopening the checkpoint and importing the downloaded private JSON independently restored the same edited public preview.
+- The student preview response and DOM excluded teacher-only answers. The preview showed **Student-facing draft preview — not published**, focused its heading, and exposed hints through Tab and Enter. HTML-like input rendered as inert text. Both lessons fit `1360 × 900` and `390 × 844` without horizontal overflow. The preview had no publication controls, and `/api/publish` returned `404`.
+- Editing, reopening a checkpoint and importing cleared the visible preview. A delayed preview response remained discarded after editing and reverting the input. The three targeted M3 test files passed **36/36** and `git diff --check` passed. The independent browser checklist is complete for M3-05.
+
 ## 5. Open decisions
 
 | ID | Decision needed | Default proposal | Status |
@@ -352,15 +359,15 @@
 - [ ] Teacher review, publication and version behavior verified.
 - [ ] New cases without execution fixtures labeled correctly.
 - [ ] Reviewer, commit, PR and known limitations recorded.
-- [ ] FINAL PROJECT CLOSEOUT: Complete M3-05 real-browser acceptance, including manual and Mock-assisted lesson preview, private-answer exclusion, focus behavior, expandable hints, responsive layout and restored content.
+- [x] FINAL PROJECT CLOSEOUT — M3-05 independent real-browser acceptance passed. See the final M3-05 entry above.
 
 ## 9. Final project closeout inventory
 
 Use the [PRD](PRD.md), [implementation gates](IMPLEMENTATION-PLAN.md), and the evidence above when recording closeout. The COMP5241 Week 1 course information (slides 3–4) lists a tentative project weight of 13% and presentations in weeks 12 and 13. The project handoff identifies personalized GenAI teaching, teacher manual and AI-assisted authoring, course and participation management, and self-study pathways as course directions. Confirm the current project-specific rubric, allocated slot, deadline and submission format from the course brief or LMS.
 
-### Required unfinished acceptance
+### Required acceptance
 
-- [ ] **First action — M3-05 independent real-Chrome acceptance.** Run `npm run dev:m3-studio` on loopback, using an unused `M3_STUDIO_PORT` if needed. Replay the manual empty-cart lesson and the edited Mock-assisted discount lesson, including checkpoint or JSON restore. Record the commit, Chrome version, desktop and narrow viewport sizes, steps and screenshots. Verify focus moves to the draft preview, public hints expand by keyboard, requirements and content match the restored form, and teacher-only answers are absent from the student projection and preview DOM. The local Mock replay needs no cloud credentials or paid AI. Record the verdict after the replay. M3-05 is currently **CONDITIONAL PASS**. [Studio walkthrough](M3-TEACHER-STUDIO.md)
+- [x] **M3-05 independent real-Chrome acceptance passed.** The final entry above records both lesson paths, both restore paths, privacy, keyboard interaction, responsive layout and stale preview rejection. [Studio walkthrough](M3-TEACHER-STUDIO.md)
 - [ ] **Teaching-quality review pending.** Have two independent reviewers apply the existing eight-dimension rubric to the retained A, B, paraphrase and authored comparisons. Keep evidence and adjudicated scores private. Record the distinction between engineering validation and evidence of teaching benefit. This review can use the retained samples. [Teaching evaluation protocol](M2-TEACHING-DESIGN.md)
 - [ ] **Four module-owner sign-offs pending.** Record each owner's approval of the shared case/version handoffs, declared runner coverage and legacy behavior, tied to the reviewed commit. [Case contract](CASE-CONTRACT.md)
 
