@@ -148,6 +148,7 @@ function validateDraftAndGetPublicCase(draft) {
         (p.origin === 'mock-proposal' && UUID.test(p.proposalId) && p.templateVersion === TEMPLATE_VERSION &&
           adoptedMockDrafts.get(draft.draftId) === p.proposalId) ||
         (p.origin === 'unverified-provider' && UUID.test(p.proposalId) && p.templateVersion === null) ||
+        (p.origin === 'ai-assisted' && UUID.test(p.proposalId) && p.templateVersion === null) ||
         (p.origin === 'imported' && p.proposalId === null && p.templateVersion === null)))
     fail('Invalid draft provenance');
   return publicCase;

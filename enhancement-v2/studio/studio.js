@@ -204,7 +204,8 @@ function replacementSummary(proposal) {
   const changed = labels.filter(([path]) => JSON.stringify(at(current, path)) !==
     JSON.stringify(at(desired, path))).map(([, label]) => label);
   return changed.length ? `Will replace: ${changed.join(', ')}.` :
-    'The proposed fields currently match the form; accepting still replaces the local draft snapshot.';
+    courseMode ? 'The proposed fields currently match the form.' :
+      'The proposed fields currently match the form; accepting still replaces the local draft snapshot.';
 }
 function renderProposal(proposal) {
   shownProposal = proposal;
@@ -218,7 +219,8 @@ function renderProposal(proposal) {
   section(host, 'Explanation', proposal.explanation);
   section(host, 'Code observation', `${proposal.codeExample.excerpt}\n${proposal.codeExample.prompt}`, 'pre');
   for (const exercise of proposal.exercises) {
-    section(host, `Exercise · ${exercise.exerciseId}`, exercise.prompt);
+    section(host, `Exercise · ${exercise.exerciseId}`, courseMode
+      ? `${exercise.prompt} [${exercise.requirementIds.join(', ')}]` : exercise.prompt);
     section(host, 'Public hints', exercise.publicHints.join('\n'));
     section(host, 'Teacher-only answer guidance', exercise.teacherAnswerGuidance.join('\n'));
   }

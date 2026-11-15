@@ -6,6 +6,9 @@ let journeyActivity = [];
 let busy = false;
 let reviewedPreview = false;
 let availableCases = [];
+let aiProposal = null;
+let aiReceipt = null;
+let usingMock = false;
 
 function updateCourseStatus() {
   $('#editing-state').textContent = dirty ? 'Unsaved edits. Save before reviewing.' :
@@ -25,6 +28,9 @@ function updateCourseStatus() {
   $('#course-sign-out').disabled = busy;
   $('#save-course').disabled = busy;
   $('#course-case').disabled = busy || Boolean(courseId);
+  $('#generate-ai').disabled = busy;
+  $('#material-source').textContent = usingMock ? 'Source · Mock example' :
+    aiReceipt || acceptedDraft?.provenance.origin === 'ai-assisted' ? 'Source · AI-assisted' : 'Source · Teacher-authored';
 }
 
 function action(task, target = '#message') {
@@ -45,6 +51,7 @@ function action(task, target = '#message') {
         $('#reload-latest').hidden = false;
       }
       if (error.status === 401) {
+        clearAiProposal();
         $('#course-sign-in').hidden = false;
         $('#course-sign-out').hidden = true;
         $('#account-status').textContent = 'Your session expired. Sign in again to continue.';
@@ -64,9 +71,10 @@ const caseIdentity = () => ({ caseId: caseFacts.caseId, caseVersion: caseFacts.c
 async function loadCase(ref = availableCases[0]) {
   const { caseId, caseVersion, conceptId } = ref;
   ({ case: caseFacts } = await courseRequest('case', { query: { caseId, caseVersion, conceptId } }));
+  clearAiProposal();
   $('#course-case').value = caseId;
   $('#case-identity').textContent = `${caseId}@${caseVersion} · ${conceptId}`;
-  $('#cart-templates').hidden = caseId !== 'cart-checkout';
+  $('#cart-templates').hidden = caseId !== 'cart-checkout' || caseVersion !== 1 || conceptId !== 'edge-cases';
   $('#facts-title').textContent = caseFacts.title;
   $('#case-scenario').textContent = caseFacts.scenario;
   $('#case-claim').textContent = caseFacts.aiClaim;
@@ -88,6 +96,9 @@ async function refreshCourseList() {
 }
 
 function selectCourse(data) {
+  clearAiProposal();
+  aiReceipt = null;
+  usingMock = false;
   courseId = data?.id ?? null;
   acceptedDraft = data?.draft ?? null;
   courseReviewed = data?.reviewed ?? false;
@@ -136,7 +147,7 @@ let signedInAccount = null;
 
 async function account(role, accountId) {
   if (signedInAccount && signedInAccount !== accountId) {
-    selectCourse(null);
+    if (caseFacts) selectCourse(null);
     $('#course-work').hidden = true;
   }
   signedInAccount = accountId || null;
@@ -164,7 +175,31 @@ async function account(role, accountId) {
 
 const revisionRequest = () => ({ courseId, revision: acceptedDraft?.revision ?? null, confirm: true });
 
+function clearAiProposal() {
+  aiProposal = null;
+  renderProposal(null);
+  $('#ai-status').textContent = '';
+}
+
+async function generateAiProposal() {
+  const { brief } = collectForm();
+  $('#ai-status').textContent = 'Generating and checking the AI proposal…';
+  try {
+    const { proposal } = await courseRequest('generate', { body: {
+      ...revisionRequest(), caseRef: caseIdentity(), brief,
+    } });
+    aiProposal = proposal;
+    renderProposal({ ...proposal.content, brief: proposal.brief, source: 'AI-generated' });
+    $('#ai-status').textContent = 'AI proposal ready for review.';
+    return true;
+  } catch (error) {
+    $('#ai-status').textContent = error.message;
+    throw error;
+  }
+}
+
 async function applyTemplate(level) {
+  if ($('#cart-templates').hidden) return;
   if (dirty && !window.confirm('Replace the current form with the Mock example?')) return;
   const beginner = level === 'beginner';
   const brief = { topic: beginner ? 'Empty cart and numeric averages' : 'Discount boundary validation',
@@ -174,6 +209,9 @@ async function applyTemplate(level) {
       requirementIds: [beginner ? 'empty-cart' : 'discount'] }] };
   const { proposal } = await courseRequest('mock', { body: { brief } });
   const { title, objectives, explanation, codeExample, exercises } = proposal;
+  clearAiProposal();
+  aiReceipt = null;
+  usingMock = true;
   renderForm({ brief, content: { title, objectives, explanation, codeExample, exercises } });
   reviewedPreview = false;
   markDirty();
@@ -200,11 +238,13 @@ $('#reload-latest').addEventListener('click', action(() => reopen(courseId)));
 $('#course-list').addEventListener('change', updateCourseStatus);
 $('#course-case').addEventListener('change', action(async () => {
   const ref = availableCases.find(({ caseId }) => caseId === $('#course-case').value);
+  $('#course-case').value = caseFacts.caseId;
   if (dirty && !window.confirm('Change the case and discard the unsaved draft?')) {
-    $('#course-case').value = caseFacts.caseId;
     return;
   }
   await loadCase(ref);
+  aiReceipt = null;
+  usingMock = false;
   renderForm(null);
 }));
 $('#editor').addEventListener('input', () => { reviewedPreview = false; markDirty(); });
@@ -213,8 +253,39 @@ $('#add-objective').addEventListener('click', () => { addObjective(); markDirty(
 $('#add-exercise').addEventListener('click', () => { addExercise(); markDirty(); });
 $('#empty-template').addEventListener('click', action(() => applyTemplate('beginner')));
 $('#discount-template').addEventListener('click', action(() => applyTemplate('intermediate')));
+$('#generate-ai').addEventListener('click', async (event) => {
+  let ready = false;
+  await action(async () => { ready = await generateAiProposal(); })(event);
+  if (ready) $('#ai-proposal-title').focus();
+});
+$('#discard-ai').addEventListener('click', () => {
+  clearAiProposal();
+  $('#ai-status').textContent = 'AI proposal discarded.';
+  $('#generate-ai').focus();
+});
+$('#accept-ai').addEventListener('click', () => {
+  if (!aiProposal || (dirty && !window.confirm('Replace the current form material with this AI proposal?'))) return;
+  const { brief, content, receipt } = aiProposal;
+  const currentBrief = collectForm().brief;
+  if (JSON.stringify(currentBrief) !== JSON.stringify(brief)) {
+    $('#ai-status').textContent = 'The teaching brief changed. Generate another proposal for the current brief.';
+    return;
+  }
+  clearAiProposal();
+  aiReceipt = receipt;
+  usingMock = false;
+  renderForm({ brief, content });
+  reviewedPreview = false;
+  markDirty();
+  $('#ai-status').textContent = 'AI proposal added to the form. Edit or save the material to continue.';
+  $('#title').focus();
+});
 $('#editor').addEventListener('submit', action(async () => {
-  const saved = await courseRequest('save', { body: { ...revisionRequest(), caseRef: caseIdentity(), form: collectForm() } });
+  const saved = await courseRequest('save', { body: {
+    ...revisionRequest(), caseRef: caseIdentity(), form: collectForm(),
+    ...(aiReceipt ? { aiReceipt } : {}),
+    ...(usingMock ? { replaceWithMock: true } : {}),
+  } });
   const sameCourse = saved.id === courseId;
   selectCourse({ ...saved, reviewed: sameCourse && courseReviewed && saved.draft.revision === acceptedDraft?.revision,
     versions: sameCourse ? publishedVersions : [], engagement: sameCourse ? courseActivity : [],

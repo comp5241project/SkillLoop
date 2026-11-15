@@ -28,7 +28,7 @@ export function caseContext(ref = { caseId: 'cart-checkout', caseVersion: 1, con
   return { caseId, caseVersion, conceptId: ref.conceptId, title, scenario, aiClaim, requirements, starterCode };
 }
 
-function canonicalDraft(form, current, selectedCase) {
+function canonicalDraft(form, current, selectedCase, provenance) {
   const source = caseContext(current?.caseRef ?? selectedCase);
   const { caseId, caseVersion, conceptId } = source;
   if (current && selectedCase && (selectedCase.caseId !== caseId ||
@@ -43,6 +43,9 @@ function canonicalDraft(form, current, selectedCase) {
       content: form.content,
       ...(current ? { draftId: current.draftId } : {}),
     });
+    if (provenance || current?.provenance.origin === 'ai-assisted') {
+      draft.provenance = provenance ?? current.provenance;
+    }
     if (current) draft.revision = current.revision + 1;
     return validateTeacherDraft(draft);
   } catch (error) {
@@ -147,17 +150,18 @@ export function courseStore(pool) {
       return { id: row.id, draft: row.draft, reviewed: row.reviewed_revision === row.draft_revision, journeyEngagement,
         versions: rows.map(versionSummary), engagement };
     }),
-    save: (actor, courseId, expectedRevision, form, selectedCase) => transaction(actor, 'teacher', async (db) => {
+    save: (actor, courseId, expectedRevision, form, selectedCase, provenance) => transaction(actor, 'teacher', async (db) => {
       if (!courseId) {
-        const draft = canonicalDraft(form, null, selectedCase);
+        const draft = canonicalDraft(form, null, selectedCase, provenance);
         const { rows: [row] } = await db.query(`insert into skillloop_courses.courses(owner_id, draft)
           values (skillloop_courses.actor(), $1) returning id`, [draft]);
         return { id: row.id, draft };
       }
       const row = await courseRow(db, courseId, true);
       checkDraft(row, expectedRevision);
-      const draft = canonicalDraft(form, row.draft, selectedCase);
-      if (isDeepStrictEqual(draft.brief, row.draft.brief) && isDeepStrictEqual(draft.content, row.draft.content)) {
+      const draft = canonicalDraft(form, row.draft, selectedCase, provenance);
+      if (isDeepStrictEqual(draft.brief, row.draft.brief) && isDeepStrictEqual(draft.content, row.draft.content) &&
+          isDeepStrictEqual(draft.provenance, row.draft.provenance)) {
         return { id: courseId, draft: row.draft };
       }
       await db.query(`update skillloop_courses.courses set draft = $2, draft_revision = $3,

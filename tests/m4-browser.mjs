@@ -28,6 +28,11 @@ test('real Chromium teacher and student publication journey', { timeout: 180000 
   }
 
   await teacher.goto(stack.base + '/enhancement-v2/studio/course/');
+  await signIn(teacher, stack.accounts.student, '#course-sign-in');
+  await visible(teacher.getByText('This Studio requires a teacher account. Sign out to switch accounts.'));
+  assert.equal(await teacher.locator('#teacher-workspace').isVisible(), false);
+  await teacher.getByRole('button', { name: 'Sign out' }).click();
+  await visible(teacher.getByText('Sign in to open your courses.'));
   await signIn(teacher, stack.accounts.teacher, '#course-sign-in');
   await teacher.getByRole('button', { name: 'New draft' }).click();
   await visible(teacher.getByRole('heading', { name: 'Choose a teaching focus' }));

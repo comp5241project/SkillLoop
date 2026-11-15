@@ -53,6 +53,7 @@ Work in an isolated worktree and `feature/enhancement-v2` (or another approved n
 - M3-03: Edit explanations, exercises and references; validate and preview.
 - M3-04: Handle draft revisions and conflict UX.
 - M3-05: Clearly label `Draft preview only` until M4 real publishing is complete.
+- M3-06 (R07): Use the selected case version and teaching brief to generate a validated AI proposal. Keep generation, adoption, saving, approval and publishing as separate actions. Deterministic implementation verification and independent live-model acceptance are separate gates. See [R07 acceptance procedure](#r07-live-model-acceptance).
 
 ### M4 — Persistent publishing and access
 
@@ -94,3 +95,65 @@ G0: PRD and M0 accepted. G1: Case contract and module owners approve. G2: AI tea
 ## 7. Immediate next action
 
 Have Codex review these four files against the actual repository and propose M1-01/M1-02 decisions and schema. **Do not authorize coding yet.**
+
+## R07 live-model acceptance
+
+Use an isolated local course stack with the existing schema and teacher/student accounts. See [local environment setup](M4-COURSE-PUBLICATION.md). Configure the shared server-only `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` in the local environment. Select a provider and model that support the existing Chat Completions client and JSON text output. For providers that support it, use `AI_ENABLE_THINKING=false` if needed to keep response time within the per-call deadline. Start the app with `npm run dev`. Do not load the deterministic test preload for this run.
+
+1. In Course Studio, sign in as a teacher. For `cart-checkout@1 / edge-cases`, choose `empty-cart` and ask for a beginner lesson that traces both operands and distinguishes starter behavior from the required result. For `retry-queue@1 / edge-cases`, choose `backoff-cap` and ask for a beginner lesson focused on a concrete attempt at the cap boundary. Enter a clear constraint on each brief and use only teaching material suitable for the configured provider.
+2. Click **Generate draft with AI** once per brief. In the browser network panel, record the duration and status of `POST /api/courses/?op=generate`. Check each proposal for correct facts, exact starter code, appropriate learner level and constraint, matching requirement IDs, useful hints and separate teacher guidance. Count only proposals that pass both API and teacher checks. Record failures separately and include them in the denominator.
+3. Discard a proposal and verify the form is intact. Generate again if needed, accept explicitly, edit and save, then verify the revision still requires Review and Approve before publishing. Check the student preview and immutable version link for absence of teacher guidance. Use a disposable lesson for the publication check.
+4. Append the provider, configured model, attempts, accepted proposals, success rate, end-to-end latency per attempt and total actual billed cost with currency to the acceptance log. Use the provider's usage dashboard or billing records, preferably with a key dedicated to the run. Each structurally valid candidate uses a second inference call to review it. Include charges for retries, rejected proposals and checks. Record unavailable cost as unknown. Keep API keys, raw Auth tokens, proposal receipts and private prompt data out of the evidence.
+
+### R07 API example
+
+`POST /api/courses/?op=generate` uses the existing `sl_course_access` HttpOnly session cookie, same-origin JSON requests with `X-SkillLoop-Course: 1`, and the server-side teacher role check. Use `courseId: null` and `revision: null` for a new course. For an existing course, supply its ID and saved revision. The server checks ownership, revision and case binding before inference. The browser uses `op=save` only after explicit adoption, with the editable form and a signed `aiReceipt`.
+
+Illustrative request for a new course:
+
+```json
+{
+  "courseId": null,
+  "revision": null,
+  "caseRef": { "caseId": "retry-queue", "caseVersion": 1, "conceptId": "edge-cases" },
+  "brief": {
+    "topic": "Trace the retry backoff cap",
+    "learnerLevel": "beginner",
+    "constraints": "Use a concrete trace for attempt four.",
+    "objectives": [{
+      "objectiveId": "obj-trace",
+      "text": "Explain how the delay cap affects attempt four.",
+      "requirementIds": ["backoff-cap"]
+    }]
+  }
+}
+```
+
+The teacher-only response has one `proposal` with `proposalId`, the canonical `caseRef` and its digest, the original `brief`, `content`, `provenance.origin: "ai-assisted"` and a signed `receipt`. Illustrative `proposal.content`:
+
+```json
+{
+  "title": "Trace the retry backoff cap",
+  "objectives": [{
+    "objectiveId": "obj-trace",
+    "text": "Compare the starter delay at attempt four with the required cap.",
+    "requirementIds": ["backoff-cap"]
+  }],
+  "explanation": "At attempt four the starter computes 1600 ms. The requirement caps the delay at 1000 ms.",
+  "codeExample": {
+    "kind": "trace",
+    "excerpt": "return 100 * 2 ** attempt;",
+    "prompt": "Trace the expression at attempt four. Which result does the requirement permit?"
+  },
+  "exercises": [{
+    "exerciseId": "ex-trace",
+    "kind": "short-answer",
+    "requirementIds": ["backoff-cap"],
+    "prompt": "Write the starter result and the expected result for attempt four.",
+    "publicHints": ["Compare the calculated delay with the published cap."],
+    "teacherAnswerGuidance": ["Award credit for stating 1600 ms from the starter and 1000 ms after applying the cap."]
+  }]
+}
+```
+
+The teacher's explicit save persists AI-assisted origin in the private draft. A signed receipt expires after 24 hours or when the model API key rotates. An expired receipt can be replaced by generating and accepting a new proposal. The student projection drops private guidance and provenance. Review the free-text teaching quality before publication, since an automated semantic check can miss errors or reject a valid lesson. Hosted acceptance needs working course authentication and database policies, server-only provider configuration, function execution time for two sequential 25-second model-call deadlines plus application overhead, and provider spending controls.

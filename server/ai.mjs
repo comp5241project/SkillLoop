@@ -12,7 +12,7 @@ export class AIError extends Error {
 const fail = (code, message) => { throw new AIError(code, message); };
 
 export function createAIClient({ env = process.env, fetchImpl = globalThis.fetch, timeoutMs = 45000 } = {}) {
-  async function callAI({ system, messages, maxTokens = 1500, temperature } = {}) {
+  async function callAI({ system, messages, maxTokens = 1500, temperature, openRouterJson = false } = {}) {
     if (typeof window !== 'undefined') fail('SERVER_ONLY', 'AI calls belong on the server.');
     const key = env.AI_API_KEY?.trim();
     const model = env.AI_MODEL?.trim();
@@ -31,7 +31,10 @@ export function createAIClient({ env = process.env, fetchImpl = globalThis.fetch
     if (temperature !== undefined && (!Number.isFinite(temperature) || temperature < 0 || temperature > 2)) fail('INVALID_INPUT', 'Invalid temperature.');
     const body = { model, messages: [{ role: 'system', content: system }, ...messages.map(({role, content}) => ({role, content}))], stream: false, max_tokens: maxTokens };
     if (temperature !== undefined) body.temperature = temperature;
-    if (env.AI_ENABLE_THINKING !== undefined && env.AI_ENABLE_THINKING !== '') {
+    if (openRouterJson && base.origin === 'https://openrouter.ai') {
+      body.reasoning = { enabled: false };
+      body.response_format = { type: 'json_object' };
+    } else if (env.AI_ENABLE_THINKING !== undefined && env.AI_ENABLE_THINKING !== '') {
       if (!['true', 'false'].includes(env.AI_ENABLE_THINKING)) fail('NOT_CONFIGURED', 'AI_ENABLE_THINKING must be true or false.');
       body.enable_thinking = env.AI_ENABLE_THINKING === 'true';
     }

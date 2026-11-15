@@ -1,6 +1,7 @@
 import { CourseError, UUID, caseContext, createConfiguredStore, supportedCourses } from '../enhancement-v2/m4-courses.mjs';
 import journey from '../enhancement-v2/m5-journey.cjs';
 import studio from '../enhancement-v2/m3-studio-session.cjs';
+import { createCourseAuthor } from '../enhancement-v2/m3-ai-author.mjs';
 
 const sessionCookie = 'sl_course_access';
 const tokenPattern = /^[a-zA-Z0-9._-]+$/;
@@ -88,7 +89,20 @@ function json(payload, status = 200, session) {
     'X-Content-Type-Options': 'nosniff', ...(session ? { 'Set-Cookie': session } : {}) } });
 }
 
-export function createCourseApi({ getStore = createConfiguredStore, getAuth = supabaseAuth } = {}) {
+function authoringTarget(data) {
+  const { caseRef } = data;
+  if (!caseRef || Object.keys(caseRef).length !== 3 || typeof caseRef.caseId !== 'string' ||
+      !Number.isInteger(caseRef.caseVersion) || typeof caseRef.conceptId !== 'string') {
+    throw new CourseError(400, 'Select a valid case and version.');
+  }
+  const courseId = data.courseId === null ? null : id(data.courseId);
+  const revision = courseId ? positive(data.revision, 'draft revision') : null;
+  return { courseId, revision, caseRef };
+}
+
+export function createCourseApi({
+  getStore = createConfiguredStore, getAuth = supabaseAuth, author = createCourseAuthor(),
+} = {}) {
   let store;
   const database = () => store ??= getStore();
   return {
@@ -129,6 +143,18 @@ export function createCourseApi({ getStore = createConfiguredStore, getAuth = su
         if (get && op === 'list') return json({ courses: await database().list(actor) });
         if (get && op === 'open') return json(await database().open(actor, id(query.get('course'))));
         if (post && op === 'preview') return json({ lesson: await database().preview(actor, data.form, data.caseRef) });
+        if (post && op === 'generate') {
+          if (await database().role(actor) !== 'teacher') throw new CourseError(403, 'Teacher access required.');
+          const target = authoringTarget(data);
+          if (target.courseId) {
+            const { draft } = await database().open(actor, target.courseId);
+            if (target.revision !== draft.revision ||
+                ['caseId', 'caseVersion', 'conceptId'].some((field) => target.caseRef[field] !== draft.caseRef[field])) {
+              throw new CourseError(409, 'Reopen the current saved revision before generating for this course.');
+            }
+          }
+          return json(await author.generate(actor, target, data.brief));
+        }
         if (post && op === 'mock') {
           if (await database().role(actor) !== 'teacher') throw new CourseError(403, 'Teacher access required.');
           return json(await studio.createStudioSession().generate({ brief: data.brief }));
@@ -136,7 +162,16 @@ export function createCourseApi({ getStore = createConfiguredStore, getAuth = su
         if (post && op === 'save') {
           const courseId = data.courseId === null ? null : id(data.courseId);
           const revision = courseId ? positive(data.revision, 'draft revision') : null;
-          return json(await database().save(actor, courseId, revision, data.form, data.caseRef), courseId ? 200 : 201);
+          let provenance;
+          if (data.aiReceipt !== undefined) {
+            if (await database().role(actor) !== 'teacher') throw new CourseError(403, 'Teacher access required.');
+            provenance = author.verifyReceipt(data.aiReceipt, actor, authoringTarget(data));
+          } else if (data.replaceWithMock === true) {
+            // Mock material keeps its existing teacher-authored save behavior.
+            provenance = { origin: 'manual', proposalId: null, templateVersion: null };
+          }
+          return json(await database().save(actor, courseId, revision, data.form, data.caseRef, provenance),
+            courseId ? 200 : 201);
         }
         if (post && (op === 'review' || op === 'publish')) {
           if (data.confirm !== true) throw new CourseError(400, 'Confirm this action for the saved revision.');

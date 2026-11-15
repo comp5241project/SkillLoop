@@ -47,7 +47,7 @@ function authFixture(accounts, key) {
   });
 }
 
-export async function startM4Stack(t) {
+export async function startM4Stack(t, { appImports = [] } = {}) {
   const scratch = await mkdtemp(join(tmpdir(), 'skillloop-m4-'));
   const databaseDir = join(scratch, 'postgres');
   const port = await freePort();
@@ -122,7 +122,7 @@ export async function startM4Stack(t) {
     const appPort = await freePort();
     const base = `http://127.0.0.1:${appPort}`;
     const startApp = async () => {
-      current = spawn(process.execPath, ['scripts/dev.mjs'], { cwd: root, windowsHide: true,
+      current = spawn(process.execPath, [...appImports.flatMap((file) => ['--import', file]), 'scripts/dev.mjs'], { cwd: root, windowsHide: true,
         env: { ...process.env, PORT: String(appPort), SKILLLOOP_COURSE_DATABASE_URL: databaseUrl,
           SUPABASE_URL: `http://127.0.0.1:${server.address().port}`, SUPABASE_PUBLISHABLE_KEY: key },
         stdio: ['ignore', 'pipe', 'pipe'] });

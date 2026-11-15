@@ -52,10 +52,13 @@
         </section>
         <section class="panel" aria-labelledby="start-title">
           <h2 id="start-title">Choose a teaching focus</h2>
-          <p>Start with a blank draft or use a Mock example. Check the teaching material and answer guidance before publishing.</p>
-          <div class="actions" id="cart-templates">
-            <button type="button" id="empty-template" class="secondary">Draft an empty-cart lesson</button>
-            <button type="button" id="discount-template" class="secondary">Draft a discount-boundary lesson</button>
+          <p>Start with a blank draft. Check the teaching material and answer guidance before publishing.</p>
+          <div id="cart-templates" hidden>
+            <p>Optional Mock examples for the checkout case.</p>
+            <div class="actions">
+              <button type="button" id="empty-template" class="secondary">Draft an empty-cart lesson</button>
+              <button type="button" id="discount-template" class="secondary">Draft a discount-boundary lesson</button>
+            </div>
           </div>
         </section>
     <form id="editor" novalidate>
@@ -69,9 +72,20 @@
         <div id="objectives"></div><small data-error-for="brief.objectives"></small>
         <button type="button" id="add-objective" class="secondary">Add objective</button>
         <label>Teaching constraints <textarea id="constraints" maxlength="500" rows="2"></textarea><small data-error-for="brief.constraints"></small></label>
+        <button type="button" id="generate-ai">Generate draft with AI</button>
+        <p id="ai-status" role="status"></p>
+      </section>
+      <section class="panel preview" id="proposal-panel" hidden aria-labelledby="ai-proposal-title">
+        <h2 id="ai-proposal-title" tabindex="-1">AI proposal for teacher review</h2>
+        <article id="proposal-content"></article>
+        <div class="actions">
+          <button type="button" id="accept-ai">Accept</button>
+          <button type="button" id="discard-ai" class="secondary">Discard</button>
+        </div>
       </section>
       <section class="panel" aria-labelledby="material-title">
         <h2 id="material-title">Editable material</h2>
+        <p id="material-source"></p>
         <label>Title <input id="title" maxlength="120"><small data-error-for="content.title"></small></label>
         <p>Teaching objective text is editable beside each learning objective above.</p>
         <label>Explanation <textarea id="explanation" maxlength="2000" rows="7"></textarea><small data-error-for="content.explanation"></small></label>
