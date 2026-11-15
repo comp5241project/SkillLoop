@@ -5,6 +5,9 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   const levels = new Set(['foundation', 'developing', 'ready']);
   const text = (value, max = 1200) => typeof value === 'string' && !!value.trim() && value.length <= max;
+  const exact = (value, keys) => value && typeof value === 'object' && !Array.isArray(value) &&
+    Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key));
+  const judgments = ['correct', 'incomplete', 'incorrect'];
   const ids = (value, allowed, min = 0, max = Infinity) => Array.isArray(value) && value.length >= min && value.length <= max &&
     new Set(value).size === value.length && value.every((id) => typeof id === 'string' && allowed.has(id));
   function validResult(result, selectedCase, samples) {
@@ -31,7 +34,7 @@
         !['ai', 'authored'].includes(record.questionSource) || !['ai', 'local'].includes(record.source) ||
         !record.learner || !['beginner', 'student', 'graduate'].includes(record.learner.background) ||
         !['internship', 'build'].includes(record.learner.goal) || !Array.isArray(record.responses) ||
-        record.responses.length !== 4 || !record.responses.every((item) => text(item.questionId) &&
+        record.responses.length !== 4 || !record.responses.every((item) => text(item?.questionId) &&
           text(item.optionId) && (item.explanation === undefined || typeof item.explanation === 'string' && item.explanation.length <= 400)) ||
         !text(record.updatedAt) || Number.isNaN(Date.parse(record.updatedAt)) ||
         new Set(record.responses.map((item) => item.questionId)).size !== 4) return false;
@@ -43,7 +46,7 @@
           !record.questions.every((item) => text(item.id) && text(item.prompt, 420) &&
             text(item.strength, 220) && text(item.gap, 220) && Array.isArray(item.options) &&
             item.options.length === 3 && new Set(item.options.map((option) => option?.id)).size === 3 &&
-            item.options.every((option) => text(option.id) && text(option.label, 280) &&
+            item.options.every((option) => text(option?.id) && text(option.label, 280) &&
               text(option.feedback, 220) && [0, 1, 2].includes(option.score)) &&
             new Set(item.options.map((option) => option.score)).size === 3)) return false;
       const byId = new Map(record.questions.map((item) => [item.id, item]));
@@ -51,17 +54,45 @@
     }
     return validResult(record.result, samples.cases[record.caseId], samples);
   }
+  function validLesson(lesson, topicId) {
+    return exact(lesson, ['topicId', 'explanation', 'example', 'prompt']) && lesson.topicId === topicId &&
+      text(lesson.explanation, 1200) && text(lesson.example, 1000) && text(lesson.prompt, 500);
+  }
+  function validLessons(lessons, priorities) {
+    return Array.isArray(lessons) && lessons.length === priorities.length &&
+      ids(lessons.map((lesson) => lesson?.topicId), new Set(priorities), priorities.length, priorities.length) &&
+      lessons.every((lesson) => validLesson(lesson, lesson.topicId));
+  }
+  function validFeedback(result, mode) {
+    return result?.aiSource === mode && judgments.includes(result.judgment) &&
+      typeof result.needsPractice === 'boolean' &&
+      (mode === 'api' ? text(result.explanation) && text(result.practiceFocus, 300) &&
+        (result.followUp === null || result.followUp === '' || text(result.followUp, 300)) : text(result.message));
+  }
+  function validReflection(result, priorities) {
+    return result?.aiSource === 'api' && text(result.reflection) &&
+      ids(result.needsPractice, new Set(priorities)) && Array.isArray(result.practiceFocus) &&
+      result.practiceFocus.length <= 6 && result.practiceFocus.every((item) => text(item, 300));
+  }
   function validOutput(output, input, samples) {
     if (!validInput(input, samples) || !output || output.caseId !== input.case.caseId ||
         !['sample', 'api'].includes(output.aiSource) || !output.learning) return false;
     const allowed = new Set(input.case.topicIds);
-    const { studiedTopics, needsPractice, practiceFocus } = output.learning;
+    const { studiedTopics, needsPractice, practiceFocus, activities, courseSource } = output.learning;
+    const summaryKeys = ['studiedTopics', 'needsPractice', 'practiceFocus'];
     return ids(studiedTopics, allowed) && ids(needsPractice, new Set(studiedTopics)) &&
       Array.isArray(practiceFocus) && practiceFocus.every((item) => text(item, 300)) &&
-      Object.keys(output).sort().join(',') === 'aiSource,caseId,learning' &&
-      Object.keys(output.learning).sort().join(',') === 'needsPractice,practiceFocus,studiedTopics';
+      exact(output, ['aiSource', 'caseId', 'learning']) &&
+      (exact(output.learning, summaryKeys) ||
+        (exact(output.learning, [...summaryKeys, 'activities', 'courseSource']) &&
+          courseSource === (output.aiSource === 'api' ? 'ai-generated' : 'authored-fallback') &&
+          studiedTopics.length === input.result.priorities.length &&
+          studiedTopics.every((id, index) => id === input.result.priorities[index]) &&
+          Array.isArray(activities) && activities.length === studiedTopics.length &&
+          activities.every((item, index) => exact(item, ['topicId', 'judgment', 'feedback']) &&
+            item.topicId === studiedTopics[index] && judgments.includes(item.judgment) && text(item.feedback, 300))));
   }
-  function buildOutput(input, results, mode, reflection, content, samples) {
+  function buildOutput(input, results, mode, reflection, content, samples, courseSource) {
     if (!validInput(input, samples) || !['sample', 'api'].includes(mode)) throw new Error('Invalid learning input or mode.');
     const selected = input.result.priorities;
     if (!(results instanceof Map) || !selected.every((id) => results.has(id))) throw new Error('Learning session is incomplete.');
@@ -69,14 +100,26 @@
       throw new Error('Learning feedback is invalid.');
     if (mode === 'api' && (!reflection || reflection.aiSource !== 'api' || !Array.isArray(reflection.needsPractice) ||
         !Array.isArray(reflection.practiceFocus))) throw new Error('AI reflection is incomplete.');
+    const needsPractice = mode === 'api'
+      ? selected.filter((id) => results.get(id).needsPractice || reflection.needsPractice.includes(id))
+      : selected.filter((id) => results.get(id).needsPractice);
     const output = { caseId: input.case.caseId, aiSource: mode, learning: {
       studiedTopics: selected.filter((id) => results.has(id)),
-      needsPractice: mode === 'api' ? selected.filter((id) => results.get(id).needsPractice || reflection.needsPractice.includes(id))
-        : selected.filter((id) => results.get(id).needsPractice),
+      needsPractice,
       practiceFocus: mode === 'api' ? reflection.practiceFocus : selected.map((id) => content[input.case.caseId][id].focus),
     } };
+    if (courseSource) {
+      if (mode === 'api' && !output.learning.practiceFocus.length) {
+        output.learning.practiceFocus = [...new Set(needsPractice.map((id) => results.get(id).practiceFocus))];
+      }
+      output.learning.courseSource = courseSource;
+      output.learning.activities = selected.map((topicId) => {
+        const { judgment, explanation, message } = results.get(topicId);
+        return { topicId, judgment, feedback: (explanation || message || '').trim().slice(0, 300) };
+      });
+    }
     if (!validOutput(output, input, samples)) throw new Error('Learning output failed validation.');
     return output;
   }
-  return { validInput, validRecord, validResult, validOutput, buildOutput };
+  return { validInput, validRecord, validResult, validLesson, validLessons, validFeedback, validReflection, validOutput, buildOutput };
 });
