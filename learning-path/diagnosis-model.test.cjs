@@ -13,7 +13,8 @@ function answersFor(caseData, pick) {
 }
 
 test('every case keeps the shared IDs and one best option per check', () => {
-  assert.equal(data.cases.length, 3);
+  assert.equal(data.cases.length, 6);
+  assert.deepEqual(data.sharedCaseIds, ['cart-checkout', 'quiz-permissions', 'notes-save']);
   const knownConcepts = new Set(data.knowledgePoints.map((item) => item.id));
   const questionIds = new Set();
 
@@ -43,7 +44,7 @@ test('the shared question validator accepts every authored set and rejects broke
   for (const caseData of data.cases) {
     assert.deepEqual(model.validateQuestions(caseData.questions, caseData), { ok: true });
   }
-  const caseData = data.findCase('cart-checkout');
+  const caseData = data.findCase('shopping-cart');
   const duplicateScore = structuredClone(caseData.questions);
   duplicateScore[0].options[1].score = 2;
   assert.equal(model.validateQuestions(duplicateScore, caseData).ok, false);
@@ -58,11 +59,11 @@ test('the shared question validator accepts every authored set and rejects broke
 });
 
 test('the local sample diagnosis is complete, validated and clearly labelled by the caller', () => {
-  const caseData = data.findCase('cart-checkout');
+  const caseData = data.findCase('shopping-cart');
   const responses = answersFor(caseData, 'best');
   const result = model.buildLocalDiagnosis(caseData, responses);
 
-  assert.equal(result.caseId, 'cart-checkout');
+  assert.equal(result.caseId, 'shopping-cart');
   assert.equal(result.overall.level, 'ready');
   assert.equal(result.dimensions.length, 4);
   assert.deepEqual(
@@ -75,7 +76,7 @@ test('the local sample diagnosis is complete, validated and clearly labelled by 
 });
 
 test('weak answers produce a foundation diagnosis and prioritise the gaps', () => {
-  const caseData = data.findCase('notes-save');
+  const caseData = data.findCase('note-saving');
   const responses = answersFor(caseData, 'weak');
   const result = model.buildLocalDiagnosis(caseData, responses);
 
@@ -86,7 +87,7 @@ test('weak answers produce a foundation diagnosis and prioritise the gaps', () =
 });
 
 test('evidence must quote the selected option or the learner explanation', () => {
-  const caseData = data.findCase('quiz-permissions');
+  const caseData = data.findCase('quiz-platform-permissions');
   const responses = answersFor(caseData, 'best');
   const result = model.buildLocalDiagnosis(caseData, responses);
 
@@ -104,12 +105,12 @@ test('evidence must quote the selected option or the learner explanation', () =>
 });
 
 test('the output contract rejects wrong cases, missing dimensions and invented priorities', () => {
-  const caseData = data.findCase('cart-checkout');
+  const caseData = data.findCase('shopping-cart');
   const responses = answersFor(caseData, 'best');
   const result = model.buildLocalDiagnosis(caseData, responses);
 
   const wrongCase = structuredClone(result);
-  wrongCase.caseId = 'notes-save';
+  wrongCase.caseId = 'note-saving';
   assert.equal(model.validateResult(wrongCase, caseData, responses).ok, false);
 
   const missing = structuredClone(result);

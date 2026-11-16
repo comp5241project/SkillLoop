@@ -12,10 +12,10 @@
     <link rel="icon" href="../public/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../shared/styles.css" />
     <link rel="stylesheet" href="style.css" />
-    <script src="/shared/flow.js" defer></script>
-<script src="../shared/vendor/lucide.min.js" defer></script>
+    <script src="../shared/vendor/lucide.min.js" defer></script>
     <script src="../shared/storage.js" defer></script>
     <script src="../shared/navigation.js" defer></script>
+    <script src="shared-cases.js" defer></script>
     <script src="data.js" defer></script>
     <script src="diagnosis-model.js" defer></script>
     <script src="script.js" defer></script>
@@ -70,8 +70,9 @@
               <div>
                 <h2 id="lp-case-heading">Choose a case</h2>
                 <p class="sl-small">
-                  The case is the anchor for all four parts. You can switch later,
-                  but your diagnosis is tied to the case you choose.
+                  Cases marked <strong>Shared flow</strong> continue into Parts 2–4.
+                  <strong>Part 1 practice</strong> cases stay inside this page and
+                  are kept for standalone diagnosis practice.
                 </p>
               </div>
             </div>
@@ -112,6 +113,18 @@
                     <option value="build">Build with AI</option>
                   </select>
                 </div>
+              </div>
+              <div class="lp-provider-row">
+                <div>
+                  <label for="lp-ai-provider">AI provider</label>
+                  <select id="lp-ai-provider" aria-describedby="lp-ai-provider-note" disabled>
+                    <option value="">Checking AI services…</option>
+                  </select>
+                </div>
+                <p class="sl-small" id="lp-ai-provider-note">
+                  Part 1 can use its direct DeepSeek key or the same shared AI
+                  configuration as Parts 2–4.
+                </p>
               </div>
               <p class="sl-small">
                 Shared with your SkillLoop profile. The diagnosis is a planning aid,
@@ -156,7 +169,27 @@
               </div>
             </div>
             <div id="lp-result" aria-live="polite"></div>
-            <div class="sl-card"><h3>Continue with your case</h3><p>Practise the topics from your diagnosis.</p><a id="lp-continue" class="sl-btn" href="/knowledge-map/">Continue learning</a></div>
+            <div class="sl-card lp-next-part" id="lp-shared-next" hidden>
+              <div class="sl-icon-title">
+                <i data-lucide="arrow-right" aria-hidden="true"></i>
+                <h3>Continue with your case</h3>
+              </div>
+              <p class="sl-small">
+                This is a shared case. Part 2 can reuse your diagnosis and priority
+                knowledge points directly.
+              </p>
+              <a class="sl-btn" id="lp-continue" href="/knowledge-map/">Continue learning</a>
+            </div>
+            <div class="sl-card lp-locked" id="lp-legacy-next" hidden>
+              <div class="sl-icon-title">
+                <i data-lucide="lock" aria-hidden="true"></i>
+                <h3>Part 1 practice case</h3>
+              </div>
+              <p class="sl-small">
+                This case is kept for standalone diagnosis practice. Choose a case
+                marked “Shared flow” to continue into Parts 2–4.
+              </p>
+            </div>
           </section>
         </main>
       </div>

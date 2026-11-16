@@ -125,7 +125,19 @@
 #skillloop-prototype .learning-tag {
   padding: 4px 7px;
   background: #fff9ee;
+  color: #773420;
   font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+#skillloop-prototype .learning-tag:hover {
+  text-decoration: underline;
+}
+
+#skillloop-prototype .learning-tag[aria-current="true"] {
+  background: #773420;
+  color: #fff;
 }
 
 #skillloop-prototype .learning-practice h2 {
@@ -136,8 +148,45 @@
 
 #skillloop-prototype .learning-cards {
   display: grid;
-  gap: 22px;
   margin-top: 16px;
+  overflow-anchor: none;
+}
+
+#skillloop-prototype #course-actions {
+  margin-top: 12px;
+}
+
+#skillloop-prototype .learning-card {
+  grid-area: 1 / 1;
+}
+
+#skillloop-prototype .learning-card[inert] {
+  visibility: hidden;
+}
+
+#skillloop-prototype .learning-card-navigation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+#skillloop-prototype #learning-previous {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+}
+
+#skillloop-prototype #learning-card-position {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+#skillloop-prototype #learning-next {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
 }
 
 #skillloop-prototype .learning-card,
@@ -237,6 +286,24 @@
   margin-top: 12px;
   padding: 10px 12px;
   background: #efe6d8;
+}
+
+#skillloop-prototype .learning-verdict {
+  display: block;
+  color: var(--learning-accent);
+}
+
+#skillloop-prototype .learning-feedback p {
+  white-space: pre-line;
+}
+
+#skillloop-prototype .learning-feedback .learning-follow-up {
+  margin-top: 8px;
+}
+
+#skillloop-prototype .learning-check-answer:disabled {
+  opacity: .65;
+  cursor: wait;
 }
 
 #skillloop-prototype .learning-card[data-complete="true"] {

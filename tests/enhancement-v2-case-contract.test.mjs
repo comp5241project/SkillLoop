@@ -13,11 +13,11 @@ const { legacyToDefinition, validateDefinition, studentView } = require('../enha
 const clone = (x) => structuredClone(x);
 const definitions = convertLegacyCatalog(root);
 
-test('the three current sources agree on canonical case IDs', () => {
+test('the diagnosis, learning and sample catalogs agree on shared case IDs', () => {
   const ids = ['cart-checkout', 'quiz-permissions', 'notes-save'];
   assert.deepEqual(Object.keys(source.cases), ids);
   assert.deepEqual(Object.keys(require('../shared/cases.json').cases), ids);
-  assert.deepEqual(diagnosis.cases.map((c) => c.id), ids);
+  assert.deepEqual(diagnosis.cases.filter((c) => diagnosis.isSharedCase(c.id)).map((c) => c.id), ids);
   assert.deepEqual(Object.keys(learning), ids);
 });
 

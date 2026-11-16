@@ -7,16 +7,22 @@ window.SkillLoopLearningFeedback = {
     if (!response.ok) throw new Error(payload.message || 'The learning service is unavailable.');
     return payload.result;
   },
-  async evaluate({ exercise, answer, mode = 'sample', input, topicId }) {
-    if (mode === 'api') return this.request({ action: 'feedback', input, topicId, answer: String(answer), observations: null });
+  async generateLessons(input) {
+    return this.request({ action: 'generate-lessons', input });
+  },
+  async evaluate({ exercise, answer, mode = 'sample', input, topicId, lesson, authored = false }) {
+    if (mode === 'api') return this.request({
+      action: 'feedback', input, topicId, answer: String(answer), observations: null, ...(lesson ? { lesson } : {}),
+    });
     const normalized = String(answer).trim().toLowerCase();
     const correct = exercise.kind === 'choice'
       ? Number(answer) === exercise.correct
       : exercise.terms.every((group) => group.some((term) => normalized.includes(term)));
+    const label = authored ? 'Prewritten feedback: ' : 'Sample feedback: ';
     return { aiSource: 'sample', judgment: correct ? 'correct' : 'incomplete', needsPractice: !correct,
       followUp: null, practiceFocus: '',
-      message: correct ? 'Sample feedback: Your answer addresses the key check. Explain why it matters in the repair dialogue.'
-        : 'Sample feedback: Revisit the requirement and the code example. You can continue with this topic marked for practice.' };
+      message: label + (correct ? 'Your answer addresses the key check. Explain how it follows from the case brief.'
+        : 'Revisit the requirement and the code example. This topic is marked for further practice.') };
   },
   async reflect({ mode, input, observations }) {
     if (mode !== 'api') throw new Error('Live AI mode required.');

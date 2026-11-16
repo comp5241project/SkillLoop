@@ -7,7 +7,7 @@ This module is the first of four parts that share one student-chosen case:
 3. AI dialogue correction
 4. AI-assisted verification
 
-A student picks `shopping-cart`, `quiz-platform-permissions` or `note-saving`. Part 1 asks DeepSeek to write a fresh set of four case-specific checks, one for each knowledge point, then diagnoses the answers. The diagnosis is a planning aid, not a grade, an interview decision or a claim of mastery. Parts 2–4 reuse the same `caseId` and the returned priority `conceptId`s.
+A student can pick one of the three shared cases (`cart-checkout`, `quiz-permissions`, `notes-save`) to continue into Parts 2–4, or one of the three original Part 1 practice cases (`shopping-cart`, `quiz-platform-permissions`, `note-saving`). Part 1 asks the selected AI provider to write a fresh set of four case-specific checks, one for each knowledge point, then diagnoses the answers. The diagnosis is a planning aid, not a grade, an interview decision or a claim of mastery. Only shared cases are accepted by the Parts 2–4 handoff.
 
 Every new attempt (including **Retake**) asks for a new question set. The authored questions in `data.js` remain the explicit fallback when live AI is unavailable or the learner chooses them after a generation error.
 
@@ -16,21 +16,28 @@ Every new attempt (including **Retake**) asks for a new question set. The author
 | File | Purpose |
 | --- | --- |
 | `index.html` | Case selection, four checks, result view |
-| `data.js` | Canonical cases, authored fallback questions, options and concept mappings (browser + server) |
+| `data.js` | Original Part 1 practice cases, authored fallback questions, options and concept mappings (browser + server) |
+| `shared-cases.js` | Shared Part 2–4 case snapshots; kept separate so the original Part 1 cases remain unchanged |
 | `diagnosis-model.js` | Pure local diagnosis and shared question/output validation |
-| `script.js` | DOM flow, question generation, API calls, storage, result rendering |
+| `script.js` | DOM flow, provider selection, question generation, API calls, storage, result rendering |
 | `server/questions.cjs` | Server-only question prompt, validation, normalization and randomized option order |
 | `server/diagnosis.cjs` | Server-only diagnosis prompt, request validation and JSON schema |
 | `style.css` | Module styles |
 | `diagnosis-model.test.cjs` | Data, local diagnosis and shared validator tests |
 | `questions-server.test.cjs` | Generated-question prompt, validation and normalization tests |
 | `diagnosis-server.test.cjs` | Request boundary, prompt and validator tests |
-| `../api/learning-path.mjs` | `GET` availability, `POST diagnose` |
+| `../api/learning-path.mjs` | `GET` provider availability, `POST diagnose` / `questions` with provider routing |
 | `../server/ai.mjs` | Shared AI service for all four parts |
 
 ## Fixed IDs
 
-Case IDs must not change when parts 2–4 are connected:
+Shared case IDs must match `knowledge-map/learning-samples.js` when parts 2–4 are connected:
+
+- `cart-checkout`
+- `quiz-permissions`
+- `notes-save`
+
+The original Part 1 practice cases remain available but do not enter the shared handoff:
 
 - `shopping-cart`
 - `quiz-platform-permissions`
@@ -51,9 +58,14 @@ Each case declares four concepts in `data.js`. Authored fallback questions map t
 ```json
 {
   "action": "questions",
-  "caseId": "shopping-cart"
+  "caseId": "cart-checkout",
+  "aiProvider": "deepseek"
 }
 ```
+
+`aiProvider` is optional and may be `deepseek` or `shared`. The page sends the
+learner's selection explicitly. If omitted, the server prefers direct DeepSeek
+when configured and otherwise uses the shared AI configuration.
 
 The response contains four normalized questions:
 
@@ -136,19 +148,36 @@ Evidence must be an **exact quote** from the selected option label or the learne
 
 ## AI service
 
-All four parts call `server/ai.mjs`. Part 1 uses the DeepSeek Chat Completions API directly at `https://api.deepseek.com/chat/completions`.
+All four parts call `server/ai.mjs`. Part 1 offers two providers in the page:
+
+- **DeepSeek (Part 1 direct)** — the default, using the original Part 1
+  settings and `https://api.deepseek.com/chat/completions`.
+- **Team shared AI** — the same `AI_BASE_URL` / `AI_API_KEY` / `AI_MODEL`
+  client used by Parts 2–4.
 
 ```bash
+# Direct DeepSeek provider
 DEEPSEEK_API_KEY=...
 # optional; defaults to the DeepSeek V4.1 Flash model id
 DEEPSEEK_MODEL=deepseek-flash
 # optional per-module override
 LEARNING_PATH_AI_MODEL=...
+
+# Team shared provider (same variables as Parts 2-4)
+AI_BASE_URL=https://provider.example/v1
+AI_API_KEY=...
+AI_MODEL=...
 ```
 
-`AI_GATEWAY_API_KEY` remains a migration fallback when `DEEPSEEK_API_KEY` is not set. The service requests a JSON object and validates it against the part-1 schema and evidence rules before returning it. Question generation additionally sends `temperature: 1.15` and a random variation token so each attempt gets a different set.
+`AI_GATEWAY_API_KEY` remains a migration fallback for the direct DeepSeek
+provider when `DEEPSEEK_API_KEY` is not set. Both paths request a JSON object
+and validate it against the Part 1 schema and evidence rules before returning
+it. Question generation additionally sends `temperature: 1.15` and a random
+variation token so each attempt gets a different set.
 
-`GET /api/learning-path` returns `{ available, provider, model, contractVersion }` without exposing credentials. `POST` returns `503` with `code: "ai-not-configured"` when the service is unavailable.
+`GET /api/learning-path` returns `{ available, provider, model, contractVersion,
+aiProviders, defaultAiProvider }` without exposing credentials. `POST` returns
+`503` with `code: "ai-not-configured"` when the selected provider is unavailable.
 
 The page never silently swaps modes:
 

@@ -2,6 +2,14 @@
   const K = window.KnowledgeNetwork;
   const $ = K.$;
   const page = document.body.dataset.page;
+  if (page === 'concept') {
+    const target = window.SkillLoopPart1Adapter?.priorityTarget(location.href, document.referrer,
+      window.SkillLoop?.read('learningPathDiagnosis', null));
+    if (target) {
+      location.replace(target);
+      return;
+    }
+  }
   const params = new URLSearchParams(location.search);
   const link = (label, href) => { const a = K.make('a', '', label); a.href = href; return a; };
   const status = (message) => { $('#kn-status').textContent = message; };

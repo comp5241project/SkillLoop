@@ -3,6 +3,7 @@
 <link rel="stylesheet" href="/shared/styles.css"><link rel="stylesheet" href="/knowledge-map/learning.css">
 <script src="/shared/flow.js" defer></script>
 <script src="/shared/vendor/lucide.min.js" defer></script><script src="/shared/storage.js" defer></script><script src="/shared/navigation.js" defer></script>
+<script src="/learning-path/shared-cases.js" defer></script><script src="/learning-path/data.js" defer></script>
 <script src="/knowledge-map/learning-samples.js" defer></script><script src="/knowledge-map/learning-contract.js" defer></script><script src="/knowledge-map/learning-part1-adapter.js" defer></script><script src="/knowledge-map/learning-content.js" defer></script><script src="/knowledge-map/learning-feedback.js" defer></script><script src="/knowledge-map/learning.js" defer></script><script src="/shared/course-journey.js" defer></script></head>
 <body data-root="/" data-module="knowledge-map"><a class="skip-link" href="#main-content">Skip to content</a><div id="skillloop-prototype">
 <header id="site-header" class="sl-head"></header><div class="sl-shell"><aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside>
@@ -45,8 +46,17 @@
     <div class="learning-practice">
       <section aria-labelledby="learning-title">
         <h2 id="learning-title">Recommended practice</h2>
-        <p id="learning-intro"></p>
+        <p id="learning-intro" role="status"></p>
+        <div id="course-actions" class="learning-actions" hidden>
+          <button id="course-retry" class="sl-btn sl-btn-main" type="button">Retry course generation</button>
+          <button id="course-fallback" class="sl-btn" type="button">Use prewritten practice</button>
+        </div>
         <div id="learning-cards" class="learning-cards"></div>
+        <nav id="learning-card-navigation" class="learning-card-navigation" aria-label="Learning card navigation" hidden>
+          <button id="learning-previous" class="sl-btn" type="button">Previous card</button>
+          <span id="learning-card-position" role="status"></span>
+          <button id="learning-next" class="sl-btn" type="button">Next card</button>
+        </nav>
       </section>
       <section id="learning-summary" class="learning-summary" hidden>
         <h2>Learning summary</h2>

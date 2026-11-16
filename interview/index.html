@@ -85,6 +85,7 @@
 <div class="rd-actions">
 <button id="retry" class="rd-btn" type="button" hidden>Retry reply</button>
 <button id="send" class="rd-btn primary" type="submit">Send</button>
+<button id="finish-chat" class="rd-btn" type="button">Finish conversation</button>
 </div>
 </div>
 </form>
@@ -113,12 +114,13 @@
 <h2>Repair plan</h2>
 <div id="progress" class="rd-progress">
 </div>
+<p id="ready-note" class="rd-note" hidden>All requests are recorded. Finish when you're ready.</p>
 <details>
 <summary>Discussion notes</summary>
 <ul id="memory">
 </ul>
 </details>
-<button id="review-plan" class="rd-btn primary">Review plan</button>
+<button id="review-plan" class="rd-btn primary">Finish &amp; review</button>
 <p id="confirmed-note" hidden>Plan saved.</p>
 </section>
 <details class="rd-card rd-records">
@@ -134,16 +136,17 @@
 <div class="rd-top">
 <div>
 <h2 id="plan-title" tabindex="-1">Review your plan</h2>
-<p>Check and edit your requests.</p>
+<p>Conversation finished. Check your requests and AI summary.</p>
 </div>
 <button id="back-chat" class="rd-btn">Continue conversation</button>
 </div>
 <div id="plan-items">
 </div>
-<details class="rd-card">
-<summary>✧ AI feedback</summary>
-<p id="plan-feedback">
+<details class="rd-card" open>
+<summary>✧ AI summary</summary>
+<p id="plan-feedback" role="status" aria-live="polite">
 </p>
+<button id="refresh-summary" class="rd-btn" type="button">Generate AI summary</button>
 </details>
 <p class="rd-note">Checks are from the case. Tests have not run.</p>
 <div class="rd-actions">

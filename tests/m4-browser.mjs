@@ -35,7 +35,7 @@ test('real Chromium teacher and student publication journey', { timeout: 180000 
   await visible(teacher.getByText('Sign in to open your courses.'));
   await signIn(teacher, stack.accounts.teacher, '#course-sign-in');
   await teacher.getByRole('button', { name: 'New draft' }).click();
-  await visible(teacher.getByRole('heading', { name: 'Choose a teaching focus' }));
+  await visible(teacher.getByRole('heading', { name: 'Mock lesson examples' }));
   await teacher.getByRole('button', { name: 'Draft a discount-boundary lesson' }).click();
   await visible(teacher.getByText('Mock example loaded into the form.', { exact: false }));
   const title = 'Protect the checkout discount boundaries';

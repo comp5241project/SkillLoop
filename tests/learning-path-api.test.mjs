@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import handler from '../api/learning-path.mjs';
 import data from '../learning-path/data.js';
 
-const AI_KEYS = ['AI_API_KEY', 'AI_BASE_URL', 'AI_MODEL',
+const AI_KEYS = [
+  'AI_API_KEY',
+  'AI_BASE_URL',
+  'AI_MODEL',
+  'AI_ENABLE_THINKING',
   'DEEPSEEK_API_KEY',
   'DEEPSEEK_MODEL',
   'AI_GATEWAY_MODEL',
@@ -54,7 +58,7 @@ function request(method, body, headers = {}) {
 }
 
 function validBody() {
-  const caseData = data.findCase('cart-checkout');
+  const caseData = data.findCase('shopping-cart');
   return {
     action: 'diagnose',
     caseId: caseData.id,
@@ -123,7 +127,7 @@ test('the HTTP boundary reports direct DeepSeek availability without exposing cr
 
 test('input validation runs before the AI configuration check', async () => {
   const missing = fakeResponse();
-  await handler(request('POST', JSON.stringify({ action: 'diagnose', caseId: 'cart-checkout', responses: [] })), missing);
+  await handler(request('POST', JSON.stringify({ action: 'diagnose', caseId: 'shopping-cart', responses: [] })), missing);
   assert.equal(missing.statusCode, 400);
   assert.match(missing.body.error, /Answer every question/);
 
@@ -164,7 +168,7 @@ test('the questions action returns a normalized AI-written set', async () => {
       ok: true,
       status: 200,
       json: async () => ({
-        choices: [{ message: { content: JSON.stringify(generatedAnswer('cart-checkout')) } }],
+        choices: [{ message: { content: JSON.stringify(generatedAnswer('shopping-cart')) } }],
       }),
       text: async () => '',
     };
@@ -172,16 +176,16 @@ test('the questions action returns a normalized AI-written set', async () => {
   try {
     const res = fakeResponse();
     await handler(
-      request('POST', JSON.stringify({ action: 'questions', caseId: 'cart-checkout' })),
+      request('POST', JSON.stringify({ action: 'questions', caseId: 'shopping-cart' })),
       res
     );
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.source, 'ai');
-    assert.equal(res.body.caseId, 'cart-checkout');
+    assert.equal(res.body.caseId, 'shopping-cart');
     assert.equal(res.body.questions.length, 4);
     assert.deepEqual(
       res.body.questions.map((question) => question.conceptId),
-      data.findCase('cart-checkout').knowledgePoints
+      data.findCase('shopping-cart').knowledgePoints
     );
     for (const question of res.body.questions) {
       assert.deepEqual(
@@ -202,29 +206,205 @@ test('the questions action returns a normalized AI-written set', async () => {
   }
 });
 
-test('part 1 uses the shared provider even when legacy credentials exist', async () => {
+test('the HTTP boundary exposes both providers and routes shared generation to AI_* config', async () => {
   const restore = withoutAiEnv();
   const originalFetch = globalThis.fetch;
-  Object.assign(process.env, { AI_API_KEY: 'test-shared-key', AI_BASE_URL: 'https://example.invalid/v1', AI_MODEL: 'shared-model', DEEPSEEK_API_KEY: 'legacy-test-key' });
+  process.env.DEEPSEEK_API_KEY = 'deepseek-secret';
+  process.env.DEEPSEEK_MODEL = 'deepseek-flash';
+  process.env.AI_BASE_URL = 'https://shared.example/v1';
+  process.env.AI_API_KEY = 'shared-secret';
+  process.env.AI_MODEL = 'team-model';
   let upstream;
   globalThis.fetch = async (url, options) => {
     upstream = { url: String(url), headers: options.headers, body: JSON.parse(options.body) };
-    return new Response(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(generatedAnswer('cart-checkout')) } }] }));
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [
+          {
+            finish_reason: 'stop',
+            message: { content: JSON.stringify(generatedAnswer('shopping-cart')) },
+          },
+        ],
+      }),
+      text: async () => '',
+    };
   };
   try {
-    const status = fakeResponse();
-    await handler(request('GET'), status);
-    assert.equal(status.body.available, true);
-    assert.equal(status.body.provider, 'Shared AI');
+    const available = fakeResponse();
+    await handler(request('GET'), available);
+    assert.equal(available.body.available, true);
+    assert.equal(available.body.defaultAiProvider, 'deepseek');
+    assert.deepEqual(
+      available.body.aiProviders.map((provider) => provider.id),
+      ['deepseek', 'shared']
+    );
+    assert.equal(
+      available.body.aiProviders.every((provider) => provider.available),
+      true
+    );
+    assert.equal('apiKey' in available.body, false);
+
     const res = fakeResponse();
-    await handler(request('POST', { action: 'questions', caseId: 'cart-checkout' }), res);
+    await handler(
+      request(
+        'POST',
+        JSON.stringify({
+          action: 'questions',
+          caseId: 'shopping-cart',
+          aiProvider: 'shared',
+        })
+      ),
+      res
+    );
     assert.equal(res.statusCode, 200);
-    assert.equal(res.body.questions.length, 4);
-    assert.equal(upstream.url, 'https://example.invalid/v1/chat/completions');
-    assert.equal(upstream.headers.Authorization, 'Bearer test-shared-key');
-    assert.equal(upstream.body.model, 'shared-model');
+    assert.equal(res.body.aiProvider, 'shared');
+    assert.equal(res.body.model, 'team-model');
+    assert.equal(upstream.url, 'https://shared.example/v1/chat/completions');
+    assert.equal(upstream.headers.Authorization, 'Bearer shared-secret');
+    assert.equal(upstream.body.model, 'team-model');
     assert.equal(upstream.body.temperature, 1.15);
-  } finally { globalThis.fetch = originalFetch; restore(); }
+    assert.match(upstream.body.messages[0].content, /Required JSON schema/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    restore();
+  }
+});
+
+test('shared-only configuration is available and becomes the default provider', async () => {
+  const restore = withoutAiEnv();
+  const originalFetch = globalThis.fetch;
+  process.env.AI_BASE_URL = 'https://shared.example/v1';
+  process.env.AI_API_KEY = 'shared-secret';
+  process.env.AI_MODEL = 'team-model';
+  let upstream;
+  globalThis.fetch = async (url, options) => {
+    upstream = { url: String(url), headers: options.headers, body: JSON.parse(options.body) };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [
+          {
+            finish_reason: 'stop',
+            message: { content: JSON.stringify(generatedAnswer('shopping-cart')) },
+          },
+        ],
+      }),
+      text: async () => '',
+    };
+  };
+  try {
+    const available = fakeResponse();
+    await handler(request('GET'), available);
+    assert.equal(available.body.available, true);
+    assert.equal(available.body.defaultAiProvider, 'shared');
+    const providers = Object.fromEntries(
+      available.body.aiProviders.map((provider) => [provider.id, provider])
+    );
+    assert.equal(providers.deepseek.available, false);
+    assert.equal(providers.shared.available, true);
+    assert.equal(providers.shared.model, 'team-model');
+
+    const res = fakeResponse();
+    await handler(
+      request(
+        'POST',
+        JSON.stringify({ action: 'questions', caseId: 'shopping-cart' })
+      ),
+      res
+    );
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.aiProvider, 'shared');
+    assert.equal(res.body.model, 'team-model');
+    assert.equal(upstream.url, 'https://shared.example/v1/chat/completions');
+    assert.equal(upstream.headers.Authorization, 'Bearer shared-secret');
+  } finally {
+    globalThis.fetch = originalFetch;
+    restore();
+  }
+});
+
+test('explicit DeepSeek stays direct even when the shared AI is configured', async () => {
+  const restore = withoutAiEnv();
+  const originalFetch = globalThis.fetch;
+  process.env.DEEPSEEK_API_KEY = 'deepseek-secret';
+  process.env.DEEPSEEK_MODEL = 'deepseek-flash';
+  process.env.AI_BASE_URL = 'https://shared.example/v1';
+  process.env.AI_API_KEY = 'shared-secret';
+  process.env.AI_MODEL = 'team-model';
+  let upstream;
+  globalThis.fetch = async (url, options) => {
+    upstream = { url: String(url), headers: options.headers, body: JSON.parse(options.body) };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        choices: [
+          {
+            finish_reason: 'stop',
+            message: { content: JSON.stringify(generatedAnswer('shopping-cart')) },
+          },
+        ],
+      }),
+      text: async () => '',
+    };
+  };
+  try {
+    const res = fakeResponse();
+    await handler(
+      request(
+        'POST',
+        JSON.stringify({
+          action: 'questions',
+          caseId: 'shopping-cart',
+          aiProvider: 'deepseek',
+        })
+      ),
+      res
+    );
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.aiProvider, 'deepseek');
+    assert.equal(upstream.url, 'https://api.deepseek.com/chat/completions');
+    assert.equal(upstream.headers.Authorization, 'Bearer deepseek-secret');
+    assert.equal(upstream.body.model, 'deepseek-flash');
+  } finally {
+    globalThis.fetch = originalFetch;
+    restore();
+  }
+});
+
+test('unknown or unavailable providers are rejected before generation', async () => {
+  const restore = withoutAiEnv();
+  process.env.DEEPSEEK_API_KEY = 'deepseek-secret';
+  process.env.DEEPSEEK_MODEL = 'deepseek-flash';
+  try {
+    const unknown = fakeResponse();
+    await handler(
+      request(
+        'POST',
+        JSON.stringify({ action: 'questions', caseId: 'shopping-cart', aiProvider: 'other' })
+      ),
+      unknown
+    );
+    assert.equal(unknown.statusCode, 400);
+    assert.match(unknown.body.error, /aiProvider/);
+
+    const unavailable = fakeResponse();
+    await handler(
+      request(
+        'POST',
+        JSON.stringify({ action: 'questions', caseId: 'shopping-cart', aiProvider: 'shared' })
+      ),
+      unavailable
+    );
+    assert.equal(unavailable.statusCode, 503);
+    assert.equal(unavailable.body.code, 'ai-not-configured');
+    assert.match(unavailable.body.error, /shared AI/);
+  } finally {
+    restore();
+  }
 });
 
 test('a valid request without AI configuration returns the documented 503', async () => {
@@ -240,7 +420,7 @@ test('a valid request without AI configuration returns the documented 503', asyn
 
     const questionRes = fakeResponse();
     await handler(
-      request('POST', JSON.stringify({ action: 'questions', caseId: 'cart-checkout' })),
+      request('POST', JSON.stringify({ action: 'questions', caseId: 'shopping-cart' })),
       questionRes
     );
     assert.equal(questionRes.statusCode, 503);
