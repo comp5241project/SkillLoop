@@ -230,8 +230,7 @@ $('#new-course').addEventListener('click', action(async () => {
   await loadCase();
   selectCourse(null);
   $('#course-list').value = '';
-  $('#start-title').setAttribute('tabindex', '-1');
-  $('#start-title').focus();
+  $('#facts-title').focus();
 }, '#course-status'));
 $('#open-course').addEventListener('click', action(() => reopen($('#course-list').value), '#course-status'));
 $('#reload-latest').addEventListener('click', action(() => reopen(courseId)));

@@ -11,6 +11,7 @@
     <title>Home | SkillLoop</title>
     <link rel="icon" href="./public/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./shared/styles.css" />
+    <link rel="stylesheet" href="./public/home.css" />
 
     <script src="./shared/vendor/lucide.min.js" defer></script>
     <script src="./shared/storage.js" defer></script>
@@ -22,64 +23,56 @@
       <header id="site-header" class="sl-head"></header>
       <div class="sl-shell">
         <aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside>
-        <main id="main-content" class="sl-main">
-          <div class="sl-kicker">SkillLoop</div>
-          <h1>Your learning workspace.</h1>
-          <p class="sl-intro">
-            Diagnose your skills, learn from a case, guide an AI repair, and test the result.
-          </p>
-          <div class="sl-actions">
-            <a class="sl-btn sl-btn-main" href="learning-path/">
-              Start diagnosis <i data-lucide="arrow-right" aria-hidden="true"></i>
-            </a>
+        <main id="main-content" class="sl-main sl-home">
+          <div class="home-workbench">
+            <section class="home-introduction" aria-labelledby="home-title">
+              <h1 id="home-title">Review AI code.<br /><em>Prove the fix.</em></h1>
+              <p>Work through a software case. Find what you need to practise, guide an AI repair, and check the result with tests.</p>
+              <a class="sl-btn sl-btn-main home-start" href="learning-path/">
+                Start diagnosis <i data-lucide="arrow-right" aria-hidden="true"></i>
+              </a>
+            </section>
+
+            <section class="home-workflow" aria-labelledby="home-workflow-title">
+              <h2 id="home-workflow-title">Practice workflow</h2>
+              <ol role="list">
+                <li>
+                  <a href="learning-path/">
+                    <span class="home-step-number">01</span>
+                    <span><strong>Diagnosis</strong><small>Find gaps with a quick skills check.</small></span>
+                    <i data-lucide="arrow-up-right" aria-hidden="true"></i>
+                  </a>
+                </li>
+                <li>
+                  <a href="knowledge-map/">
+                    <span class="home-step-number">02</span>
+                    <span><strong>Case learning</strong><small>Practise the topics from your diagnosis.</small></span>
+                    <i data-lucide="arrow-up-right" aria-hidden="true"></i>
+                  </a>
+                </li>
+                <li>
+                  <a href="interview/">
+                    <span class="home-step-number">03</span>
+                    <span><strong>AI code review</strong><small>Review the code and agree on a repair plan.</small></span>
+                    <i data-lucide="arrow-up-right" aria-hidden="true"></i>
+                  </a>
+                </li>
+                <li>
+                  <a href="correction-lab/">
+                    <span class="home-step-number">04</span>
+                    <span><strong>Correction lab</strong><small>Apply the plan and run the tests.</small></span>
+                    <i data-lucide="arrow-up-right" aria-hidden="true"></i>
+                  </a>
+                </li>
+              </ol>
+            </section>
           </div>
-          <div class="sl-grid home-grid">
-            <a class="sl-card sl-entry" href="learning-path/">
-              <div class="sl-row">
-                <span class="sl-feature-icon">
-                  <i data-lucide="signpost" aria-hidden="true"> </i>
-                </span>
-                <i data-lucide="arrow-up-right" aria-hidden="true"> </i>
-              </div>
-              <h3>Diagnosis</h3>
-              <p class="sl-small">Choose a starting point and try a quick check.</p>
+          <footer class="home-footer">
+            <a href="enhancement-v2/studio/course.html">
+              Teacher Course Studio <i data-lucide="arrow-up-right" aria-hidden="true"></i>
             </a>
-            <a class="sl-card sl-entry" href="knowledge-map/">
-              <div class="sl-row">
-                <span class="sl-feature-icon">
-                  <i data-lucide="network" aria-hidden="true"> </i>
-                </span>
-                <i data-lucide="arrow-up-right" aria-hidden="true"> </i>
-              </div>
-              <h3>Case learning</h3>
-              <p class="sl-small">Practise the topics from your diagnosis.</p>
-            </a>
-            <a class="sl-card sl-entry" href="interview/">
-              <div class="sl-row">
-                <span class="sl-feature-icon">
-                  <i data-lucide="messages-square" aria-hidden="true"> </i>
-                </span>
-                <i data-lucide="arrow-up-right" aria-hidden="true"> </i>
-              </div>
-              <h3>AI code review</h3>
-              <p class="sl-small">Review AI code and discuss your fixes.</p>
-            </a>
-            <a class="sl-card sl-entry" href="correction-lab/">
-              <div class="sl-row">
-                <span class="sl-feature-icon">
-                  <i data-lucide="scan-line" aria-hidden="true"> </i>
-                </span>
-                <i data-lucide="arrow-up-right" aria-hidden="true"> </i>
-              </div>
-              <h3>Correction lab</h3>
-              <p class="sl-small">Apply your repair plan and run the tests.</p>
-            </a>
-          </div>
-          <p><a href="enhancement-v2/studio/course.html">Open the teacher Course Studio</a></p>
-          <p class="home-note">
-            Practice is saved in this browser. AI features and Knowledge account sync depend on
-            server configuration.
-          </p>
+            <p>Practice is saved in this browser. AI features and Knowledge account sync depend on server configuration.</p>
+          </footer>
         </main>
       </div>
     </div>

@@ -1,0 +1,162 @@
+#skillloop-prototype .sl-home {
+  --home-rule: #d9d0c1;
+  padding: clamp(24px, 5vw, 76px);
+  background: #f7f3ea;
+}
+
+#skillloop-prototype .home-workbench,
+#skillloop-prototype .home-footer {
+  max-width: 1170px;
+  margin-inline: auto;
+}
+
+#skillloop-prototype .home-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.16fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(32px, 5vw, 80px);
+}
+
+#skillloop-prototype .home-introduction h1 {
+  margin: 0;
+  font-family: 'Old Standard TT', Georgia, serif;
+  font-size: clamp(46px, 5.2vw, 86px);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.055em;
+}
+
+#skillloop-prototype .home-introduction em {
+  color: var(--sl-accent);
+}
+
+#skillloop-prototype .home-introduction p {
+  max-width: 37ch;
+  margin-top: 24px;
+  color: #59544a;
+  font-size: clamp(16px, 1.4vw, 19px);
+  line-height: 1.55;
+}
+
+#skillloop-prototype .home-start {
+  margin-top: 28px;
+  min-height: 48px;
+  padding-inline: 18px;
+  gap: 14px;
+  font-size: 14px;
+}
+
+#skillloop-prototype .home-workflow h2 {
+  margin: 0 0 14px;
+  color: #59544a;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+#skillloop-prototype .home-workflow ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: 1px solid var(--home-rule);
+}
+
+#skillloop-prototype .home-workflow a {
+  display: grid;
+  grid-template-columns: 2.8rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 17px 12px;
+  border-top: 1px solid var(--home-rule);
+  color: var(--sl-text);
+  text-decoration: none;
+}
+
+#skillloop-prototype .home-workflow li:first-child a {
+  background: #efe2d1;
+}
+
+#skillloop-prototype .home-workflow a:hover {
+  background: #eadbca;
+}
+
+#skillloop-prototype .home-step-number {
+  color: #9f3921;
+  font-family: 'IBM Plex Mono', Consolas, monospace;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+
+#skillloop-prototype .home-workflow strong,
+#skillloop-prototype .home-workflow small {
+  display: block;
+}
+
+#skillloop-prototype .home-workflow strong {
+  font-size: 17px;
+  font-weight: 650;
+}
+
+#skillloop-prototype .home-workflow small,
+#skillloop-prototype .home-footer p {
+  color: #59544a;
+  font-size: 13px;
+}
+
+#skillloop-prototype .home-workflow svg,
+#skillloop-prototype .home-footer svg {
+  color: #9f3921;
+}
+
+#skillloop-prototype .home-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px 24px;
+  margin-top: clamp(32px, 5vw, 72px);
+  padding-top: 16px;
+  border-top: 1px solid var(--home-rule);
+}
+
+#skillloop-prototype .home-footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #87341f;
+  font-weight: 650;
+}
+
+#skillloop-prototype .sl-home a:focus-visible {
+  outline: 2px solid #87341f;
+  outline-offset: 3px;
+}
+
+@media (max-width: 950px) {
+  #skillloop-prototype .home-workbench {
+    grid-template-columns: 1fr;
+    gap: 44px;
+  }
+
+  #skillloop-prototype .home-footer {
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  #skillloop-prototype .sl-home {
+    padding-inline: 20px;
+  }
+
+  #skillloop-prototype .home-introduction h1 {
+    font-size: clamp(38px, 11vw, 50px);
+  }
+
+  #skillloop-prototype .home-workflow a {
+    grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+    gap: 10px;
+    padding-inline: 8px;
+  }
+}

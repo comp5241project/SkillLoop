@@ -41,7 +41,7 @@
     const selected = input.result.priorities;
     if (!selected.length || selected.some((id) => !available[id])) return showError('No learning card is available for this case and topic selection.');
     session = { input, selected, results: new Map(), pending: new Set(), mode: modePicker.value, reflection: null, reflecting: false };
-    $('learning-mode').textContent = modePicker.value === 'api' ? 'Live AI mode · Server feedback' : 'Sample development mode · No AI call';
+    $('learning-mode').textContent = modePicker.value === 'api' ? 'Live AI feedback' : 'Sample feedback';
     $('learning-error').hidden = true;
     $('learning-session').hidden = false;
     $('case-title').textContent = input.case.title;
@@ -49,7 +49,7 @@
     $('assessment-summary').textContent = input.result.overall.summary;
     $('weak-topics').replaceChildren();
     selected.forEach((id) => $('weak-topics').append(el('span', topics.get(id), 'learning-tag')));
-    $('learning-intro').textContent = 'Recommended from your diagnosis. Complete an activity to add a topic to your learning summary.';
+    $('learning-intro').textContent = 'Complete each activity to build your learning summary.';
     selected.forEach((id) => $('learning-cards').append(card(input, id, available[id])));
     const savedRecord = window.SkillLoopFlow.learningRecord(window.SkillLoop, caseId);
     if (savedRecord && JSON.stringify(savedRecord.diagnosis.result) === JSON.stringify(input.result)) {
@@ -63,11 +63,13 @@
   }
   function card(input, topicId, lesson) {
     const article = el('article', undefined, 'learning-card');
-    article.append(el('p', topics.get(topicId), 'learning-eyebrow'), el('h3', input.case.title));
+    article.append(el('h3', topics.get(topicId)));
     article.append(el('p', lesson.explanation), el('h4', 'In this case'), el('p', lesson.example));
     const dimension = input.result.dimensions.find((item) => item.conceptId === topicId);
-    article.append(el('p', `Diagnosis gap: ${dimension.gap}`), el('p', `Observed strength: ${dimension.strength}`),
-      el('p', `Evidence: ${dimension.evidence}`));
+    const evidence = el('details');
+    evidence.append(el('summary', 'Diagnosis evidence'), el('p', `Gap: ${dimension.gap}`),
+      el('p', `Strength: ${dimension.strength}`), el('p', `Evidence: ${dimension.evidence}`));
+    article.append(evidence);
     const details = el('details');
     details.append(el('summary', 'View starter code'), el('pre', input.case.starterCode));
     article.append(details);
@@ -86,7 +88,7 @@
       const field = el('textarea'); field.setAttribute('aria-label', lesson.exercise.prompt);
       field.maxLength = 800; fieldset.append(field); answer = () => field.value.trim();
     }
-    const button = el('button', 'Check answer', 'sl-btn'); button.type = 'submit';
+    const button = el('button', 'Check answer', 'sl-btn sl-btn-main'); button.type = 'submit';
     const response = el('p', '', 'learning-feedback'); response.setAttribute('role', 'status');
     form.append(fieldset, button, response); article.append(form);
     form.addEventListener('submit', async (event) => {

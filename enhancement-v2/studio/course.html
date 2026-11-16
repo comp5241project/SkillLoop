@@ -11,14 +11,15 @@
   <script src="/enhancement-v2/studio/course.js" defer></script>
 </head>
 <body id="course-studio">
-  <header>
-    <p class="eyebrow">SkillLoop · Teaching</p>
+  <header class="studio-header">
+    <a class="studio-home" href="/">← SkillLoop</a>
     <h1>Course Studio</h1>
     <p>Turn a software defect into a lesson students can investigate and practice.</p>
   </header>
-  <main>
+  <main id="course-main">
     <section class="panel" id="course-account" aria-labelledby="account-title">
       <h2 id="account-title">Teacher account</h2>
+      <p id="account-status" role="status">Checking your session…</p>
       <form id="course-sign-in" hidden>
         <div class="grid">
           <label>Email <input name="email" type="email" autocomplete="username" required></label>
@@ -26,41 +27,48 @@
         </div>
         <button>Sign in</button>
       </form>
-      <p id="account-status" role="status">Checking your session…</p>
       <button type="button" id="course-sign-out" class="secondary" hidden>Sign out</button>
     </section>
     <div id="teacher-workspace" hidden>
-      <section class="panel" aria-labelledby="course-list-title">
-        <h2 id="course-list-title">Your courses</h2>
+      <section class="panel draft-library" aria-labelledby="course-list-title">
+        <div>
+          <h2 id="course-list-title">Your courses</h2>
+          <p id="course-status" role="status"></p>
+        </div>
         <div class="actions">
           <label>Saved draft <select id="course-list"><option value="">Choose a course</option></select></label>
           <button type="button" id="open-course" class="secondary">Reopen draft</button>
           <button type="button" id="new-course">New draft</button>
         </div>
-        <p id="course-status" role="status"></p>
       </section>
-      <div id="course-work" hidden>
-        <section class="panel" aria-labelledby="facts-title">
-          <label>Case for a new draft <select id="course-case"></select></label>
-          <p class="eyebrow" id="case-identity"></p>
-          <h2 id="facts-title"></h2>
-          <p id="case-scenario"></p>
-          <p id="case-claim"></p>
-          <details><summary>Case requirements and starter code</summary>
-            <ul id="requirements"></ul><pre id="starter-code"></pre>
-          </details>
-        </section>
-        <section class="panel" aria-labelledby="start-title">
-          <h2 id="start-title">Choose a teaching focus</h2>
-          <p>Start with a blank draft. Check the teaching material and answer guidance before publishing.</p>
-          <div id="cart-templates" hidden>
-            <p>Optional Mock examples for the checkout case.</p>
+      <div id="course-work" class="course-workbench" hidden>
+        <nav class="studio-sections" aria-label="Course editor sections">
+          <a href="#course-case">Case reference</a>
+          <a href="#brief-title">Teaching brief</a>
+          <a href="#material-title">Lesson material</a>
+          <a href="#release-title">Review and publish</a>
+        </nav>
+        <aside class="course-reference" aria-label="Case reference">
+          <section class="panel case-reference" aria-labelledby="facts-title">
+            <label>Case for a new draft <select id="course-case"></select></label>
+            <p class="eyebrow" id="case-identity"></p>
+            <h2 id="facts-title" tabindex="-1"></h2>
+            <p id="case-scenario"></p>
+            <p id="case-claim"></p>
+            <details><summary>Case requirements and starter code</summary>
+              <ul id="requirements"></ul><pre id="starter-code"></pre>
+            </details>
+          </section>
+          <section class="panel" id="cart-templates" aria-labelledby="start-title" hidden>
+            <h2 id="start-title">Mock lesson examples</h2>
+            <p>Use an example to fill the draft for this checkout case.</p>
             <div class="actions">
               <button type="button" id="empty-template" class="secondary">Draft an empty-cart lesson</button>
               <button type="button" id="discount-template" class="secondary">Draft a discount-boundary lesson</button>
             </div>
-          </div>
-        </section>
+          </section>
+        </aside>
+        <div class="course-editing">
     <form id="editor" novalidate>
       <section class="panel" aria-labelledby="brief-title">
         <h2 id="brief-title">Teaching brief</h2>
@@ -84,10 +92,9 @@
         </div>
       </section>
       <section class="panel" aria-labelledby="material-title">
-        <h2 id="material-title">Editable material</h2>
+        <h2 id="material-title">Lesson material</h2>
         <p id="material-source"></p>
         <label>Title <input id="title" maxlength="120"><small data-error-for="content.title"></small></label>
-        <p>Teaching objective text is editable beside each learning objective above.</p>
         <label>Explanation <textarea id="explanation" maxlength="2000" rows="7"></textarea><small data-error-for="content.explanation"></small></label>
         <label>Public code excerpt <textarea id="code-excerpt" maxlength="600" rows="4" spellcheck="false"></textarea><small data-error-for="content.codeExample.excerpt"></small></label>
         <label>Code-reading prompt <textarea id="code-prompt" maxlength="400" rows="2"></textarea><small data-error-for="content.codeExample.prompt"></small></label>
@@ -129,8 +136,8 @@
           <h2 id="version-title">Published versions and learner activity</h2>
           <p>Activity counts come from signed-in learners who started or submitted practice in the published lesson.</p>
           <ul id="release-list" class="release-list"></ul>
-          <p class="muted">Diagnosis, personalized teaching, repair dialogue and runnable verification will connect in a later milestone.</p>
         </section>
+        </div>
       </div>
     </div>
   </main>

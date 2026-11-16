@@ -15,5 +15,286 @@ a { color: #164c40; text-underline-offset: .2em; }
 .lesson h2:first-child { margin-top: 0; }
 .lesson h2 { margin-top: 1.5rem; }
 .lesson details { margin: .5rem 0 1rem; }
-#course-list { min-width: min(19rem, 65vw); }
 #release-panel > button { margin: .35rem .35rem .35rem 0; }
+
+/* Course editor only. The learner view keeps the shared studio styles. */
+#course-studio {
+  --studio-ink: #222326;
+  --studio-paper: #f7f3ea;
+  --studio-panel: #fffdf9;
+  --studio-rule: #d9d0c1;
+  --studio-accent: #9f3921;
+  --studio-muted: #59544a;
+  min-height: 100vh;
+  color: var(--studio-ink);
+  background: var(--studio-paper);
+}
+
+#course-studio :where(h2, h3, p) {
+  overflow-wrap: anywhere;
+}
+
+#course-studio .studio-header,
+#course-studio > main {
+  max-width: 1312px;
+  padding-inline: clamp(18px, 5vw, 72px);
+}
+
+#course-studio .studio-header {
+  padding-block: clamp(28px, 5vw, 58px) 18px;
+}
+
+#course-studio .studio-home {
+  color: var(--studio-accent);
+  font: 650 .8rem/1.4 'IBM Plex Mono', Consolas, monospace;
+}
+
+#course-studio h1 {
+  margin: 10px 0 0;
+  font: 400 clamp(48px, 6vw, 82px)/1 'Old Standard TT', Georgia, serif;
+  letter-spacing: -.05em;
+}
+
+#course-studio .studio-header p {
+  max-width: 52ch;
+  margin: 10px 0 0;
+  color: var(--studio-muted);
+  line-height: 1.55;
+}
+
+#course-studio .panel {
+  min-width: 0;
+  margin: 0 0 20px;
+  padding: clamp(16px, 2.5vw, 28px);
+  border: 1px solid var(--studio-rule);
+  border-radius: 0;
+  background: var(--studio-panel);
+  box-shadow: none;
+}
+
+#course-studio h2 {
+  margin: 0 0 10px;
+  font-size: clamp(21px, 2.2vw, 29px);
+  letter-spacing: -.035em;
+}
+
+#course-studio .eyebrow {
+  color: var(--studio-accent);
+  font-family: 'IBM Plex Mono', Consolas, monospace;
+  letter-spacing: .06em;
+}
+
+#course-studio #course-account:has(#course-sign-in:not([hidden])) {
+  max-width: 36rem;
+  border-top: 3px solid var(--studio-accent);
+}
+
+#course-studio #course-sign-in .grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+#course-studio #course-sign-in label {
+  margin-block: 8px 12px;
+}
+
+#course-studio #course-account:has(#course-sign-out:not([hidden])):has(#course-sign-in[hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding-block: 12px;
+  background: transparent;
+  border-inline: 0;
+}
+
+#course-studio #course-account:has(#course-sign-out:not([hidden])):has(#course-sign-in[hidden]) h2 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+#course-studio #account-status,
+#course-studio #course-status {
+  margin: 0;
+  color: var(--studio-muted);
+  font-size: .875rem;
+}
+
+#course-studio #course-sign-out {
+  margin-inline-start: auto;
+}
+
+#course-studio .draft-library {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 24px;
+}
+
+#course-studio .draft-library .actions {
+  align-items: flex-end;
+  max-width: 100%;
+}
+
+#course-studio .draft-library label {
+  min-width: 0;
+  margin: 0;
+}
+
+#course-studio #course-list {
+  width: min(18rem, 65vw);
+  max-width: 100%;
+}
+
+#course-studio .course-workbench {
+  display: grid;
+  grid-template-columns: minmax(230px, .39fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 22px clamp(20px, 3vw, 44px);
+}
+
+#course-studio .studio-sections {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 24px;
+  padding: 4px 16px;
+  background: var(--studio-ink);
+}
+
+#course-studio .studio-sections a {
+  padding-block: 10px;
+  color: #fff5e7;
+  font-size: .875rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+#course-studio .studio-sections a:hover {
+  text-decoration: underline;
+}
+
+#course-studio .course-reference,
+#course-studio .course-editing {
+  min-width: 0;
+}
+
+#course-studio .case-reference {
+  border-top: 3px solid var(--studio-accent);
+  background: #efe6d8;
+}
+
+#course-studio .course-reference .panel {
+  padding: 18px;
+}
+
+#course-studio .course-reference p,
+#course-studio .course-reference details {
+  font-size: .875rem;
+  line-height: 1.55;
+}
+
+#course-studio .course-reference #cart-templates button {
+  text-align: left;
+}
+
+#course-studio input,
+#course-studio select,
+#course-studio textarea,
+#course-studio #review-card,
+#course-studio .row {
+  min-width: 0;
+  border-color: #cbbda9;
+}
+
+#course-studio .row {
+  background: var(--studio-paper);
+}
+
+#course-studio button {
+  background: var(--studio-accent);
+  scroll-margin-top: 16px;
+}
+
+#course-studio button.secondary {
+  color: #773520;
+  background: #efe2d1;
+}
+
+#course-studio a,
+#course-studio summary {
+  color: var(--studio-accent);
+}
+
+#course-studio :focus-visible {
+  outline: 2px solid var(--studio-accent);
+  outline-offset: 3px;
+}
+
+#course-studio .studio-sections a:focus-visible {
+  outline-color: #f3c46a;
+}
+
+#course-studio .preview,
+#course-studio #release-panel {
+  border-top: 3px solid var(--studio-accent);
+}
+
+#course-studio pre {
+  color: #f7f3ea;
+  background: var(--studio-ink);
+}
+
+#course-studio select,
+#course-studio h2 {
+  scroll-margin-top: 16px;
+}
+
+@media (max-width: 820px) {
+  #course-studio .course-workbench {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  #course-studio .course-reference .panel:last-child {
+    margin-bottom: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  #course-studio .studio-header:has(+ main #teacher-workspace:not([hidden])) {
+    padding-block: 20px 0;
+  }
+
+  #course-studio .studio-header:has(+ main #teacher-workspace:not([hidden])) h1 {
+    font-size: 40px;
+  }
+
+  #course-studio #course-account:has(#course-sign-out:not([hidden])):has(#course-sign-in[hidden]) {
+    padding: 10px 0;
+    gap: 6px 10px;
+  }
+
+  #course-studio #course-sign-out {
+    padding: 7px 9px;
+    font-size: .8rem;
+  }
+
+  #course-studio .draft-library h2 {
+    margin-bottom: 0;
+  }
+
+  #course-studio .draft-library label {
+    width: 100%;
+  }
+
+  #course-studio #course-list {
+    width: 100%;
+  }
+
+  #course-studio .studio-sections {
+    column-gap: 16px;
+  }
+}
