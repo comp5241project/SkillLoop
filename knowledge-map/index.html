@@ -8,65 +8,89 @@
 <body data-root="/" data-module="knowledge-map"><a class="skip-link" href="#main-content">Skip to content</a><div id="skillloop-prototype">
 <header id="site-header" class="sl-head"></header><div class="sl-shell"><aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside>
 <main id="main-content" class="sl-main case-learning">
-  <header class="learning-header">
-    <p class="learning-eyebrow">Part 2 · Case learning</p>
-    <h1>Learn through your case</h1>
-    <p class="learning-intro">Turn your diagnosis into practice before you plan the repair.</p>
-    <p id="learning-mode" class="learning-mode" role="status"></p>
-  </header>
-
-  <section id="sample-picker" class="learning-setup" aria-labelledby="sample-title" hidden>
-    <div>
-      <h2 id="sample-title">Sample session</h2>
-      <p>The diagnosis is fictional. Live AI can give feedback on your answers.</p>
-    </div>
-    <div class="learning-fields">
-      <label for="sample-case">Case<select id="sample-case"></select></label>
-      <label for="learning-mode-select">Teaching mode<select id="learning-mode-select"><option value="sample">Sample</option><option value="api">Live AI</option></select></label>
-    </div>
-  </section>
-  <section id="learning-error" class="learning-setup learning-entry" aria-label="Start case learning" hidden>
-    <p id="learning-error-message" role="alert"></p>
-    <div class="learning-actions">
-      <a class="sl-btn sl-btn-main" href="/learning-path/">Go to diagnosis</a>
-      <button id="open-sample-mode" class="sl-btn" type="button">Try a sample case</button>
-    </div>
-  </section>
-
-  <div id="learning-session" class="learning-session" hidden>
-    <aside class="learning-case" aria-labelledby="case-title">
-      <p class="learning-eyebrow">Case brief</p>
-      <h2 id="case-title"></h2>
-      <h3>Diagnosis summary</h3>
-      <p id="assessment-summary"></p>
-      <h3>Priority topics</h3>
-      <div id="weak-topics" class="learning-tags"></div>
-      <details><summary>Scenario and requirements</summary><p id="case-scenario"></p></details>
-    </aside>
-    <div class="learning-practice">
-      <section aria-labelledby="learning-title">
-        <h2 id="learning-title">Recommended practice</h2>
-        <p id="learning-intro" role="status"></p>
-        <div id="course-actions" class="learning-actions" hidden>
-          <button id="course-retry" class="sl-btn sl-btn-main" type="button">Retry course generation</button>
-          <button id="course-fallback" class="sl-btn" type="button">Use prewritten practice</button>
+  <div class="learning-flow">
+    <header class="learning-header">
+      <p class="learning-eyebrow">Part 2 · Case Learning</p>
+      <h1 id="case-title">Case learning</h1>
+      <p id="learning-mode" class="learning-mode" role="status"></p>
+      <div id="learning-progress" class="learning-progress" hidden>
+        <div class="learning-progress-labels" role="status">
+          <span id="learning-card-position"></span>
+          <span id="learning-practiced"></span>
         </div>
-        <div id="learning-cards" class="learning-cards"></div>
-        <nav id="learning-card-navigation" class="learning-card-navigation" aria-label="Learning card navigation" hidden>
-          <button id="learning-previous" class="sl-btn" type="button">Previous card</button>
-          <span id="learning-card-position" role="status"></span>
-          <button id="learning-next" class="sl-btn" type="button">Next card</button>
-        </nav>
+        <progress id="learning-progress-bar" aria-label="Topics practiced"></progress>
+        <p id="learning-further-practice" role="status"></p>
+      </div>
+      <details id="sample-picker" class="learning-secondary" hidden>
+        <summary>Sample settings</summary>
+        <div class="learning-context">
+          <p>The diagnosis is fictional. Live AI can give feedback on your answers.</p>
+          <div class="learning-fields">
+            <div><label for="sample-case">Case</label><select id="sample-case"></select></div>
+            <div><label for="learning-mode-select">Teaching mode</label><select id="learning-mode-select"><option value="sample">Sample</option><option value="api">Live AI</option></select></div>
+          </div>
+        </div>
+      </details>
+    </header>
+
+    <section id="learning-error" class="learning-setup" aria-label="Start case learning" hidden>
+      <p id="learning-error-message" role="alert"></p>
+      <div class="learning-actions">
+        <a class="sl-btn sl-btn-main" href="/learning-path/">Go to diagnosis</a>
+        <button id="open-sample-mode" class="sl-btn" type="button">Try a sample case</button>
+      </div>
+    </section>
+
+    <div id="learning-session" class="learning-session" hidden>
+      <p id="learning-intro" role="status"></p>
+      <div id="course-actions" class="learning-actions" hidden>
+        <button id="course-retry" class="sl-btn sl-btn-main" type="button">Retry course generation</button>
+        <button id="course-fallback" class="sl-btn" type="button">Use prewritten practice</button>
+      </div>
+
+      <section id="learning-topic" aria-labelledby="learning-title" hidden>
+        <p class="learning-eyebrow">Learning objective</p>
+        <h2 id="learning-title" tabindex="-1"></h2>
+        <p id="learning-objective"></p>
       </section>
-      <section id="learning-summary" class="learning-summary" hidden>
-        <h2>Learning summary</h2>
-        <p id="summary-state"></p>
+
+      <details id="learning-case" class="learning-secondary" hidden>
+        <summary>Case brief and diagnosis</summary>
+        <div class="learning-context">
+          <h3>Scenario and requirements</h3>
+          <p id="case-scenario"></p>
+          <h3>Diagnosis summary</h3>
+          <p id="assessment-summary"></p>
+          <div id="topic-evidence" hidden>
+            <h3>Evidence for this topic</h3>
+            <dl class="learning-evidence">
+              <dt>Focus from diagnosis</dt><dd id="diagnosis-gap"></dd>
+              <dt>Strength</dt><dd id="diagnosis-strength"></dd>
+              <dt>Evidence</dt><dd id="diagnosis-evidence"></dd>
+            </dl>
+          </div>
+          <h3>Priority topics</h3>
+          <ul id="weak-topics" class="learning-topic-links"></ul>
+        </div>
+      </details>
+
+      <div id="learning-cards"></div>
+      <nav id="learning-card-navigation" class="learning-card-navigation" aria-label="Topic navigation" hidden>
+        <button id="learning-previous" class="sl-btn" type="button">← Previous topic</button>
+        <button id="learning-next" class="sl-btn" type="button">Next topic →</button>
+      </nav>
+      <section id="learning-summary" class="learning-summary" aria-labelledby="learning-summary-title" hidden>
+        <h2 id="learning-summary-title">Learning summary</h2>
+        <p id="summary-state" role="status"></p>
         <div id="summary-content"></div>
-        <p id="ai-reflection"></p>
+        <p id="ai-reflection" role="status"></p>
         <button id="reflection-retry" class="sl-btn" type="button" hidden>Retry AI reflection</button>
         <a id="continue-dialogue" class="sl-btn sl-btn-main" hidden>Continue to AI dialogue</a>
         <p id="handoff-status" role="status"></p>
-        <details><summary>Learning record</summary><pre id="learning-output" class="learning-output"></pre></details>
+        <details class="learning-secondary">
+          <summary>Technical record (JSON)</summary>
+          <pre id="learning-output" class="learning-output"></pre>
+        </details>
       </section>
     </div>
   </div>

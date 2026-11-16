@@ -30,6 +30,12 @@ See each folder's README for its workflow. Shared navigation, styles and browser
 
 AI does not publish teaching material automatically. Verification runs the teaching-case code in an isolated worker; AI cannot decide or overwrite test results. Knowledge account data can sync through Supabase. Learning paths, dialogue records and correction progress remain browser-local. Signing into Knowledge does not upload those records.
 
+### Case learning entry points
+
+The standard `/knowledge-map/` page shows one priority topic at a time. It reads the browser's Part 1 diagnosis and saves graded work and the Part 3 handoff in the same browser. Standalone samples run within the current page session.
+
+Published courses open `/knowledge-map/?journey=1&course=…&version=…`. The shared renderer in `shared/course-journey.js` replaces the standard page content. It uses a signed-in learner's course version and server-backed attempt, with published teaching material, an authored activity and a saved repair-stage link. A shared layout can reuse the topic, practice and feedback presentation while accounting for two different progress models and their distinct feedback fields, save behavior and handoffs.
+
 ## Collaborate
 
 Use the [three shared cases and module input/output samples](docs/team-samples/README.md) to develop each module independently. The four-part flow is now connected in the same browser. Continue buttons carry the selected case through each step. A new diagnosis or changed learning result invalidates older downstream handoffs.

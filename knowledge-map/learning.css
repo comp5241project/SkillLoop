@@ -1,3 +1,4 @@
+/* Base styles also apply to the published-course renderer, which replaces .learning-flow. */
 #skillloop-prototype .case-learning {
   --learning-rule: #d9d0c1;
   --learning-muted: #59544a;
@@ -24,191 +25,6 @@
   letter-spacing: -.045em;
 }
 
-#skillloop-prototype .learning-header {
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--learning-rule);
-}
-
-#skillloop-prototype .learning-eyebrow,
-#skillloop-prototype .learning-mode {
-  color: var(--learning-accent);
-  font: 650 .76rem/1.4 'IBM Plex Mono', Consolas, monospace;
-}
-
-#skillloop-prototype .learning-eyebrow {
-  text-transform: uppercase;
-  letter-spacing: .09em;
-}
-
-#skillloop-prototype .learning-mode:not(:empty) {
-  display: inline-block;
-  margin-top: 16px;
-  padding: 5px 9px;
-  background: #efe2d1;
-}
-
-#skillloop-prototype .learning-intro,
-#skillloop-prototype #learning-intro,
-#skillloop-prototype .learning-setup p {
-  color: var(--learning-muted);
-}
-
-#skillloop-prototype .learning-setup {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
-  gap: 16px 32px;
-  padding-block: 20px;
-  border-bottom: 1px solid var(--learning-rule);
-}
-
-#skillloop-prototype .learning-entry {
-  grid-template-columns: 1fr;
-  max-width: 1160px;
-}
-
-#skillloop-prototype .learning-setup h2 {
-  margin: 0 0 3px;
-  font-size: 19px;
-  letter-spacing: -.025em;
-}
-
-#skillloop-prototype .learning-fields {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 12px;
-}
-
-#skillloop-prototype .learning-fields label {
-  font-size: 13px;
-  font-weight: 650;
-}
-
-#skillloop-prototype .learning-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-#skillloop-prototype .learning-session {
-  display: grid;
-  grid-template-columns: minmax(220px, .36fr) minmax(0, 1fr);
-  align-items: start;
-  gap: clamp(24px, 4vw, 56px);
-  padding-top: 28px;
-}
-
-#skillloop-prototype .learning-case {
-  min-width: 0;
-  padding: 20px;
-  border-top: 3px solid var(--learning-accent);
-  background: #efe6d8;
-}
-
-#skillloop-prototype .learning-case h2 {
-  margin: 8px 0 16px;
-  font: 400 29px/1.1 'Old Standard TT', Georgia, serif;
-}
-
-#skillloop-prototype .learning-case h3 {
-  margin-top: 16px;
-  font-weight: 700;
-}
-
-#skillloop-prototype .learning-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-#skillloop-prototype .learning-tag {
-  padding: 4px 7px;
-  background: #fff9ee;
-  color: #773420;
-  font-size: 12px;
-  font-weight: 650;
-  text-decoration: none;
-}
-
-#skillloop-prototype .learning-tag:hover {
-  text-decoration: underline;
-}
-
-#skillloop-prototype .learning-tag[aria-current="true"] {
-  background: #773420;
-  color: #fff;
-}
-
-#skillloop-prototype .learning-practice h2 {
-  margin-top: 0;
-  font-size: 27px;
-  letter-spacing: -.035em;
-}
-
-#skillloop-prototype .learning-cards {
-  display: grid;
-  margin-top: 16px;
-  overflow-anchor: none;
-}
-
-#skillloop-prototype #course-actions {
-  margin-top: 12px;
-}
-
-#skillloop-prototype .learning-card {
-  grid-area: 1 / 1;
-}
-
-#skillloop-prototype .learning-card[inert] {
-  visibility: hidden;
-}
-
-#skillloop-prototype .learning-card-navigation {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-#skillloop-prototype #learning-previous {
-  grid-column: 1;
-  grid-row: 1;
-  justify-self: start;
-}
-
-#skillloop-prototype #learning-card-position {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-#skillloop-prototype #learning-next {
-  grid-column: 3;
-  grid-row: 1;
-  justify-self: end;
-}
-
-#skillloop-prototype .learning-card,
-#skillloop-prototype .learning-summary {
-  min-width: 0;
-  padding: clamp(16px, 2.6vw, 34px);
-  border: 1px solid var(--learning-rule);
-  background: #fffdf9;
-}
-
-#skillloop-prototype .learning-card h3 {
-  margin-bottom: 8px;
-  font-size: clamp(21px, 2.15vw, 30px);
-  font-weight: 650;
-  line-height: 1.2;
-  letter-spacing: -.03em;
-}
-
-#skillloop-prototype .learning-card h4 {
-  margin: 14px 0 4px;
-}
-
 #skillloop-prototype .case-learning details {
   margin-top: 12px;
 }
@@ -233,48 +49,13 @@
   color: #f7f3ea;
 }
 
-#skillloop-prototype .learning-card form {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--learning-rule);
-}
-
-#skillloop-prototype .learning-card fieldset {
-  min-width: 0;
-  margin: 0 0 12px;
-  padding: 0;
-  border: 0;
-}
-
-#skillloop-prototype .learning-card legend {
-  margin-bottom: 6px;
-  font-weight: 700;
-}
-
-#skillloop-prototype .learning-card label {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  padding: 7px 0;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-#skillloop-prototype .learning-card input[type="radio"] {
-  accent-color: var(--learning-accent);
-}
-
-#skillloop-prototype .case-learning textarea,
-#skillloop-prototype .learning-fields select {
-  width: 100%;
-  border: 1px solid var(--learning-rule);
-  background: #fffdf9;
-}
-
 #skillloop-prototype .case-learning textarea {
+  width: 100%;
   min-height: 92px;
   padding: 10px;
   resize: vertical;
+  border: 1px solid var(--learning-rule);
+  background: #fffdf9;
 }
 
 #skillloop-prototype .case-learning :focus-visible {
@@ -282,23 +63,322 @@
   outline-offset: 3px;
 }
 
-#skillloop-prototype .learning-feedback:not(:empty) {
-  margin-top: 12px;
-  padding: 10px 12px;
-  background: #efe6d8;
+#skillloop-prototype .case-learning:has(> .learning-flow) {
+  padding: clamp(20px, 3.2vw, 48px) clamp(16px, 3.6vw, 52px) 56px;
 }
 
-#skillloop-prototype .learning-verdict {
+#skillloop-prototype .case-learning > .learning-flow {
+  max-width: 720px;
+  overflow-wrap: anywhere;
+}
+
+#skillloop-prototype .learning-flow h1 {
+  font-size: clamp(24px, 2.5vw, 34px);
+  line-height: 1.16;
+  letter-spacing: -.035em;
+  margin: 6px 0;
+}
+
+#skillloop-prototype .learning-flow h2 {
+  margin: 4px 0 8px;
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 650;
+  letter-spacing: -.035em;
+}
+
+#skillloop-prototype .learning-flow h3:not(.learning-eyebrow) {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+#skillloop-prototype .learning-eyebrow {
+  color: var(--learning-accent);
+  font: 650 .75rem/1.4 'IBM Plex Mono', Consolas, monospace;
+  text-transform: uppercase;
+  letter-spacing: .075em;
+}
+
+#skillloop-prototype .learning-mode,
+#skillloop-prototype .learning-progress-labels,
+#skillloop-prototype .learning-setup p,
+#skillloop-prototype #learning-further-practice,
+#skillloop-prototype #handoff-status {
+  color: var(--learning-muted);
+}
+
+#skillloop-prototype .learning-mode,
+#skillloop-prototype .learning-progress-labels,
+#skillloop-prototype #learning-further-practice {
+  font-size: 13px;
+}
+
+#skillloop-prototype .learning-header {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--learning-rule);
+}
+
+#skillloop-prototype .learning-progress {
+  margin-top: 12px;
+}
+
+#skillloop-prototype #learning-further-practice:not(:empty) {
+  margin-top: 4px;
+  text-align: end;
+}
+
+#skillloop-prototype .learning-progress-labels {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+#skillloop-prototype #learning-card-position {
+  color: var(--sl-text);
+  font-weight: 700;
+}
+
+#skillloop-prototype .learning-progress progress {
   display: block;
+  width: 100%;
+  height: 5px;
+  margin-top: 6px;
+  appearance: none;
+  overflow: hidden;
+  border: 0;
+  border-radius: 3px;
+  background: var(--learning-rule);
+  accent-color: var(--learning-accent);
+}
+
+#skillloop-prototype .learning-progress progress::-webkit-progress-bar {
+  background: var(--learning-rule);
+}
+
+#skillloop-prototype .learning-progress progress::-webkit-progress-value {
+  background: var(--learning-accent);
+}
+
+#skillloop-prototype .learning-progress progress::-moz-progress-bar {
+  background: var(--learning-accent);
+}
+
+#skillloop-prototype .learning-setup {
+  padding-block: 16px;
+  border-bottom: 1px solid var(--learning-rule);
+}
+
+#skillloop-prototype .learning-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+#skillloop-prototype .learning-fields label {
+  margin-bottom: 3px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+#skillloop-prototype .learning-fields select {
+  display: block;
+  width: 100%;
+  min-height: 42px;
+  padding: 6px 8px;
+  border: 1px solid #a59b8b;
+  border-radius: 6px;
+  background: #fffdf9;
+  color: var(--sl-text);
+  font-size: 16px;
+}
+
+#skillloop-prototype .learning-actions,
+#skillloop-prototype .learning-card-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+#skillloop-prototype .learning-actions {
+  margin-top: 12px;
+}
+
+#skillloop-prototype .learning-flow .sl-btn {
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+#skillloop-prototype .learning-session {
+  padding-top: 22px;
+}
+
+#skillloop-prototype #learning-topic {
+  scroll-margin-top: 20px;
+}
+
+#skillloop-prototype #learning-title {
+  font-size: clamp(26px, 3.4vw, 37px);
+}
+
+#skillloop-prototype #learning-objective {
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+#skillloop-prototype .learning-secondary {
+  margin-top: 6px;
+}
+
+#skillloop-prototype .learning-secondary > summary {
+  min-height: 32px;
+  padding-block: 5px;
+  color: var(--learning-muted);
+  font-size: 14px;
+}
+
+#skillloop-prototype .learning-secondary > summary:hover {
+  text-decoration: underline;
+}
+
+#skillloop-prototype .learning-context {
+  padding: 4px 0 8px 14px;
+  border-inline-start: 1px solid var(--learning-rule);
+}
+
+#skillloop-prototype .learning-context h3:not(:first-child),
+#skillloop-prototype #topic-evidence {
+  margin-top: 14px;
+}
+
+#skillloop-prototype .learning-context h3 + p {
+  margin-top: 2px;
+}
+
+#skillloop-prototype .learning-evidence {
+  margin: 4px 0 0;
+}
+
+#skillloop-prototype .learning-evidence dt {
+  font-weight: 650;
+}
+
+#skillloop-prototype .learning-evidence dd {
+  margin: 0 0 6px;
+}
+
+#skillloop-prototype .learning-topic-links {
+  margin: 4px 0 0;
+  padding-inline-start: 20px;
+}
+
+#skillloop-prototype .learning-topic-links a {
   color: var(--learning-accent);
 }
 
-#skillloop-prototype .learning-feedback p {
-  white-space: pre-line;
+#skillloop-prototype .learning-topic-links a[aria-current] {
+  font-weight: 700;
 }
 
-#skillloop-prototype .learning-feedback .learning-follow-up {
-  margin-top: 8px;
+#skillloop-prototype .learning-card {
+  margin-top: 18px;
+}
+
+#skillloop-prototype .learning-prose {
+  margin-top: 4px;
+  white-space: pre-wrap;
+}
+
+#skillloop-prototype .learning-example-title {
+  margin-top: 12px;
+}
+
+#skillloop-prototype .learning-example {
+  color: var(--learning-muted);
+}
+
+#skillloop-prototype .learning-exercise {
+  margin-top: 24px;
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid var(--learning-rule);
+  border-radius: 8px;
+  background: #fbf8f1;
+}
+
+#skillloop-prototype .learning-flow .learning-exercise h3 {
+  font-size: 21px;
+  line-height: 1.3;
+}
+
+#skillloop-prototype .learning-exercise details {
+  margin-block: 0 12px;
+}
+
+#skillloop-prototype .learning-exercise pre {
+  margin: 4px 0 0;
+  border-radius: 6px;
+  font: 13px/1.6 Consolas, monospace;
+}
+
+#skillloop-prototype .learning-exercise code {
+  font: inherit;
+}
+
+#skillloop-prototype .learning-exercise fieldset {
+  min-width: 0;
+  margin: 10px 0 14px;
+  padding: 0;
+  border: 0;
+}
+
+#skillloop-prototype .learning-exercise legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+#skillloop-prototype .learning-exercise .learning-answer-option {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: fit-content;
+  min-height: 40px;
+  margin-bottom: 0;
+  padding-block: 8px;
+  color: var(--sl-text);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+#skillloop-prototype .learning-exercise input[type="radio"] {
+  accent-color: var(--learning-accent);
+}
+
+#skillloop-prototype .learning-exercise .learning-answer-label {
+  margin-bottom: 6px;
+  color: var(--sl-text);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+#skillloop-prototype .learning-exercise textarea {
+  display: block;
+  min-height: 112px;
+  padding: 12px;
+  border-color: #a59b8b;
+  border-radius: 6px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+#skillloop-prototype .learning-flow .learning-check-answer {
+  min-height: 40px;
+  padding: 7px 12px;
 }
 
 #skillloop-prototype .learning-check-answer:disabled {
@@ -306,27 +386,103 @@
   cursor: wait;
 }
 
-#skillloop-prototype .learning-card[data-complete="true"] {
-  border-left: 3px solid var(--learning-accent);
+#skillloop-prototype .learning-feedback:not(:empty) {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-inline-start: 3px solid var(--learning-rule);
+  background: #efe6d8;
 }
 
-#skillloop-prototype .learning-summary {
+#skillloop-prototype .learning-verdict {
+  display: inline-block;
+  margin: 0;
+  color: var(--learning-accent);
+  font-weight: 700;
+}
+
+#skillloop-prototype .learning-verdict[data-judgment="correct"] {
+  color: var(--sl-text);
+}
+
+#skillloop-prototype .learning-feedback h4 {
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+
+#skillloop-prototype .learning-feedback-detail {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--learning-rule);
+}
+
+#skillloop-prototype .learning-feedback-detail h5 {
+  margin: 0 0 2px;
+  font-size: 14px;
+}
+
+#skillloop-prototype .learning-reflection-prompt {
+  color: var(--learning-muted);
+}
+
+#skillloop-prototype .learning-feedback p {
+  white-space: pre-wrap;
+}
+
+#skillloop-prototype .learning-card-navigation {
+  align-items: center;
   margin-top: 22px;
 }
 
-#skillloop-prototype #summary-content,
+#skillloop-prototype #learning-next {
+  margin-inline-start: auto;
+}
+
+#skillloop-prototype .learning-summary {
+  margin-top: 28px;
+  padding: clamp(16px, 3vw, 28px);
+  border-top: 2px solid var(--learning-accent);
+  background: #fffdf9;
+}
+
+#skillloop-prototype .learning-topic-results {
+  list-style: none;
+  padding: 0;
+  margin-block: 12px 0;
+}
+
+#skillloop-prototype .learning-topic-results li {
+  padding-block: 8px;
+  border-top: 1px solid var(--learning-rule);
+}
+
+#skillloop-prototype .learning-topic-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  color: var(--learning-muted);
+  font-size: 13px;
+}
+
+#skillloop-prototype .learning-summary > .learning-secondary {
+  margin-top: 12px;
+  border-top: 1px solid var(--learning-rule);
+}
+
+#skillloop-prototype #ai-reflection:not(:empty) {
+  margin-top: 14px;
+  white-space: pre-wrap;
+}
+
+#skillloop-prototype #reflection-retry,
 #skillloop-prototype #continue-dialogue {
-  margin-block: 10px;
+  margin-top: 12px;
 }
 
-@media (max-width: 860px) {
-  #skillloop-prototype .learning-session,
-  #skillloop-prototype .learning-setup {
-    grid-template-columns: minmax(0, 1fr);
-  }
+#skillloop-prototype #handoff-status:not(:empty) {
+  margin-top: 6px;
 }
 
-@media (max-width: 360px) {
+@media (max-width: 420px) {
   #skillloop-prototype .learning-fields {
     grid-template-columns: minmax(0, 1fr);
   }
