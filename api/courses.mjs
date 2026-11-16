@@ -3,6 +3,8 @@ import journey from '../enhancement-v2/m5-journey.cjs';
 import studio from '../enhancement-v2/m3-studio-session.cjs';
 import { createCourseAuthor } from '../enhancement-v2/m3-ai-author.mjs';
 
+import { isV3Operation, runV3 } from '../enhancement-v3/api.mjs';
+
 const sessionCookie = 'sl_course_access';
 const tokenPattern = /^[a-zA-Z0-9._-]+$/;
 
@@ -101,15 +103,23 @@ function authoringTarget(data) {
 }
 
 export function createCourseApi({
-  getStore = createConfiguredStore, getAuth = supabaseAuth, author = createCourseAuthor(),
+  getStore = createConfiguredStore, getAuth = supabaseAuth, author = createCourseAuthor(), v3AI,
 } = {}) {
   let store;
   const database = () => store ??= getStore();
+  async function authenticate(request) {
+    const bearer = token(request);
+    const user = bearer ? await getAuth().user(bearer) : null;
+    return UUID.test(user?.id) && !user.is_anonymous ? user.id : null;
+  }
   return {
     async fetch(request) {
       try {
         const query = new URL(request.url).searchParams;
         const op = query.get('op');
+        if (isV3Operation(op)) return json(await runV3(request, op, {
+          authenticate: () => authenticate(request), database, ai: v3AI,
+        }));
         const get = request.method === 'GET';
         const post = request.method === 'POST';
         if (get && op === 'cases') return json({ cases: supportedCourses() });
@@ -135,9 +145,7 @@ export function createCourseApi({
           return json({ role, accountId: result.user.id }, 200, cookie(request, result.access_token, age));
         }
         if (!get && !post) throw new CourseError(405, 'Method unavailable.');
-        const bearer = token(request);
-        const user = bearer ? await getAuth().user(bearer) : null;
-        const actor = UUID.test(user?.id) && !user.is_anonymous ? user.id : null;
+        const actor = await authenticate(request);
         if (get && op === 'session') return json({ role: actor ? await database().role(actor) : null, accountId: actor });
         if (!actor) throw new CourseError(401, 'Sign in to continue.');
         if (get && op === 'list') return json({ courses: await database().list(actor) });

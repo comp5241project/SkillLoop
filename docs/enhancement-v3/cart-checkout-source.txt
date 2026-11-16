@@ -1,0 +1,5 @@
+Checkout boundary cases: averaging items and validating discounts
+
+The cart's average price is obtained by dividing the total value of its items by the total number of units. An empty cart has zero total and zero units. JavaScript evaluates zero divided by zero as NaN. The cart contract requires averagePrice([]) to return numeric zero, so handle the empty cart before calculating the weighted average. For an ordinary cart, multiply each item's unit price by its quantity and divide the sum by the total quantity.
+
+A checkout discount percentage must be between 0 and 100, inclusive. A 0% discount leaves the total unchanged and a 100% discount makes the discounted total zero. Reject a percentage below 0 or above 100 with a clear error rather than clamping it. Clamping 101 to 100 may silently change an invalid request into a free order. Test both allowed endpoints and nearby invalid values such as -1 and 101.

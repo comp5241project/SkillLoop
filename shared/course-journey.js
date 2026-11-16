@@ -147,8 +147,19 @@
       }
       form.append(button);
       controls.append(panel('Check your understanding', [form]));
-      if (view.result) controls.append(panel(view.result.practiceRecommended ? 'Priority to practise' : 'Apply what you know',
-        [node('p', view.result.question), node('p', 'Your answer: ' + view.result.answer), link('Continue to learning', paths.learning)]));
+      if (view.result) {
+        const resultPanel = panel(view.result.practiceRecommended ? 'Priority to practise' : 'Apply what you know',
+          [node('p', view.result.question), node('p', 'Your answer: ' + view.result.answer), link('Continue to learning', paths.learning)]);
+        controls.append(resultPanel);
+        request('v3-overview').then((course) => {
+          if (!resultPanel.isConnected || course.personalized !== true || course.courseId !== courseId ||
+              String(course.version) !== version) return;
+          const personalized = node('a', 'Open personalized lesson');
+          personalized.className = 'sl-btn';
+          personalized.href = '/enhancement-v3/web/lesson.html?' + new URLSearchParams(query);
+          resultPanel.append(personalized);
+        }).catch(() => { /* The original continuation remains available. */ });
+      }
     } else if (stage === 'learning') {
       const { teaching, diagnosis } = view;
       const source = { 'teacher-published': 'Teacher-published explanation',

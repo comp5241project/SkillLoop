@@ -19,11 +19,12 @@ createServer(async (req, res) => {
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
     const route = url.pathname.replace(/\/$/, '');
     if (['/api/knowledge-learning', '/api/knowledge', '/api/correction', '/api/learning-path', '/api/dialogue', '/api/courses'].includes(route)) {
+      const bodyLimit = route === '/api/courses' && url.searchParams.get('op') === 'v3-import-file' ? 3_000_000 : 1_000_000;
       const chunks = [];
       let size = 0;
       for await (const chunk of req) {
         size += chunk.length;
-        if (size > 1000000) { res.writeHead(413); res.end('Request too large'); return; }
+        if (size > bodyLimit) { res.writeHead(413); res.end('Request too large'); return; }
         chunks.push(chunk);
       }
       const body = Buffer.concat(chunks);
@@ -61,7 +62,11 @@ createServer(async (req, res) => {
     if (['enhancement-v2/studio/course', 'enhancement-v2/studio/learner'].includes(publicPath)) file += '.html';
     const studioAsset = /^enhancement-v2\/studio\/(?:course\.html|learner\.html|course\.js|learner\.js|studio\.js|studio\.css|course\.css|course-client\.js)$/
       .test(relative(root, file).split(sep).join('/'));
-    if (local.startsWith('..') || (local && local !== 'index.html' && !studioAsset && !assets.has(local.split(sep)[0]))) throw Error('Private path');
+    if (/^enhancement-v3\/web(?:\/(?:index|studio|learning|course|lesson))?$/.test(publicPath)) {
+      file = publicPath === 'enhancement-v3/web' ? resolve(file, 'index.html') : file + '.html';
+    }
+    const v3Asset = /^enhancement-v3\/web\/(?:index\.html|studio\.html|learning\.html|course\.html|lesson\.html|app\.js|studio\.js|styles\.css)$/.test(relative(root, file).split(sep).join('/'));
+    if (local.startsWith('..') || (local && local !== 'index.html' && !studioAsset && !v3Asset && !assets.has(local.split(sep)[0]))) throw Error('Private path');
     if (!extname(file)) {
       try { if ((await stat(file)).isDirectory()) file = resolve(file, 'index.html'); else throw Error(); }
       catch { file += '.html'; }
@@ -69,7 +74,7 @@ createServer(async (req, res) => {
     if (!mime[extname(file)] || file.endsWith('.test.mjs') || file.endsWith('.test.cjs')) throw Error('Private file');
     const content = await readFile(file);
     res.writeHead(200, { 'Content-Type': mime[extname(file)], 'Cache-Control': 'no-store',
-      ...(studioAsset ? { 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy':
+      ...((studioAsset || v3Asset) ? { 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy':
         "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" } : {}) });
     res.end(req.method === 'HEAD' ? undefined : content);
   } catch {

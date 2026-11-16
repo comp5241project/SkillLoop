@@ -69,10 +69,10 @@ const versionSummary = (row) => ({
   version: row.version, title: row.title, draftRevision: row.draft_revision, publishedAt: row.published_at,
 });
 
-async function courseRow(db, courseId, lock = false) {
+async function courseRow(db, courseId, lock = false, managed = false) {
   const { rows: [row] } = await db.query(`select * from skillloop_courses.courses
     where id = $1${lock ? ' for update' : ''}`, [courseId]);
-  if (!row) throw new CourseError(404, 'Course draft not found.');
+  if (!row || Boolean(row.v3_managed) !== managed) throw new CourseError(404, 'Course draft not found.');
   return row;
 }
 
@@ -104,6 +104,59 @@ function validResponses(responses, lesson) {
   return Object.fromEntries(ids.map((id) => [id, responses[id].trim()]));
 }
 
+async function save(db, courseId, expectedRevision, form, selectedCase, provenance, managed = false) {
+  if (!courseId) {
+    const draft = canonicalDraft(form, null, selectedCase, provenance);
+    const { rows: [row] } = managed
+      ? await db.query(`insert into skillloop_courses.courses(owner_id, draft, v3_managed)
+        values (skillloop_courses.actor(), $1, true) returning id`, [draft])
+      : await db.query(`insert into skillloop_courses.courses(owner_id, draft)
+      values (skillloop_courses.actor(), $1) returning id`, [draft]);
+    return { id: row.id, draft };
+  }
+  const row = await courseRow(db, courseId, true, managed);
+  checkDraft(row, expectedRevision);
+  const draft = canonicalDraft(form, row.draft, selectedCase, provenance);
+  if (!managed && isDeepStrictEqual(draft.brief, row.draft.brief) && isDeepStrictEqual(draft.content, row.draft.content) &&
+      isDeepStrictEqual(draft.provenance, row.draft.provenance)) {
+    return { id: courseId, draft: row.draft };
+  }
+  await db.query(`update skillloop_courses.courses set draft = $2, draft_revision = $3,
+    reviewed_revision = null, reviewed_by = null, reviewed_at = null, updated_at = now()
+    where id = $1`, [courseId, draft, draft.revision]);
+  return { id: courseId, draft };
+}
+
+async function review(db, courseId, expectedRevision, managed = false) {
+  const row = await courseRow(db, courseId, true, managed);
+  checkDraft(row, expectedRevision);
+  const lesson = snapshot(row.draft);
+  await db.query(`update skillloop_courses.courses set reviewed_revision = draft_revision,
+    reviewed_by = skillloop_courses.actor(), reviewed_at = now() where id = $1 and reviewed_revision is null`, [courseId]);
+  return { revision: row.draft_revision, lesson };
+}
+
+async function publish(db, courseId, expectedRevision, managed = false) {
+  const row = await courseRow(db, courseId, true, managed);
+  checkDraft(row, expectedRevision);
+  if (row.reviewed_revision !== row.draft_revision) {
+    throw new CourseError(409, 'Review and approve this saved revision before publishing.');
+  }
+  const lesson = snapshot(row.draft);
+  const { rows: [existing] } = await db.query(`select version, published_at from skillloop_courses.versions
+    where course_id = $1 and draft_revision = $2`, [courseId, expectedRevision]);
+  if (existing) return { version: existing.version, publishedAt: existing.published_at };
+  const { rows: [release] } = await db.query(`insert into skillloop_courses.versions
+    (course_id, version, draft_revision, snapshot, reviewed_at, published_by)
+    select c.id, (select coalesce(max(v.version), 0) + 1 from skillloop_courses.versions v
+      where v.course_id = c.id), c.draft_revision, $2, c.reviewed_at, skillloop_courses.actor()
+    from skillloop_courses.courses c where c.id = $1 returning version, published_at`, [courseId, lesson]);
+  return { version: release.version, publishedAt: release.published_at };
+}
+
+// Internal entry points used inside one reviewed publication transaction.
+export const coursePublication = Object.freeze({ save, review, publish });
+
 export function courseStore(pool) {
   async function transaction(actor, required, run) {
     if (required && !actor) throw new CourseError(401, 'Sign in to continue.');
@@ -131,13 +184,14 @@ export function courseStore(pool) {
   }
 
   return {
+    v3Transaction: transaction,
     role: (actor) => transaction(actor, null, async (db) => {
       const { rows: [row] } = await db.query('select skillloop_courses.is_teacher() as teacher');
       return row.teacher ? 'teacher' : 'student';
     }),
     list: (actor) => transaction(actor, 'teacher', async (db) => {
       const { rows } = await db.query(`select id, draft->'content'->>'title' as title, draft_revision, reviewed_revision
-        from skillloop_courses.courses order by updated_at desc, id`);
+        from skillloop_courses.courses where not v3_managed order by updated_at desc, id`);
       return rows.map((row) => ({ id: row.id, title: row.title, revision: row.draft_revision,
         reviewed: row.reviewed_revision === row.draft_revision }));
     }),
@@ -150,51 +204,13 @@ export function courseStore(pool) {
       return { id: row.id, draft: row.draft, reviewed: row.reviewed_revision === row.draft_revision, journeyEngagement,
         versions: rows.map(versionSummary), engagement };
     }),
-    save: (actor, courseId, expectedRevision, form, selectedCase, provenance) => transaction(actor, 'teacher', async (db) => {
-      if (!courseId) {
-        const draft = canonicalDraft(form, null, selectedCase, provenance);
-        const { rows: [row] } = await db.query(`insert into skillloop_courses.courses(owner_id, draft)
-          values (skillloop_courses.actor(), $1) returning id`, [draft]);
-        return { id: row.id, draft };
-      }
-      const row = await courseRow(db, courseId, true);
-      checkDraft(row, expectedRevision);
-      const draft = canonicalDraft(form, row.draft, selectedCase, provenance);
-      if (isDeepStrictEqual(draft.brief, row.draft.brief) && isDeepStrictEqual(draft.content, row.draft.content) &&
-          isDeepStrictEqual(draft.provenance, row.draft.provenance)) {
-        return { id: courseId, draft: row.draft };
-      }
-      await db.query(`update skillloop_courses.courses set draft = $2, draft_revision = $3,
-        reviewed_revision = null, reviewed_by = null, reviewed_at = null, updated_at = now()
-        where id = $1`, [courseId, draft, draft.revision]);
-      return { id: courseId, draft };
-    }),
+    save: (actor, courseId, expectedRevision, form, selectedCase, provenance) => transaction(actor, 'teacher', (db) =>
+      save(db, courseId, expectedRevision, form, selectedCase, provenance)),
     preview: (actor, form, selectedCase) => transaction(actor, 'teacher', () => snapshot(canonicalDraft(form, null, selectedCase))),
-    review: (actor, courseId, expectedRevision) => transaction(actor, 'teacher', async (db) => {
-      const row = await courseRow(db, courseId, true);
-      checkDraft(row, expectedRevision);
-      const lesson = snapshot(row.draft);
-      await db.query(`update skillloop_courses.courses set reviewed_revision = draft_revision,
-        reviewed_by = skillloop_courses.actor(), reviewed_at = now() where id = $1 and reviewed_revision is null`, [courseId]);
-      return { revision: row.draft_revision, lesson };
-    }),
-    publish: (actor, courseId, expectedRevision) => transaction(actor, 'teacher', async (db) => {
-      const row = await courseRow(db, courseId, true);
-      checkDraft(row, expectedRevision);
-      if (row.reviewed_revision !== row.draft_revision) {
-        throw new CourseError(409, 'Review and approve this saved revision before publishing.');
-      }
-      const lesson = snapshot(row.draft);
-      const { rows: [existing] } = await db.query(`select version, published_at from skillloop_courses.versions
-        where course_id = $1 and draft_revision = $2`, [courseId, expectedRevision]);
-      if (existing) return { version: existing.version, publishedAt: existing.published_at };
-      const { rows: [release] } = await db.query(`insert into skillloop_courses.versions
-        (course_id, version, draft_revision, snapshot, reviewed_at, published_by)
-        select c.id, (select coalesce(max(v.version), 0) + 1 from skillloop_courses.versions v
-          where v.course_id = c.id), c.draft_revision, $2, c.reviewed_at, skillloop_courses.actor()
-        from skillloop_courses.courses c where c.id = $1 returning version, published_at`, [courseId, lesson]);
-      return { version: release.version, publishedAt: release.published_at };
-    }),
+    review: (actor, courseId, expectedRevision) => transaction(actor, 'teacher', (db) =>
+      review(db, courseId, expectedRevision)),
+    publish: (actor, courseId, expectedRevision) => transaction(actor, 'teacher', (db) =>
+      publish(db, courseId, expectedRevision)),
     read: (courseId, version) => transaction(null, null, (db) => publishedRow(db, courseId, version)),
     journey: (actor, courseId, version, stage, mutation) => transaction(actor, 'student', async (db) => {
       const publication = await publishedRow(db, courseId, version);

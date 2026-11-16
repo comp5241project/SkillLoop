@@ -30,4 +30,7 @@ for (const folder of ['public', 'shared', 'learning-path', 'knowledge-map', 'int
 for (const file of ['course.html', 'learner.html', 'studio.js', 'studio.css', 'course.css', 'course-client.js', 'course.js', 'learner.js']) {
   await publish(join('enhancement-v2', 'studio', file));
 }
+for (const file of ['index.html', 'studio.html', 'learning.html', 'course.html', 'lesson.html', 'app.js', 'studio.js', 'styles.css']) {
+  await publish(join('enhancement-v3', 'web', file));
+}
 console.log('Prepared browser assets in .vercel/skillloop-static.');
