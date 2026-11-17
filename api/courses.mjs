@@ -245,7 +245,12 @@ export function createCourseApi({
         if (['22P05', '22021'].includes(error.code)) {
           return json({ error: 'Remove unsupported characters and try again.' }, 422);
         }
-        console.error('Course service failure', { operation: new URL(request.url).searchParams.get('op'), code: error.code });
+        const location = error.stack?.split('\n').find(line => line.trimStart().startsWith('at '))?.trim();
+        console.error('Course service failure', {
+          operation: new URL(request.url).searchParams.get('op'),
+          code: error.code, name: error.name, location,
+          connectionTimeout: error.message === 'timeout exceeded when trying to connect',
+        });
         return json({ error: 'Course service is unavailable. Try again.' }, 503);
       }
     },
