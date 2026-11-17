@@ -483,7 +483,7 @@ test('authorized live construction validates storage without invoking transport'
   } finally { globalThis.fetch = original; }
 });
 
-test('R2 authorized factory blocks the former 19-call exploit and session reset', () => {
+test('R2 authorized factory blocks the former 19-call exploit and session reset', async () => {
   // Child-process shim supplies only synthetic ACL evidence and a fake global fetch.
   // No file or network is created; the real exported factory and session run unchanged.
   const script = `
@@ -498,7 +498,7 @@ test('R2 authorized factory blocks the former 19-call exploit and session reset'
     const {fixtures}=require('./enhancement-v2/m2-preflight/diagnosis-fixtures.json');
     const env={OPENROUTER_API_KEY:'synthetic-only',SKILLLOOP_M2_LIVE_OPT_IN:m.LIVE_TOKEN,
       SKILLLOOP_M2_ACCOUNT_CAP_USD:'1',SKILLLOOP_M2_PRICE_VERIFIED_DATE:new Date().toISOString().slice(0,10)};
-    (async()=>{const config={env,liveOptIn:m.LIVE_TOKEN,outputDirectory:require('node:os').tmpdir()};
+    (async()=>{const config={env,liveOptIn:m.LIVE_TOKEN,outputDirectory:process.argv[1]};
       const {session,provider}=await m.createAuthorizedLiveProvider(config);
       let denied=null;
       for(let i=0;i<10;i++)try{await session.generateTeachingCard({fixture:fixtures[0],
@@ -507,8 +507,9 @@ test('R2 authorized factory blocks the former 19-call exploit and session reset'
       let reset=null;try{await m.createAuthorizedLiveProvider(config)}catch(e){reset=e.code}
       console.log(JSON.stringify({calls,denied,reset,providerExposed:provider!==undefined,
         snapshot:session.snapshot()}));})().catch(e=>{console.error(e.message);process.exitCode=1});`;
-  const result = JSON.parse(execFileSync(process.execPath, ['-e', script],
-    { cwd: path.resolve(process.cwd()), encoding: 'utf8' }));
+  const result = await withTempDirectory((directory) =>
+    JSON.parse(execFileSync(process.execPath, ['-e', script, directory],
+      { cwd: path.resolve(process.cwd()), encoding: 'utf8' })));
   assert.equal(result.calls, 18);
   assert.equal(result.denied, 'SESSION_EXHAUSTED');
   assert.equal(result.reset, 'SESSION_ALREADY_CLAIMED');
