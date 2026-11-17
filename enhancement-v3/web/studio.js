@@ -3,6 +3,7 @@ import { actions, button, field, link, list, locationLabel, node, notesPanel, pa
 
 let draft, preview;
 let drafts = [], releases = [], step = 0;
+let legacyExports;
 let isDirty = () => false;
 const flow = node('div', null, { class: 'flow' });
 const side = node('aside', null, { class: 'wizard-rail' });
@@ -359,7 +360,28 @@ function drawSide() {
   saved.addEventListener('click', event => {
     if (event.target.closest('a') && !allowLeave()) event.preventDefault();
   });
-  side.replaceChildren(nav, saved);
+  side.replaceChildren(nav, saved, ...(legacyExports ? [legacyExports] : []));
+}
+
+function showLegacyDrafts(items) {
+  if (!items.length) return;
+  legacyExports = node('details', null, { class: 'wizard-saved' });
+  const entries = node('ul', null, { class: 'draft-list' });
+  for (const item of items) {
+    const entry = node('li');
+    const download = button('Export JSON', async () => {
+      const archive = await request('v3-legacy-draft-export', { query: { course: item.id } });
+      const url = URL.createObjectURL(new Blob([JSON.stringify(archive, null, 2) + '\n'], { type: 'application/json' }));
+      node('a', null, { href: url, download: 'skillloop-draft-' + archive.courseId + '.json' }).click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      status('Private draft exported.');
+    });
+    download.setAttribute('aria-label', 'Export JSON for ' + item.title);
+    entry.append(paragraph(item.title), download);
+    entries.append(entry);
+  }
+  legacyExports.append(node('summary', 'Legacy draft exports'), entries);
+  side.append(legacyExports);
 }
 function render() {
   isDirty = () => false;
@@ -394,4 +416,10 @@ function render() {
   workspace.replaceChildren(layout);
   render();
   if (document.getElementById('status').dataset.error !== 'true') status();
+  try {
+    const { drafts: items } = await request('v3-legacy-drafts');
+    showLegacyDrafts(items);
+  } catch {
+    status('Legacy draft exports could not load. Reload the Studio to try again.', true);
+  }
 })().catch(error => status(error.message, true));

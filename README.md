@@ -4,7 +4,7 @@ Learn to review AI-generated code: diagnose a gap, practise it, discuss a repair
 
 Live site: [skillloop-sigma.vercel.app](https://skillloop-sigma.vercel.app/).
 
-The pages use plain HTML, CSS and JavaScript. Server-side functions handle knowledge accounts and publishing, code-review conversations, and teacher correction-case drafts. Each module keeps its own folder. All four use the shared server-side AI configuration.
+The pages use plain HTML, CSS and JavaScript. In V3 Teacher Studio, teachers import material, review AI-generated notes against the source, confirm a registered case, and publish a fixed version. Students open that version from Course Library and resume saved progress from My Learning.
 
 ## Run locally
 
@@ -15,32 +15,36 @@ npm ci
 npm run dev
 ```
 
-Open [http://127.0.0.1:8765](http://127.0.0.1:8765). The server runs all API routes. Copy `.env.example` to an ignored `.env.local` only when enabling backend services. Public sample content works without credentials; knowledge accounts and publishing require Supabase.
+Open [SkillLoop on port 8765](http://127.0.0.1:8765). The shared server runs the site and its API routes. Use `.env.example` to set up an ignored `.env.local` for backend services. Public samples can run without credentials. Course sign-in and publication require a configured database and Supabase Auth.
+
+Use `npm run dev:native` for the isolated V2–V3 integration preview on [port 8767](http://127.0.0.1:8767/enhancement-v3/web/). Set `SKILLLOOP_AUTH_BINARY` and `SKILLLOOP_AUTH_MIGRATIONS` to a local Supabase Auth release first. The preview starts its own database and Auth, applies migrations there, and writes local test sign-ins to the ignored `.env.native-accounts.json`. The preview database is recreated when the preview stack is recreated. See the [integration setup and verification record](docs/enhancement-v3/V2-V3-INTEGRATION-VERIFICATION.md).
 
 ## Modules
 
 | Module | Folder | Current behavior |
 | --- | --- | --- |
 | 1. Diagnosis | `learning-path/` | Choose a case, answer AI-generated questions, and identify topics to practise. |
-| 2. Case learning | `knowledge-map/` | Study the diagnosed gaps, complete activities, and receive AI feedback. Existing concept and teacher pages remain available. |
+| 2. Case Learning | `knowledge-map/` | Study the diagnosed gaps, complete practice, receive feedback, and submit the formal case check in the integration preview. |
 | 3. AI dialogue | `interview/` | Review an AI delivery through continuous conversation, revise repair requests and export a confirmed plan. Requires a configured AI provider. |
-| 4. Verification | `correction-lab/` | Apply the confirmed repair plan, run fixed tests in an isolated worker, and receive an AI review of the actual results. |
+| 4. Verification | `correction-lab/` | Apply the confirmed repair plan and run the registered case tests. The integration preview verifies submitted code server-side in an isolated runner. |
 
-See each folder's README for its workflow. Shared navigation, styles and browser-storage helpers live in `shared/`; server endpoints live in `api/`. Knowledge database migrations are in `supabase/migrations/`.
+Shared navigation, styles and browser storage helpers live in `shared/`. Server endpoints live in `api/`. Database migrations for the course and legacy Knowledge features live in `supabase/migrations/`.
 
-AI does not publish teaching material automatically. Verification runs the teaching-case code in an isolated worker; AI cannot decide or overwrite test results. Knowledge account data can sync through Supabase. Learning paths, dialogue records and correction progress remain browser-local. Signing into Knowledge does not upload those records.
+Teachers approve an exact draft before publication. Registered tests determine the verification result, and AI can explain that result. The `knowledge-map/` directory name comes from the older Knowledge feature. V3 uses its Case Learning page and keeps separate legacy concept links available.
 
-### Case learning entry points
+### Student entry points and progress
 
-The standard `/knowledge-map/` page shows one priority topic at a time. It reads the browser's Part 1 diagnosis and saves graded work and the Part 3 handoff in the same browser. Standalone samples run within the current page session.
-
-Published courses open `/knowledge-map/?journey=1&course=…&version=…`. The shared renderer in `shared/course-journey.js` replaces the standard page content. It uses a signed-in learner's course version and server-backed attempt, with published teaching material, an authored activity and a saved repair-stage link. A shared layout can reuse the topic, practice and feedback presentation while accounting for two different progress models and their distinct feedback fields, save behavior and handoffs.
+| Entry | Progress |
+| --- | --- |
+| **Try Demo** | The original four stages hand off progress in the same browser. The standalone Part 2 sample runs in its own page session. |
+| **Published Course Journey** | `?journey=1` uses the shared course renderer and saves progress to the learner's account and published version. This is the path used by the regular course environment. |
+| **Original four stages in the integration preview** | `?native=1` uses the original Part 1, 3 and 4 pages. Cart Checkout and Retry Queue courses published through V3 Teacher Studio have account-backed progress, including Part 2 practice and feedback. AI Personalized Learning is available as supplemental practice after diagnosis. |
 
 ## Collaborate
 
-Use the [three shared cases and module input/output samples](docs/team-samples/README.md) to develop each module independently. The four-part flow is now connected in the same browser. Continue buttons carry the selected case through each step. A new diagnosis or changed learning result invalidates older downstream handoffs.
+Use the [three shared demo cases and module input/output samples](docs/team-samples/README.md) to develop each module independently. Demo Continue buttons carry the selected case through each step. A new diagnosis or changed learning result invalidates older downstream handoffs.
 
-`shared/flow.js` handles these handoffs. `docs/team-samples/samples.json` remains the source for shared case materials; run `node scripts/sync-cases.cjs` after editing it to update the deployed `shared/cases.json` copy. Module prompts remain in their own server files. Configure `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` on the server; never put credentials in frontend JavaScript.
+`shared/flow.js` handles demo handoffs. After editing `docs/team-samples/samples.json`, run `node scripts/sync-cases.cjs` to update the deployed `shared/cases.json` copy. Module prompts live in their server files. Configure `AI_BASE_URL`, `AI_API_KEY` and `AI_MODEL` on the server.
 
 1. Pull the latest `main` and create a feature branch.
 2. Work in your module and check its interactions, refresh behavior and phone layout.
@@ -59,11 +63,13 @@ Keep shared concept IDs and data formats stable. Discuss changes to `shared/`, A
 npm test
 ```
 
-This runs the site link check and the knowledge, dialogue and correction tests. Tests use mock AI and database responses; they do not prove real credentials, provider credits or database permissions. GitHub Actions runs these checks for pull requests and `main`.
+This runs the static-site checks and the Node test suites, including course publication and stage progress against isolated PostgreSQL. Automated AI tests use controlled responses. GitHub Actions runs these checks for pull requests and `main`. Browser and live AI verification are documented separately in the integration verification record.
 
 ## Deploy
 
-Use the existing Vercel project linked to this repository, production branch `main`, framework **Other**, and repository root. `vercel.json` installs locked dependencies with `npm ci --omit=dev`, skips a frontend build and serves the static pages alongside the API functions. See [deployment setup](docs/DEPLOYMENT.md) for each module's environment variables.
+The existing Vercel configuration uses the repository root and the **Other** framework preset. It installs locked dependencies with `npm ci --omit=dev`, packages browser assets with `node scripts/build-static.mjs` and serves them alongside the API functions. See the [deployment setup](docs/DEPLOYMENT.md) for module environment variables.
+
+For a Vercel Preview of the original four stages, apply the course migrations through `20261117120000_v3_publication_paths.sql` to the target Supabase project first. Configure its restricted `SKILLLOOP_COURSE_DATABASE_URL`, `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`, along with the shared AI settings. Set `SKILLLOOP_NATIVE_VERIFIER=vercel` to run Part 4 in Vercel Sandbox. Set `SKILLLOOP_NATIVE_COURSES=1` to select the original four stages for new V3 releases. Previously published versions use their stored learning path.
 
 ## References
 

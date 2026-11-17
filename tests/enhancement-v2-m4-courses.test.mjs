@@ -94,6 +94,19 @@ test('M4 publication runs through HTTP, migrated PostgreSQL and a fresh applicat
   await expect(open(), 401);
   await expect(open(student), 403);
   await expect(open(otherTeacher), 404);
+  const legacyList = (cookie) => call('v3-legacy-drafts', { cookie });
+  const exportDraft = (cookie) => call('v3-legacy-draft-export', { query, cookie });
+  assert.deepEqual((await expect(legacyList(teacher))).drafts.map(item => item.id), [courseId]);
+  assert.deepEqual(await expect(legacyList(otherTeacher)), { drafts: [] });
+  await expect(legacyList(student), 403);
+  await expect(exportDraft(), 401);
+  await expect(exportDraft(student), 403);
+  await expect(exportDraft(otherTeacher), 404);
+  const exportResponse = await exportDraft(teacher);
+  assert.equal(exportResponse.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(await expect(exportResponse), {
+    format: 'skillloop-legacy-course-draft', schemaVersion: 1, courseId, draft: saved.draft, reviewed: false, versions: [],
+  });
   await expect(call('published', { query }), 404);
   await expect(check('save', otherTeacher, { ...first, form }), 404);
   await expect(check('review', student), 403);

@@ -169,14 +169,14 @@ async function mine(state) {
 async function overview(state) {
   const course = await request('v3-overview', { query: courseQuery() });
   setIntro(course.summary, course.title);
+  const entry = state.role === 'student' ? await request('v3-entry', { query: courseQuery() }) : null;
   const begin = async () => {
-    const started = await request(course.native ? 'native-start' : 'start',
+    const started = await request('v3-begin',
       { data: { courseId: course.courseId, version: course.version } });
-    const routes = { diagnosis: '/learning-path/', learning: '/knowledge-map/', repair: '/interview/', verification: '/correction-lab/' };
-    location.assign(journeyURL(course.native ? routes[started.stage] : routes.diagnosis, course));
+    location.assign(journeyURL(started.route, started));
   };
   const controls = state.role === 'teacher' ? link('Open Teacher Studio', pageURL('studio'), true) :
-    button('Start Learning', async () => {
+    button(entry?.started ? 'Resume Learning' : 'Start Learning', async () => {
       if (state.role === 'student') return begin();
       if (!document.getElementById('course-login')) {
         const login = loginForm(result => result.role === 'teacher' ? location.assign(pageURL('studio')) : begin());
@@ -187,7 +187,7 @@ async function overview(state) {
     }, true);
   workspace.append(panel('Course overview', tag('Version ' + course.version), tag(course.caseTitle), list(course.objectives, true),
     paragraph('Start with the diagnosis, then practise, plan a repair, and verify it using the registered case tests.'),
-    actions(controls, ...(state.role === 'student' && course.personalized && !course.native ?
+    actions(controls, ...(entry?.diagnosed && course.personalized && !course.native ?
       [link('Open AI Personalized Learning', publishedURL('lesson', course))] : []))));
   if (course.notes.length) workspace.append(notesPanel(course.notes));
 }

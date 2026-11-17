@@ -30,6 +30,13 @@
 - `supabase/migrations/20261116231059_native_course_progress.sql` 保存仅归属学生可访问的阶段记录。
 - `scripts/dev-native.mjs` 启动隔离预览，`tests/enhancement-v3-native*` 覆盖新流程。
 
+## 发布版本的正式学习路径
+
+- V3 在发布课程时同时写入 `journey` 或 `native`。旧版本默认使用 Journey。开始、恢复、补充练习与阶段 API 都读取同一条发布版本记录。访问另一套阶段 API 会返回路径冲突。
+- 8767 在暂停网页服务写入时核查现有进度。三个第 1 版发布课程均有原版四阶段记录，合计四次尝试。这三个版本已补记为 `native`。没有符合候选条件的 Journey 进度需要转换。原数据库、Auth 和学习记录保留，只重启网页服务。
+- 独立 PostgreSQL 回归覆盖新版启用原版路径后旧版仍走 Journey、拒绝跨路径写入、路径不可修改，以及路径写入失败时回滚发布。三组 Chrome 回归通过，分别覆盖旧 Journey、V3 个性化和两门 V3 新课的原版四阶段。浏览器回归使用固定模型响应。
+- 回填后用两个原有测试账号登录 8767。四次已通过的验证均可读取，Chrome 从课程详情恢复到 Part 4。强行用 Journey 地址打开原版课程时，页面显示返回同一版本课程详情的链接。全套 `npm test` 通过 318 项。
+- `SKILLLOOP_NATIVE_COURSES` 决定符合条件的新发布版本采用哪条路径。`SKILLLOOP_COURSE_PUBLICATION_PAUSED=1` 暂停新发布，已发布课程仍按原路径恢复。当前原版流程在本机隔离环境验收。
 
 ## Part 2 恢复与 V3 界面统一
 

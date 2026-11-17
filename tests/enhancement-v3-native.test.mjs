@@ -5,7 +5,37 @@ import { test } from 'node:test';
 import { startM4Stack } from './m4-local-stack.mjs';
 import { client } from './m5-test-support.mjs';
 import { nativeCase } from '../enhancement-v3/native/cases.mjs';
+import { isNativePreview, nativeEnabled, nativeRuntimeAvailable } from '../enhancement-v3/native/environment.mjs';
 import runner from '../correction-lab/break-runner.js';
+
+test('hosted course publication requires the cloud runner and keeps the regular session cookie', () => {
+  const hosted = {
+    VERCEL: '1',
+    SKILLLOOP_NATIVE_COURSES: '1',
+    SKILLLOOP_NATIVE_PREVIEW: '1',
+    SKILLLOOP_NATIVE_VERIFIER: 'vercel',
+    SKILLLOOP_COURSE_DATABASE_URL: 'postgresql://course@db.example.com/postgres',
+    SUPABASE_URL: 'https://project.supabase.co',
+    SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test',
+  };
+  assert.equal(nativeEnabled(hosted), true);
+  assert.equal(isNativePreview(hosted), false);
+  assert.equal(nativeEnabled({ ...hosted, SKILLLOOP_NATIVE_VERIFIER: undefined }), false);
+  assert.equal(nativeEnabled({ ...hosted, VERCEL: undefined }), false);
+  assert.equal(nativeEnabled({ ...hosted, SUPABASE_PUBLISHABLE_KEY: undefined }), false);
+  assert.equal(nativeEnabled({ ...hosted, SUPABASE_URL: 'http://localhost:9999' }), false);
+  assert.equal(nativeRuntimeAvailable({ ...hosted, SKILLLOOP_NATIVE_COURSES: '0' }), true);
+  assert.equal(nativeEnabled({ ...hosted, SKILLLOOP_NATIVE_COURSES: '0' }), false);
+
+  const isolated = {
+    SKILLLOOP_NATIVE_COURSES: '1',
+    SKILLLOOP_NATIVE_PREVIEW: '1',
+    SKILLLOOP_COURSE_DATABASE_URL: 'postgresql://course@localhost/postgres',
+    SUPABASE_URL: 'http://localhost:9999',
+  };
+  assert.equal(nativeEnabled(isolated), true);
+  assert.equal(isNativePreview(isolated), true);
+});
 
 const cases = [
   { id: 'cart-checkout', file: 'cart-checkout-source.txt', weak: 'code-reading',
@@ -50,8 +80,18 @@ test('published v3 courses resume the original four-stage records and verify sub
     const release = await publish(stack, call, teacher, demo);
     const versionInput = { courseId: release.courseId, version: release.version };
     const query = { course: release.courseId, version: release.version };
+    const entry = await call('v3-entry', { cookie: student, query });
+    assert.equal(entry.started, false);
+    assert.equal(entry.mode, 'native');
     assert.equal((await call('v3-overview', { query })).native, true);
+    assert.equal((await call('v3-begin', { cookie: student, body: versionInput })).stage, 'diagnosis');
     let progress = await call('native-start', { cookie: student, body: versionInput });
+    for (const op of ['start', 'submit', 'journey']) {
+      const refused = await call(op, { cookie: student, status: 409, body: { ...versionInput,
+        attemptId: progress.attemptId, stage: 'diagnosis', revision: 0, input: {} } });
+      assert.equal(refused.code, 'course-mode-mismatch');
+    }
+    assert.equal((await call('attempt', { cookie: student, query, status: 409 })).code, 'course-mode-mismatch');
     await call('native-open', { cookie: other, query, status: 404 });
     const open = async (cookie = student) => call('native-open', { cookie, query });
     const write = async (action, input, status = 200, overrides = {}) => {
@@ -76,6 +116,13 @@ test('published v3 courses resume the original four-stage records and verify sub
       assert.equal(original.attemptId, progress.attemptId);
       assert.deepEqual(original.issued, issued.questions);
       await call('native-open', { cookie: student, query: { course: next.courseId, version: next.version }, status: 404 });
+      await stack.restartApp({ publishNative: false, publicationPaused: true });
+      assert.deepEqual((await open()).issued, issued.questions);
+      assert.equal((await call('v3-overview', { query })).mode, 'native');
+      const replay = await call('v3-publish', { cookie: teacher, body: { id: next.draft.id,
+        revision: next.draft.revision, confirm: true } });
+      assert.equal(replay.mode, 'native');
+      await stack.restartApp({ publishNative: true, publicationPaused: false });
     }
     const responses = issued.questions.map(q => ({ questionId: q.id, optionId: q.options.find(o =>
       o.score === (q.conceptId === demo.weak ? 0 : 2)).id, explanation: '' }));

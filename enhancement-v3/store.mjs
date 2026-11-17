@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { coursePublication } from '../enhancement-v2/m4-courses.mjs';
 import { caseIndex, contentFor, fail, hash, journeyForm, lessonContext, PROMPT_VERSION, publicationFor } from './model.mjs';
 
-import { nativeEnabled, nativeCaseIds } from './native/environment.mjs';
+import { nativeEnabled, nativeRuntimeAvailable } from './native/environment.mjs';
 import { nativeCase } from './native/cases.mjs';
 
 const draftSelect = 'select * from skillloop_courses.v3_drafts where id = $1';
@@ -15,11 +15,13 @@ async function draftRow(db, id, revision, lock = false) {
 }
 const view = row => ({ id: row.id, revision: row.revision, source: row.source, content: row.content, choices: row.choices,
   selection: row.selection, approved: Boolean(row.approved_hash), courseId: row.course_id, cases: caseIndex() });
-const releaseView = ({ course_id, version, published_at, draft_revision }) => ({
-  courseId: course_id, version, publishedAt: published_at, draftRevision: draft_revision,
+const releaseView = ({ course_id, version, published_at, draft_revision, mode }) => ({
+  courseId: course_id, version, publishedAt: published_at, draftRevision: draft_revision, mode,
 });
-const releasesFor = async (db, courseId) => courseId ? (await db.query(`select p.course_id, p.version, v.published_at, p.draft_revision
+const releasesFor = async (db, courseId) => courseId ? (await db.query(`select p.course_id, p.version, v.published_at, p.draft_revision,
+  coalesce(path.mode, 'journey') as mode
   from skillloop_courses.v3_publications p join skillloop_courses.versions v using (course_id, version)
+  left join skillloop_courses.v3_publication_paths path using (course_id, version)
   where p.course_id = $1 order by p.version desc`, [courseId])).rows.map(releaseView) : [];
 const stages = [
   ['verification', '/correction-lab/'], ['repair', '/interview/'],
@@ -30,15 +32,16 @@ function safeSummary(row) {
   const { title, summary, level, objectives, caseRef, caseTitle } = row.snapshot ?? {};
   const legacy = row.legacy;
   return { courseId: row.course_id, version: row.version, publishedAt: row.published_at, personalized: Boolean(row.snapshot),
-    native: nativeEnabled() && Boolean(row.snapshot) && nativeCaseIds.includes(caseRef?.caseId),
+    mode: row.mode, native: row.mode === 'native',
     title: title ?? legacy.title, summary: summary ?? legacy.explanation,
     level: level ?? null, objectives: objectives ?? legacy.objectives.map(item => item.text),
     caseRef: caseRef ?? legacy.caseRef, caseTitle: caseTitle ?? legacy.context.title };
 }
 const publicationFields = `v.course_id, v.version, v.published_at, p.draft_revision, p.content_hash,
-  p.snapshot, v.snapshot as legacy`;
+  p.snapshot, v.snapshot as legacy, coalesce(path.mode, 'journey') as mode`;
 const publicationFrom = `from skillloop_courses.versions v
-  left join skillloop_courses.v3_publications p using (course_id, version)`;
+  left join skillloop_courses.v3_publications p using (course_id, version)
+  left join skillloop_courses.v3_publication_paths path using (course_id, version)`;
 const publicationSelect = `select ${publicationFields} ${publicationFrom}`;
 async function publicationRow(db, courseId, version) {
   const { rows: [row] } = await db.query(publicationSelect + ' where v.course_id = $1 and v.version = $2', [courseId, version]);
@@ -49,7 +52,7 @@ async function publicationRow(db, courseId, version) {
 async function contextRow(db, courseId, version) {
   const row = await publicationRow(db, courseId, version);
   if (!row.snapshot) fail(404, 'This course does not have a personalized lesson.');
-  const { rows: [attempt] } = await db.query(safeSummary(row).native ? `select a.attempt_id,
+  const { rows: [attempt] } = await db.query(row.mode === 'native' ? `select a.attempt_id,
     n.state->'evidence' as diagnosis
     from skillloop_courses.attempts a left join skillloop_courses.native_progress n using (attempt_id)
     where a.course_id=$1 and a.version=$2 and a.learner_id=skillloop_courses.actor()` :
@@ -60,6 +63,22 @@ async function contextRow(db, courseId, version) {
     attemptId: attempt.attempt_id, diagnosis: attempt.diagnosis, promptVersion: PROMPT_VERSION });
   return { publication: safeSummary(row), attemptId: attempt.attempt_id, evidenceKey,
     context: lessonContext(row.snapshot, attempt.diagnosis) };
+}
+
+const state = "(case when path.mode = 'native' then n.state else a.journey end)";
+const learnerPublications = `select ${publicationFields}, a.started_at,
+  (${state}->>'diagnosis') is not null as diagnosed, (${state}->>'learning') is not null as learned,
+  ((${state}->>'plan') is not null or (${state}->'repair') ? 'choices') as repaired,
+  ${state}->'verification'->>'outcome' as outcome, (${state}->>'verification') is not null as verified
+  ${publicationFrom}
+  left join skillloop_courses.attempts a on a.course_id = v.course_id and a.version = v.version
+    and a.learner_id = skillloop_courses.actor()
+  left join skillloop_courses.native_progress n using (attempt_id)`;
+
+function learnerEntry(row) {
+  const index = row.repaired ? 0 : row.learned ? 1 : row.diagnosed ? 2 : 3;
+  return { ...safeSummary(row), started: Boolean(row.started_at), stage: stages[index][0], route: stages[index][1],
+    diagnosed: row.diagnosed, verified: row.verified, outcome: row.outcome, startedAt: row.started_at };
 }
 const lessonSelect = `select lesson, generation_error, answer, feedback, feedback_error
   from skillloop_courses.v3_lessons where attempt_id = $1 and evidence_key = $2`;
@@ -76,6 +95,12 @@ export function v3Store(courses, ai) {
   const teacher = (actor, run) => tx(actor, 'teacher', run);
   const student = (actor, run) => tx(actor, 'student', run);
   const publicRead = run => tx(null, null, run);
+  const entry = (actor, courseId, version) => student(actor, async db => {
+    const { rows: [row] } = await db.query(learnerPublications + ' where v.course_id = $1 and v.version = $2',
+      [courseId, version]);
+    if (!row) fail(404, 'This published course version could not be found.');
+    return learnerEntry(row);
+  });
 
   async function budget(actor, role, run) {
     const lease = randomUUID();
@@ -104,6 +129,20 @@ export function v3Store(courses, ai) {
   }
 
   return {
+    mode: (courseId, version) => publicRead(async db => {
+      const { rows: [row] } = await db.query(`select coalesce(path.mode, 'journey') as mode
+        ${publicationFrom} where v.course_id = $1 and v.version = $2`, [courseId, version]);
+      if (!row) fail(404, 'This published course version could not be found.');
+      return row.mode;
+    }),
+    entry,
+    begin: async (actor, courseId, version) => {
+      const current = await entry(actor, courseId, version);
+      if (current.native && !nativeRuntimeAvailable()) fail(503, 'The original course experience is temporarily unavailable.');
+      if (current.started) return current;
+      await courses.start(actor, courseId, version);
+      return entry(actor, courseId, version);
+    },
     runLearnerAI: (actor, run) => budget(actor, 'student', run),
     assertTeacher: actor => teacher(actor, () => true),
     import: (actor, source) => teacher(actor, async db => {
@@ -162,13 +201,16 @@ export function v3Store(courses, ai) {
     publish: (actor, id, revision) => teacher(actor, async db => {
       const row = await draftRow(db, id, revision, true);
       const publication = publicationFor(row);
-      if (nativeEnabled() && !nativeCase(publication.caseRef)) fail(422, 'This case cannot run all four original stages.');
       const digest = hash(publication);
       if (row.approved_hash !== digest) fail(409, 'Approve the saved preview before publishing.');
       if (row.course_id) {
         const existing = (await releasesFor(db, row.course_id)).find(item => item.draftRevision === revision);
         if (existing) return existing;
       }
+      if (process.env.SKILLLOOP_COURSE_PUBLICATION_PAUSED === '1')
+        fail(503, 'New course publication is temporarily paused. Your approved draft is saved.');
+      const mode = nativeEnabled() ? 'native' : 'journey';
+      if (mode === 'native' && !nativeCase(publication.caseRef)) fail(422, 'This case cannot run all four original stages.');
       const { rows: [prior] } = row.course_id ? await db.query(
         'select draft_revision from skillloop_courses.courses where id = $1 and v3_managed', [row.course_id]) : { rows: [] };
       const saved = await coursePublication.save(db, row.course_id, prior?.draft_revision,
@@ -178,7 +220,9 @@ export function v3Store(courses, ai) {
       const release = await coursePublication.publish(db, saved.id, saved.draft.revision, true);
       await db.query(`insert into skillloop_courses.v3_publications (course_id, version, draft_revision, content_hash, snapshot)
         values ($1, $2, $3, $4, $5)`, [saved.id, release.version, revision, digest, publication]);
-      return { courseId: saved.id, draftRevision: revision, ...release };
+      await db.query('insert into skillloop_courses.v3_publication_paths (course_id, version, mode) values ($1, $2, $3)',
+        [saved.id, release.version, mode]);
+      return { courseId: saved.id, draftRevision: revision, ...release, mode };
     }),
     catalog: () => publicRead(async db => {
       const { rows } = await db.query(`select * from (${publicationSelect}
@@ -191,21 +235,8 @@ export function v3Store(courses, ai) {
       return { ...safeSummary(row), notes: row.snapshot?.notes ?? [], mapping: row.snapshot?.mapping ?? [], contentHash: row.content_hash };
     }),
     learning: actor => student(actor, async db => {
-      const native = nativeEnabled();
-      const state = native ?
-        "(case when p.snapshot->'caseRef'->>'caseId' = any($1::text[]) then n.state else a.journey end)" : 'a.journey';
-      const { rows } = await db.query(`select ${publicationFields}, a.started_at,
-        (${state}->>'diagnosis') is not null as diagnosed, (${state}->>'learning') is not null as learned,
-        ((${state}->>'plan') is not null or (${state}->'repair') ? 'choices') as repaired,
-        ${state}->'verification'->>'outcome' as outcome, (${state}->>'verification') is not null as verified
-        ${publicationFrom} join skillloop_courses.attempts a on a.course_id = v.course_id and a.version = v.version
-        ${native ? 'left join skillloop_courses.native_progress n using (attempt_id)' : ''}
-        where a.learner_id = skillloop_courses.actor() order by a.started_at desc limit 100`, native ? [nativeCaseIds] : []);
-      return rows.map(row => {
-        const index = row.repaired ? 0 : row.learned ? 1 : row.diagnosed ? 2 : 3;
-        return { ...safeSummary(row), stage: stages[index][0], route: stages[index][1], diagnosed: row.diagnosed,
-          verified: row.verified, outcome: row.outcome, startedAt: row.started_at };
-      });
+      const { rows } = await db.query(learnerPublications + ' where a.attempt_id is not null order by a.started_at desc limit 100');
+      return rows.map(learnerEntry);
     }),
     lesson: (actor, courseId, version) => student(actor, async db => record(db, await contextRow(db, courseId, version))),
     generateLesson: async (actor, courseId, version, evidenceKey) => {

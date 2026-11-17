@@ -5,9 +5,10 @@ import { clean, fail } from './model.mjs';
 import { v3Store } from './store.mjs';
 
 const publicOps = new Set(['v3-catalog', 'v3-overview']);
-const readOps = new Set([...publicOps, 'v3-list', 'v3-open', 'v3-learning', 'v3-lesson']);
+const readOps = new Set([...publicOps, 'v3-list', 'v3-open', 'v3-learning', 'v3-lesson', 'v3-entry',
+  'v3-legacy-drafts', 'v3-legacy-draft-export']);
 const writeOps = new Set(['v3-import-url', 'v3-import-file', 'v3-generate', 'v3-save', 'v3-match', 'v3-select',
-  'v3-preview', 'v3-review', 'v3-publish', 'v3-generate-lesson', 'v3-answer']);
+  'v3-preview', 'v3-review', 'v3-publish', 'v3-generate-lesson', 'v3-answer', 'v3-begin']);
 const progressOps = new Set(['v3-generate-lesson', 'v3-answer']);
 const id = value => {
   if (typeof value !== 'string' || !UUID.test(value)) fail(400, 'Choose a valid course or draft.');
@@ -36,7 +37,14 @@ export async function runV3(request, op, { authenticate, database, ai }) {
       case 'v3-overview': return store.overview(id(query.get('course')), positive(query.get('version')));
       case 'v3-list': return { drafts: await store.list(actor) };
       case 'v3-open': return store.open(actor, id(query.get('draft')));
+      case 'v3-legacy-drafts': return { drafts: await database().list(actor) };
+      case 'v3-legacy-draft-export': {
+        const course = id(query.get('course'));
+        const { draft, reviewed, versions } = await database().open(actor, course);
+        return { format: 'skillloop-legacy-course-draft', schemaVersion: 1, courseId: course, draft, reviewed, versions };
+      }
       case 'v3-learning': return { courses: await store.learning(actor) };
+      case 'v3-entry': return store.entry(actor, id(query.get('course')), positive(query.get('version')));
       case 'v3-lesson': return store.lesson(actor, id(query.get('course')), positive(query.get('version')));
     }
   }
@@ -60,6 +68,7 @@ export async function runV3(request, op, { authenticate, database, ai }) {
     await store.assertTeacher(actor);
     return store.import(actor, await importUrl(data.url));
   }
+  if (op === 'v3-begin') return store.begin(actor, id(data.courseId), positive(data.version));
   if (progressOps.has(op)) {
     const course = id(data.courseId);
     const version = positive(data.version);

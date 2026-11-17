@@ -67,6 +67,8 @@ test('v3 sends reviewed content through the formal Journey and isolates revision
   const query = { course: v1.courseId, version: v1.version };
   const versionInput = { courseId: v1.courseId, version: v1.version };
   const publicV1 = await call('v3-overview', { query });
+  assert.equal(publicV1.mode, 'journey');
+  assert.equal((await call('v3-entry', { cookie: a, query })).started, false);
   const old = await call('published', { query });
   assert.equal(old.lesson.caseRef.caseId, 'cart-checkout');
   assert.equal(old.lesson.objectives.length, 2);
@@ -83,6 +85,8 @@ test('v3 sends reviewed content through the formal Journey and isolates revision
     return view.attemptId;
   }
   const attemptId = await diagnose(a, 'cart-checkout-code-reading');
+  assert.equal((await call('v3-begin', { cookie: a, body: versionInput })).route, '/knowledge-map/');
+  assert.equal((await call('native-start', { cookie: a, body: versionInput, status: 409 })).code, 'course-mode-mismatch');
   await call('v3-lesson', { cookie: b, query, status: 409 });
   await diagnose(b, 'cart-checkout-edge-cases');
   const lesson = cookie => call('v3-lesson', { cookie, query });
@@ -112,14 +116,17 @@ test('v3 sends reviewed content through the formal Journey and isolates revision
   draft = await write('select', { selection: 0, confirm: true });
   await write('review', { confirm: true });
   // Induce a failure after the official version insert to prove it rolls back with the v3 snapshot.
-  await stack.admin.query('alter table skillloop_courses.v3_publications add constraint test_rollback check (version < 2)');
+  await stack.admin.query('alter table skillloop_courses.v3_publication_paths add constraint test_rollback check (version < 2)');
   try {
     await write('publish', { confirm: true }, 503);
     await call('published', { query: { ...query, version: 2 }, status: 404 });
   } finally {
-    await stack.admin.query('alter table skillloop_courses.v3_publications drop constraint test_rollback');
+    await stack.admin.query('alter table skillloop_courses.v3_publication_paths drop constraint test_rollback');
   }
+  await stack.restartApp({ publishNative: true });
   const v2 = await write('publish', { confirm: true });
+  assert.equal(v2.mode, 'native');
+  await assert.rejects(stack.admin.query('update skillloop_courses.v3_publication_paths set mode = mode'), { code: '55000' });
   await assert.rejects(stack.admin.query('update skillloop_courses.v3_publications set snapshot = snapshot'),
     { code: '55000' });
   assert.equal(v2.courseId, v1.courseId);

@@ -128,9 +128,13 @@ export async function startM4Stack(t, { appImports = [], native = false, port: r
     await once(server, 'listening');
     const appPort = requestedPort ?? await freePort();
     const base = `http://127.0.0.1:${appPort}`;
+    let publishNative = native;
+    let publicationPaused = false;
     const startApp = async () => {
       current = spawn(process.execPath, [...appImports.flatMap((file) => ['--import', file]), 'scripts/dev.mjs'], { cwd: root, windowsHide: true,
-        env: { ...process.env, SKILLLOOP_NATIVE_COURSES: native ? '1' : '0', PORT: String(appPort), SKILLLOOP_COURSE_DATABASE_URL: databaseUrl,
+        env: { ...process.env, SKILLLOOP_NATIVE_COURSES: publishNative ? '1' : '0',
+          SKILLLOOP_COURSE_PUBLICATION_PAUSED: publicationPaused ? '1' : '0',
+          SKILLLOOP_NATIVE_PREVIEW: native ? '1' : '0', PORT: String(appPort), SKILLLOOP_COURSE_DATABASE_URL: databaseUrl,
           SUPABASE_URL: `http://127.0.0.1:${server.address().port}`, SUPABASE_PUBLISHABLE_KEY: key },
         stdio: ['ignore', 'pipe', 'pipe'] });
       const child = current;
@@ -145,7 +149,12 @@ export async function startM4Stack(t, { appImports = [], native = false, port: r
       });
     };
     await startApp();
-    return { base, admin, runtime, accounts, close, restartApp: async () => { await closeApp(); await startApp(); } };
+    return { base, admin, runtime, accounts, close, restartApp: async (options = {}) => {
+      publishNative = options.publishNative ?? publishNative;
+      publicationPaused = options.publicationPaused ?? publicationPaused;
+      await closeApp();
+      await startApp();
+    } };
   } catch (error) {
     if (!t) await close();
     throw error;

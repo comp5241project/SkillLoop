@@ -5,11 +5,11 @@ import { createCourseAuthor } from '../enhancement-v2/m3-ai-author.mjs';
 
 import { isV3Operation, runV3 } from '../enhancement-v3/api.mjs';
 
-import { nativeEnabled } from '../enhancement-v3/native/environment.mjs';
+import { isNativePreview, nativeRuntimeAvailable } from '../enhancement-v3/native/environment.mjs';
 import { nativeProgress } from '../enhancement-v3/native/progress.mjs';
 import { v3Store } from '../enhancement-v3/store.mjs';
 
-const sessionCookie = () => nativeEnabled() ? 'sl_native_course_access' : 'sl_course_access';
+const sessionCookie = () => isNativePreview() ? 'sl_native_course_access' : 'sl_course_access';
 const tokenPattern = /^[a-zA-Z0-9._-]+$/;
 
 function cookie(request, token = '', age = 0) {
@@ -112,6 +112,12 @@ export function createCourseApi({
 } = {}) {
   let store;
   const database = () => store ??= getStore();
+  async function requireMode(course, version, expected) {
+    if (await v3Store(database(), v3AI).mode(course, version) !== expected) {
+      throw new CourseError(409, 'Open the course overview to continue in the learning path for this version.',
+        undefined, 'course-mode-mismatch');
+    }
+  }
   async function authenticate(request) {
     const bearer = token(request);
     const user = bearer ? await getAuth().user(bearer) : null;
@@ -154,9 +160,10 @@ export function createCourseApi({
         if (get && op === 'session') return json({ role: actor ? await database().role(actor) : null, accountId: actor });
         if (!actor) throw new CourseError(401, 'Sign in to continue.');
         if (['native-start', 'native-open', 'native-save'].includes(op)) {
-          if (!nativeEnabled()) throw new CourseError(404, 'Original course experience is unavailable here.');
           const courseId = id(get ? query.get('course') : data.courseId);
           const version = positive(get ? query.get('version') : data.version, 'version');
+          await requireMode(courseId, version, 'native');
+          if (!nativeRuntimeAvailable()) throw new CourseError(503, 'Original course experience is temporarily unavailable.');
           const native = nativeProgress(database(), v3Store(database(), v3AI).runLearnerAI);
           try {
             if (post && op === 'native-start') return json(await native.start(actor, courseId, version));
@@ -214,14 +221,17 @@ export function createCourseApi({
           if (!journey.stages.includes(stage)) throw new CourseError(400, 'Choose a valid learning stage.');
           if (post && (!Number.isSafeInteger(data.revision) || data.revision < 0))
             throw new CourseError(400, 'Reopen the stage to load your learning record.');
-          return json(await database().journey(actor, id(get ? query.get('course') : data.courseId),
-            positive(get ? query.get('version') : data.version, 'version'), stage,
+          const course = id(get ? query.get('course') : data.courseId);
+          const version = positive(get ? query.get('version') : data.version, 'version');
+          await requireMode(course, version, 'journey');
+          return json(await database().journey(actor, course, version, stage,
             post ? { attemptId: practiceAttemptId(data.attemptId), revision: data.revision, input: data.input } : null));
         }
         if ((get && op === 'attempt') || (post && ['start', 'submit'].includes(op))) {
           const params = get ? { courseId: query.get('course'), version: query.get('version') } : data;
           const courseId = id(params.courseId);
           const version = positive(params.version, 'version');
+          await requireMode(courseId, version, 'journey');
           const attempt = op === 'submit'
             ? await database().submit(actor, courseId, version, practiceAttemptId(data.attemptId), data.responses)
             : await database()[op](actor, courseId, version);

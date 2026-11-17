@@ -40,7 +40,7 @@
     const response = await fetch(url, input === undefined ? {} : { method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-SkillLoop-Course': '1' }, body: JSON.stringify(input) });
     const data = await response.json();
-    if (!response.ok) throw Object.assign(new Error(data.error), { status: response.status });
+    if (!response.ok) throw Object.assign(new Error(data.error), { status: response.status, code: data.code });
     return data;
   }
 
@@ -274,6 +274,11 @@
 
   open().catch(error => {
     notice.textContent = error.message;
-    if (error.status === 409) controls.replaceChildren(link('Return to diagnosis', paths.diagnosis));
+    if (error.code === 'course-mode-mismatch') {
+      const overview = node('a', 'Open course overview');
+      overview.className = 'sl-btn';
+      overview.href = '/enhancement-v3/web/course.html?' + new URLSearchParams(query);
+      controls.replaceChildren(overview);
+    } else if (error.status === 409) controls.replaceChildren(link('Return to diagnosis', paths.diagnosis));
   });
 })();

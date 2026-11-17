@@ -8,7 +8,7 @@
   "trailingSlash": true,
   "functions": {
     "api/courses.mjs": {
-      "includeFiles": "{docs/team-samples/samples.json,shared/cases.json,correction-lab/levels.js,enhancement-v2/m5-retry-queue.json,enhancement-v2/m5-retry-runner.cjs}"
+      "includeFiles": "{docs/team-samples/samples.json,shared/cases.json,correction-lab/levels.js,enhancement-v2/m5-retry-queue.json,enhancement-v2/m5-retry-runner.cjs,enhancement-v3/native/check-engine.mjs,node_modules/quickjs-emscripten/**,node_modules/quickjs-emscripten-core/**,node_modules/@jitl/quickjs-*/**}"
     }
   },
   "headers": [
