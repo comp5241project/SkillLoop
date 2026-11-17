@@ -1,9 +1,15 @@
 // Add final public submission links here. Never publish personal passwords or API keys.
-const resources = { video: null, report: null, slides: null, accessNote: 'App login details: to be confirmed.' };
+const resources = {
+  video: 'assets/submissions/skillloop-demo.mp4',
+  report: 'assets/submissions/group12_report.pdf',
+  slides: 'assets/submissions/group12_slides.pdf',
+  accessNote: 'App login details: to be confirmed.'
+};
 const modal = document.getElementById('resource-dialog');
 const content = document.getElementById('dialog-content');
 document.getElementById('access-note').textContent = resources.accessNote;
 function show(title, entries) {
+  modal.classList.remove('video-dialog');
   document.getElementById('dialog-title').textContent = title;
   content.replaceChildren();
   entries.forEach(([label, url]) => {
@@ -16,8 +22,21 @@ function show(title, entries) {
 }
 const videoButton = document.getElementById('video-button');
 const documentsButton = document.getElementById('documents-button');
-if(resources.video) videoButton.querySelector('.description').textContent = '6–10 minute app overview';
+if(resources.video) videoButton.querySelector('.description').textContent = '5:59 · Full app walkthrough';
 if(resources.report && resources.slides) documentsButton.querySelector('.description').textContent = 'Final report and presentation';
-videoButton.addEventListener('click', () => show('Overview video', [['6–10 minute overview', resources.video]]));
+videoButton.addEventListener('click', () => {
+  show('Overview video', [['Open video in a new tab', resources.video]]);
+  modal.classList.add('video-dialog');
+  const video = document.createElement('video');
+  video.src = resources.video;
+  video.controls = true;
+  video.playsInline = true;
+  video.preload = 'metadata';
+  video.setAttribute('aria-label', 'SkillLoop full app walkthrough');
+  content.prepend(video);
+});
 documentsButton.addEventListener('click', () => show('Report & slides', [['Final report', resources.report], ['Presentation slides', resources.slides]]));
 document.getElementById('close-dialog').addEventListener('click', () => modal.close());
+modal.addEventListener('close', () => {
+  content.querySelector('video')?.pause();
+});
