@@ -71,6 +71,8 @@ The existing Vercel configuration uses the repository root and the **Other** fra
 
 For a Vercel Preview of the original four stages, apply the course migrations through `20261117120000_v3_publication_paths.sql` to the target Supabase project first. Configure its restricted `SKILLLOOP_COURSE_DATABASE_URL`, `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`, along with the shared AI settings. Set `SKILLLOOP_NATIVE_VERIFIER=vercel` to run Part 4 in Vercel Sandbox. Set `SKILLLOOP_NATIVE_COURSES=1` to select the original four stages for new V3 releases. Previously published versions use their stored learning path.
 
+If the database requires a custom CA, put its PEM in `SKILLLOOP_COURSE_DATABASE_CA` and omit SSL query parameters from the hosted database URL. The course API verifies the server certificate and hostname using that CA.
+
 ## References
 
 - [Civilization VI manual](https://downloads.2kgames.com/civilization/vi/manuals/eu/CIV_VI_25TH_ONLINE_MANUAL_ENG.pdf): technology-tree inspiration.

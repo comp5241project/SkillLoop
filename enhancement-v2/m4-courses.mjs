@@ -268,5 +268,9 @@ export function courseStore(pool) {
 export function createConfiguredStore() {
   const connectionString = process.env.SKILLLOOP_COURSE_DATABASE_URL;
   if (!connectionString) throw new CourseError(503, 'Course database is not configured.');
-  return courseStore(new pg.Pool({ connectionString, max: 4, connectionTimeoutMillis: 5000, allowExitOnIdle: true }));
+  const ca = process.env.SKILLLOOP_COURSE_DATABASE_CA?.trim();
+  return courseStore(new pg.Pool({
+    connectionString, max: 4, connectionTimeoutMillis: 5000, allowExitOnIdle: true,
+    ...(ca ? { ssl: { ca, rejectUnauthorized: true } } : {}),
+  }));
 }
