@@ -76,7 +76,7 @@ function configuredProviders(env = process.env) {
   return providerCatalog(env).filter((provider) => provider.available);
 }
 
-function selectedProvider(body, env = process.env) {
+export function selectedProvider(body, env = process.env) {
   const fallback = directKey(env)
     ? 'deepseek'
     : sharedSettings(env).available
@@ -106,7 +106,7 @@ function selectedProvider(body, env = process.env) {
   return provider;
 }
 
-async function generateForProvider(task, provider) {
+export async function generateForProvider(task, provider) {
   if (provider.id === 'shared') {
     const result = await createAIClient({
       timeoutMs: task.timeoutMs || 45000,

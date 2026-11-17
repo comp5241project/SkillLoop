@@ -207,8 +207,7 @@ function normalize(value, caseData) {
   return questions;
 }
 
-function prepare(body) {
-  const { caseData } = readRequest(body);
+function prepare(body, caseData = readRequest(body).caseData) {
   const scope = caseData.knowledgePoints.map((conceptId) => {
     const point = data.knowledgePoint(conceptId);
     return { conceptId, title: point ? point.title : conceptId };

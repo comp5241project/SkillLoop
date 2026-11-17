@@ -1,8 +1,11 @@
-(function () {
+(async function () {
   'use strict';
   if (new URLSearchParams(location.search).get('journey') === '1') return;
 
-  const data = window.LearningPathDiagnosisData;
+  const native = window.SkillLoopNative;
+  if (native && !await native.open()) return;
+  const data = native ? native.data(window.LearningPathDiagnosisData) : window.LearningPathDiagnosisData;
+  if (native) document.getElementById('lp-continue').href = native.url('/knowledge-map/');
   const model = window.LearningPathDiagnosisModel;
   const STORAGE_KEY = 'learningPathDiagnosis';
   const MAX_EXPLANATION = 400;
@@ -443,6 +446,14 @@
   }
 
   async function loadQuestions(force) {
+    if (native && !force && !activeQuestions().length && native.progress.issued?.length) {
+      state.questions = native.progress.issued;
+      state.questionSource = 'ai';
+      renderQuestions();
+      renderQuestionSource('AI-written checks · saved for this course.');
+      updateRunState();
+      return;
+    }
     if (!state.caseId || state.questionsLoading) return;
     if (!force && activeQuestions().length) {
       renderQuestions();
@@ -485,7 +496,11 @@
     try {
       let response;
       try {
-        response = await fetch('/api/learning-path', {
+        if (native) {
+          const assigned = await native.act('questions', { aiProvider: provider.id })
+            .catch(error => error.code === 'ai-not-configured' ? null : Promise.reject(error));
+          response = assigned ? Response.json(assigned) : Response.json({ code: 'ai-not-configured' }, { status: 503 });
+        } else response = await fetch('/api/learning-path', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify({
@@ -776,6 +791,14 @@
       let result;
       let source;
       const provider = liveProvider();
+      if (native) {
+        const { record } = await native.act('diagnose', { aiProvider: provider?.id, learner: state.learner, responses,
+          questionSource: state.questionSource ?? 'authored' });
+        saveRecord(record);
+        showResult(record);
+        announce('Diagnosis saved to this course.');
+        return;
+      }
       if (!provider) {
         result = model.buildLocalDiagnosis(diagnosisCase, responses);
         source = 'local';
@@ -936,9 +959,9 @@
       const item = document.createElement('li');
       const link = document.createElement('a');
       link.className = 'lp-priority-link';
-      link.href =
-        '/knowledge-map/concept.html?graph=software-development&topic=' +
-        encodeURIComponent(conceptId);
+      link.href = native
+        ? native.url('/knowledge-map/') + '#topic-' + encodeURIComponent(conceptId)
+        : '/knowledge-map/concept.html?graph=software-development&topic=' + encodeURIComponent(conceptId);
       link.append(node('span', '', conceptTitle(conceptId)));
       link.append(icon('arrow-up-right'));
       item.append(link);
@@ -1219,6 +1242,7 @@
     }
     loadProfile();
     const restored = restoreSaved();
+    if (native && !restored) selectCase(native.progress.case.caseId);
     renderCases();
     if (!restored) setStage('cases');
     bindEvents();

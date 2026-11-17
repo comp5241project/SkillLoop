@@ -4,7 +4,7 @@
 <script src="/shared/flow.js" defer></script>
 <script src="/shared/vendor/lucide.min.js" defer></script><script src="/shared/storage.js" defer></script><script src="/shared/navigation.js" defer></script>
 <script src="/learning-path/shared-cases.js" defer></script><script src="/learning-path/data.js" defer></script>
-<script src="/knowledge-map/learning-samples.js" defer></script><script src="/knowledge-map/learning-contract.js" defer></script><script src="/knowledge-map/learning-part1-adapter.js" defer></script><script src="/knowledge-map/learning-content.js" defer></script><script src="/knowledge-map/learning-feedback.js" defer></script><script src="/knowledge-map/learning.js" defer></script><script src="/shared/course-journey.js" defer></script></head>
+<script src="/knowledge-map/learning-samples.js" defer></script><script src="/knowledge-map/learning-contract.js" defer></script><script src="/knowledge-map/learning-part1-adapter.js" defer></script><script src="/knowledge-map/learning-content.js" defer></script><script src="/knowledge-map/learning-feedback.js" defer></script><script src="/shared/native-course.js" defer></script><script src="/knowledge-map/learning.js" defer></script><script src="/shared/course-journey.js" defer></script></head>
 <body data-root="/" data-module="knowledge-map"><a class="skip-link" href="#main-content">Skip to content</a><div id="skillloop-prototype">
 <header id="site-header" class="sl-head"></header><div class="sl-shell"><aside id="site-navigation" class="sl-side" aria-label="Workspace navigation"></aside>
 <main id="main-content" class="sl-main case-learning">
@@ -20,6 +20,14 @@
         </div>
         <progress id="learning-progress-bar" aria-label="Topics practiced"></progress>
         <p id="learning-further-practice" role="status"></p>
+        <nav id="learning-priorities" class="learning-priorities" aria-labelledby="learning-priorities-label">
+          <h2 id="learning-priorities-label">Priority topics</h2>
+          <ul id="weak-topics" class="learning-topic-links"></ul>
+        </nav>
+        <div id="learning-save" class="learning-save" hidden>
+          <p id="learning-save-status" role="status"></p>
+          <button id="learning-save-retry" type="button" class="sl-btn" hidden>Retry saving</button>
+        </div>
       </div>
       <details id="sample-picker" class="learning-secondary" hidden>
         <summary>Sample settings</summary>
@@ -69,8 +77,6 @@
               <dt>Evidence</dt><dd id="diagnosis-evidence"></dd>
             </dl>
           </div>
-          <h3>Priority topics</h3>
-          <ul id="weak-topics" class="learning-topic-links"></ul>
         </div>
       </details>
 
@@ -94,4 +100,16 @@
       </section>
     </div>
   </div>
+  <template id="published-learning-review">
+    <dialog id="learning-review" class="learning-review" aria-labelledby="learning-review-title">
+      <header class="learning-review-header">
+        <h2 id="learning-review-title">Review &amp; continue</h2>
+        <button id="learning-review-close" type="button" class="sl-btn" autofocus>Close</button>
+      </header>
+      <div id="learning-review-body" class="learning-review-body"></div>
+      <footer id="learning-review-footer" class="learning-review-footer">
+        <p id="learning-review-gate">Submit the case check to continue to Part 3.</p>
+      </footer>
+    </dialog>
+  </template>
 </main></div></div></body></html>

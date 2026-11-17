@@ -17,7 +17,9 @@ export const node = (tag, text, attrs = {}) => {
 export const link = (label, url, primary = false) => node('a', label, { href: url, class: primary ? 'button primary' : 'button' });
 export const pageURL = (name, data = {}) => root + name + '.html' + (Object.keys(data).length ? '?' + new URLSearchParams(data) : '');
 const publishedURL = (page, course) => pageURL(page, { course: course.courseId, version: course.version });
-const journeyURL = (route, course) => route + '?' + new URLSearchParams({ journey: '1', course: course.courseId, version: course.version });
+const journeyURL = (route, course) => route + '?' + new URLSearchParams({ [course.native ? 'native' : 'journey']: '1', course: course.courseId, version: course.version,
+  ...(course.native && course.caseRef ? { case: course.caseRef.caseId } : {}),
+  ...(course.native && route === '/interview/' ? { flow: '1' } : {}) });
 export const panel = (title, ...children) => {
   const container = node('section', null, { class: 'panel' });
   container.append(node('h2', title), ...children);
@@ -168,8 +170,10 @@ async function overview(state) {
   const course = await request('v3-overview', { query: courseQuery() });
   setIntro(course.summary, course.title);
   const begin = async () => {
-    await request('start', { data: { courseId: course.courseId, version: course.version } });
-    location.assign(journeyURL('/learning-path/', course));
+    const started = await request(course.native ? 'native-start' : 'start',
+      { data: { courseId: course.courseId, version: course.version } });
+    const routes = { diagnosis: '/learning-path/', learning: '/knowledge-map/', repair: '/interview/', verification: '/correction-lab/' };
+    location.assign(journeyURL(course.native ? routes[started.stage] : routes.diagnosis, course));
   };
   const controls = state.role === 'teacher' ? link('Open Teacher Studio', pageURL('studio'), true) :
     button('Start Learning', async () => {
@@ -183,7 +187,7 @@ async function overview(state) {
     }, true);
   workspace.append(panel('Course overview', tag('Version ' + course.version), tag(course.caseTitle), list(course.objectives, true),
     paragraph('Start with the diagnosis, then practise, plan a repair, and verify it using the registered case tests.'),
-    actions(controls, ...(state.role === 'student' && course.personalized ?
+    actions(controls, ...(state.role === 'student' && course.personalized && !course.native ?
       [link('Open AI Personalized Learning', publishedURL('lesson', course))] : []))));
   if (course.notes.length) workspace.append(notesPanel(course.notes));
 }

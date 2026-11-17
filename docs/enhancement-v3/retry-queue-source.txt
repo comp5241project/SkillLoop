@@ -1,0 +1,7 @@
+Retry queue boundaries: exponential delay and valid attempts
+
+A delivery queue retries temporarily failed requests. The first retry is attempt zero. Only nonnegative integers are valid attempt counts; the queue must reject negative and fractional counts instead of rounding or accepting them.
+
+The queue starts at 100 milliseconds and doubles the delay for each valid attempt. The retry delay is 100 milliseconds multiplied by two to the power of the attempt count, capped at 1,000 milliseconds. The first and third retries wait 100 and 400 milliseconds. Once growth reaches the cap, the queue must schedule no more than 1,000 milliseconds.
+
+Verify valid zero, ordinary growth, and a count high enough to reach the cap. In separate checks, submit a negative or fractional attempt count and check that both are refused.

@@ -487,3 +487,275 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+
+#skillloop-prototype .learning-priorities {
+  display: grid;
+  gap: .55rem;
+  padding-top: .75rem;
+}
+
+#skillloop-prototype .learning-priorities h2 {
+  font-size: .9rem;
+  margin: 0;
+}
+
+#skillloop-prototype .learning-priorities ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#skillloop-prototype .learning-priorities li { margin: 0; }
+
+#skillloop-prototype .learning-priorities a {
+  display: inline-block;
+  padding: .35rem .65rem;
+  border: 1px solid var(--sl-line);
+  border-radius: 8px;
+  background: var(--sl-panel);
+  color: var(--sl-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+#skillloop-prototype .learning-priorities a[aria-current=location] {
+  background: var(--sl-soft);
+  border-color: var(--sl-accent);
+  color: var(--sl-accent);
+  font-weight: 700;
+}
+
+#skillloop-prototype .learning-priorities a[data-practiced]::before {
+  content: '✓';
+  margin-inline-end: .4em;
+}
+
+#skillloop-prototype .learning-save {
+  display: flex;
+  gap: .55rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: .65rem;
+  color: var(--sl-sub);
+  font-size: .85rem;
+}
+
+#skillloop-prototype .learning-save[hidden], #skillloop-prototype .learning-priorities[hidden] { display: none; }
+#skillloop-prototype .learning-save p { margin: 0; }
+#skillloop-prototype .learning-save p:empty { display: none; }
+#skillloop-prototype .learning-submitted { margin-top: .65rem; color: var(--sl-sub); }
+#skillloop-prototype .learning-submitted p { white-space: pre-wrap; }
+
+
+/* The published lesson uses the same lesson controls in a wider, sticky course layout. */
+#skillloop-prototype:has(.learning-published) { overflow: clip; }
+
+#skillloop-prototype .case-learning.learning-published {
+  padding: 0 0 3rem;
+  min-width: 0;
+}
+
+#skillloop-prototype .learning-published > .learning-flow {
+  max-width: 820px;
+  padding: clamp(.85rem, 3vw, 1.75rem) clamp(1rem, 4vw, 2rem) 0;
+}
+
+#skillloop-prototype .learning-course-context {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .15rem .85rem;
+  margin-bottom: .18rem;
+  min-width: 0;
+}
+
+#skillloop-prototype .learning-course-context h1 {
+  margin: 0;
+  font-family: inherit;
+  font-size: clamp(1rem, 1.65vw, 1.27rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  overflow-wrap: anywhere;
+}
+
+#skillloop-prototype .learning-course-metadata {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .05rem .75rem;
+}
+
+#skillloop-prototype .learning-course-metadata p { margin: 0; font-size: .7rem; line-height: 1.3; }
+
+#skillloop-prototype .learning-published > .learning-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  max-width: none;
+  padding: .35rem clamp(1rem, 2vw, 1.85rem) .48rem;
+  background: #fffdf9;
+}
+
+#skillloop-prototype .learning-published > .learning-header:has(.learning-progress[hidden]) { display: none; }
+
+#skillloop-prototype .learning-published .learning-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .2rem .8rem;
+  margin: 0;
+}
+
+#skillloop-prototype .learning-strip-tools {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+}
+
+#skillloop-prototype .learning-strip-tools #learning-practiced {
+  color: var(--learning-muted);
+  font-size: .82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+#skillloop-prototype .learning-strip-tools button {
+  padding-block: .42rem;
+  min-height: 34px;
+  font-size: .85rem;
+}
+
+#skillloop-prototype .learning-published .learning-progress > progress,
+#skillloop-prototype .learning-published .learning-save { grid-column: 1 / -1; }
+
+#skillloop-prototype .learning-published .learning-progress > progress { height: 4px; margin: 0; }
+
+#skillloop-prototype .learning-published .learning-priorities {
+  display: flex;
+  overflow-x: auto;
+  padding: .24rem .25rem .3rem;
+  scroll-padding-inline: .25rem;
+  scrollbar-width: thin;
+}
+
+#skillloop-prototype .learning-published .learning-priorities h2,
+#skillloop-prototype .learning-published .learning-progress-labels,
+#skillloop-prototype .learning-published #learning-further-practice {
+  display: none;
+}
+
+#skillloop-prototype .learning-published #weak-topics { flex-wrap: nowrap; }
+
+#skillloop-prototype .learning-published #weak-topics a {
+  display: block;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 3.5rem));
+  border-radius: .45rem;
+  border-bottom-width: 2px;
+  font-size: .9rem;
+  padding: .3rem .55rem;
+}
+
+#skillloop-prototype .learning-published .learning-save { margin-block: .35rem 0; }
+#skillloop-prototype .learning-published #learning-topic { scroll-margin-top: var(--learning-strip-height, 12rem); }
+#skillloop-prototype .learning-published #learning-card-position { font-size: .83rem; }
+#skillloop-prototype .learning-published #learning-topic h2 { margin-top: .2rem; }
+#skillloop-prototype .learning-published #learning-review-end { display: flex; margin: 1.35rem 0 0 auto; }
+
+#skillloop-prototype .learning-review {
+  width: min(35rem, 100%);
+  max-width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  inset: 0 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--learning-rule);
+  background: #fffdf9;
+  color: var(--sl-text);
+  box-shadow: -14px 0 50px #3323152e;
+}
+
+#skillloop-prototype .learning-review[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+#skillloop-prototype .learning-review::backdrop { background: #24212688; }
+html:has(.learning-published) { scrollbar-gutter: stable; }
+html:has(#learning-review[open]) { overflow: hidden; }
+
+#skillloop-prototype .learning-review-header,
+#skillloop-prototype .learning-review-body,
+#skillloop-prototype .learning-review-footer {
+  padding: clamp(.85rem, 3vw, 1.5rem);
+}
+
+#skillloop-prototype .learning-review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--learning-rule);
+}
+
+#skillloop-prototype .learning-review-header h2 { margin: 0; font-size: clamp(1.2rem, 3vw, 1.55rem); }
+#skillloop-prototype .learning-review-body { overflow: auto; overscroll-behavior: contain; }
+
+#skillloop-prototype .learning-review-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .55rem;
+  border-top: 1px solid var(--learning-rule);
+}
+
+#skillloop-prototype .learning-review-footer p { margin: 0; font-size: .875rem; color: var(--learning-muted); }
+#skillloop-prototype .learning-review-progress { padding: .8rem 1rem; border-radius: .5rem; background: var(--learning-paper); }
+#skillloop-prototype .learning-review-progress progress { display: block; width: 100%; height: .5rem; margin-top: .45rem; accent-color: var(--learning-accent); }
+
+#skillloop-prototype .learning-review .learning-summary {
+  margin: 1.15rem 0;
+  padding: 0;
+  border: 0;
+}
+
+#skillloop-prototype .learning-review h2 { font-size: 1.2rem; }
+#skillloop-prototype .learning-review .learning-topic-results { margin-block: .6rem .9rem; padding: 0; }
+
+#skillloop-prototype .learning-review .learning-topic-results li {
+  display: grid;
+  justify-content: stretch;
+  gap: .35rem;
+  padding-block: .65rem;
+}
+
+#skillloop-prototype .learning-review .learning-topic-results li a { justify-self: start; }
+#skillloop-prototype .learning-review-feedback { margin: 0; color: var(--learning-muted); font-size: .875rem; }
+#skillloop-prototype .learning-review-reflection-heading { margin: 1.1rem 0 .35rem; }
+#skillloop-prototype .learning-case-check { border-top: 1px solid var(--learning-rule); padding-top: .85rem; }
+#skillloop-prototype .learning-case-check label { display: grid; gap: .4rem; margin-block: .85rem; font-weight: 650; }
+
+#skillloop-prototype .learning-case-check select {
+  width: 100%;
+  padding: .6rem;
+  border: 1px solid var(--learning-rule);
+  border-radius: .35rem;
+  background: #fffdf9;
+  color: var(--sl-text);
+}
+
+@media (max-width: 600px) {
+  html:has(.learning-published) { scrollbar-gutter: auto; }
+  #skillloop-prototype .learning-review { width: 100%; border-left: 0; }
+  #skillloop-prototype .learning-published .learning-progress { grid-template-columns: minmax(0, 1fr); }
+  #skillloop-prototype .learning-strip-tools { grid-row: 1; justify-content: space-between; }
+  #skillloop-prototype .learning-strip-tools button { min-height: 32px; padding-block: .28rem; font-size: .79rem; }
+  #skillloop-prototype .learning-strip-tools #learning-practiced { font-size: .75rem; }
+  #skillloop-prototype .learning-published #weak-topics a { font-size: .81rem; }
+}

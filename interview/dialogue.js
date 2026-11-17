@@ -1,5 +1,7 @@
 (async function () {
   if (new URLSearchParams(location.search).get('journey') === '1') return;
+  const native = window.SkillLoopNative;
+  if (native && !await native.open()) return;
   const $=id=>document.getElementById(id), M=window.SkillLoopDialogue, app=window.SkillLoop;
   let catalog,available=false,session=null,busy=false,records=[], imported=null;
   const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
@@ -11,7 +13,16 @@
     $('review-plan').disabled=cannotFinish;$('finish-chat').disabled=cannotFinish;
     $('confirm-plan').disabled=value||!session||session.confirmed||!M.hasReview(session)||session.context.case.issues.some(i=>!session.requests[i.issueId]?.request?.trim());
   }
-  function persistEdit(){if(!session)return;session.draft=$('reply').value;save();}
+  let draftTimer;
+  function persistEdit(){
+    if(!session)return;
+    session.draft=$('reply').value;save();
+    if(native){
+      clearTimeout(draftTimer);
+      const draft=session.draft;
+      draftTimer=setTimeout(()=>native.act('dialogue-draft',{draft}).catch(error=>say(error.message)),350);
+    }
+  }
   function render(scroll=true){
     if(!session)return;
     $('start').hidden=true;$('workspace').hidden=false;$('plan').hidden=true;
@@ -42,7 +53,10 @@
     const opening=session.mode==='api'&&session.messages.length===0;
     lock(true);say(opening?'Maya is preparing your review…':'Maya is reviewing your message…');
     try {
-      const response=await fetch('/api/dialogue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:opening?'open':'reply',session}),signal:AbortSignal.timeout(60000)});
+      clearTimeout(draftTimer);
+      const response=native ? Response.json(await native.act('dialogue',{id:session.id,action:opening?'open':'reply',
+        message: session.messages.at(-1)?.text})) :
+        await fetch('/api/dialogue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:opening?'open':'reply',session}),signal:AbortSignal.timeout(60000)});
       const data=await response.json();if(!response.ok)throw Error(data.error||'The request failed.');
       if(data.aiSource!==session.mode)throw Error('Reply source mismatch.');
       if(opening)M.applyOpening(session,data.result);else M.apply(session,data.result);save();say('');
@@ -100,14 +114,16 @@
       const ul=el('ul');for(const id of i.suggestedChecks){const t=session.context.case.tests.find(t=>t.testId===id);ul.append(el('li',t.action+' → '+t.expected));}checks.append(ul);card.append(checks);$('plan-items').append(card);
     }
     renderSummary();
-    $('download-output').hidden=!session.confirmed;$('continue-verification').hidden=!session.confirmed||!window.SkillLoopFlow.readPlan(app,session.context.case.caseId);$('continue-verification').href='/correction-lab/?case='+encodeURIComponent(session.context.case.caseId);$('plan-title').focus();$('plan').scrollIntoView({behavior:'smooth',block:'start'});
+    $('download-output').hidden=!session.confirmed;$('continue-verification').hidden=!session.confirmed||!window.SkillLoopFlow.readPlan(app,session.context.case.caseId);$('continue-verification').href=native ? native.url('/correction-lab/',{case:session.context.case.caseId}) :
+      '/correction-lab/?case='+encodeURIComponent(session.context.case.caseId);$('plan-title').focus();$('plan').scrollIntoView({behavior:'smooth',block:'start'});
   }
   async function summarize(){
     if(!session||busy||session.pending)return;
     const target=session,key=M.reviewKey(target);
     lock(true);$('refresh-summary').hidden=true;$('plan-feedback').textContent='Summarizing your conversation…';say('');
     try{
-      const response=await fetch('/api/dialogue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'summary',session:target}),signal:AbortSignal.timeout(60000)});
+      const response=native ? Response.json(await native.act('dialogue',{id:target.id,action:'summary',requests:target.requests})) :
+        await fetch('/api/dialogue',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'summary',session:target}),signal:AbortSignal.timeout(60000)});
       const data=await response.json();if(!response.ok)throw Error(data.error||'Summary request failed.');
       if(data.aiSource!=='api')throw Error('Summary source mismatch.');
       M.applyReview(target,data.result,key);save();renderSummary();
@@ -122,10 +138,20 @@
   }
   $('finish-chat').onclick=finish;$('review-plan').onclick=finish;$('refresh-summary').onclick=summarize;
   $('back-chat').onclick=()=>{if(busy)return;session.phase='chat';save();render();say('');$('reply').focus();$('compose').scrollIntoView({behavior:'smooth',block:'center'});};
-  $('confirm-plan').onclick=()=>{if(busy)return;try{const output=M.confirm(session);session.output=output;session.confirmed=true;const handed=window.SkillLoopFlow.savePlan(app,output,session.learningCompletedAt);$('continue-verification').hidden=!handed;$('continue-verification').href='/correction-lab/?case='+encodeURIComponent(output.caseId);session.revisions.push({at:new Date().toISOString(),output});session.revisions=session.revisions.slice(-20);const ok=save();$('download-output').hidden=false;lock(false);say(ok && handed?'Plan saved. Continue to verification.':'Plan confirmed for this visit. Download it before leaving.');}catch(error){say(error.message);}};
+  $('confirm-plan').onclick=async()=>{if(busy)return;try{
+    let output=M.confirm(session);
+    if(native){
+      lock(true);
+      const confirmed=await native.act('confirm-plan',{id:session.id});
+      output=confirmed.output;
+      session.learningCompletedAt=confirmed.learningCompletedAt;
+    }session.output=output;session.confirmed=true;const handed=window.SkillLoopFlow.savePlan(app,output,session.learningCompletedAt);$('continue-verification').hidden=!handed;$('continue-verification').href=native ? native.url('/correction-lab/',{case:output.caseId}) :
+      '/correction-lab/?case='+encodeURIComponent(output.caseId);session.revisions.push({at:new Date().toISOString(),output});session.revisions=session.revisions.slice(-20);const ok=save();$('download-output').hidden=false;lock(false);say(ok && handed?'Plan saved. Continue to verification.':'Plan confirmed for this visit. Download it before leaving.');}catch(error){lock(false);say(error.message);}};
   $('download-output').onclick=()=>download(session.output,'skillloop-part3-output.json');
   try {
-    const response=await fetch('/api/dialogue');if(!response.ok)throw Error('Could not load the cases.');const data=await response.json();catalog=data.catalog;available=data.available;
+    const response=await fetch('/api/dialogue');if(!response.ok)throw Error('Could not load the cases.');const data=await response.json();catalog=native ? { topics:data.catalog.topics, cases:{ [native.progress.case.caseId]:native.progress.case } } : data.catalog;
+    available=data.available;
+    if(native) { $('import-input').hidden=true; $('reset-input').hidden=true; }
     for(const c of Object.values(catalog.cases)){const o=el('option',c.title);o.value=c.caseId;$('case-select').append(o);}
     const selected=new URLSearchParams(location.search).get('case');
     if(new URLSearchParams(location.search).get('flow')==='1'){
@@ -134,7 +160,10 @@
       M.input(imported,catalog);$('input-label').hidden=false;$('input-label').textContent='Your diagnosis and learning focus are ready';$('case-select').disabled=true;
     }if(catalog.cases[selected])$('case-select').value=selected;
     records=M.restore(app.read('codeReview',[]),catalog);$('start-live').disabled=!available;
+    if(native)for(const record of records){
+      if(record.review&&!record.pending)M.applyReview(record,{feedback:record.review.feedback});
+    }
     $('connection').textContent=available?'':'AI is unavailable. Please try again later.';showHistory();say('');
-    if(records.length&&!selected){session=records.at(-1);render();if(session.phase==='review'||(!session.phase&&M.hasReview(session)))showPlan();if(session.pending)say('A response is pending. Select Retry to continue.');}
+    if(records.length&&(!selected||native)){session=records.at(-1);render();if(session.phase==='review'||(!session.phase&&M.hasReview(session)))showPlan();if(session.pending)say('A response is pending. Select Retry to continue.');}
   }catch(error){say(error.message+' Please reload to try again.');}
 })();

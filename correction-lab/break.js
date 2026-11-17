@@ -6,11 +6,22 @@
  * { caseId, aiSource, verification: { testSource, tests, outcome, aiReview, reviewTopics } }.
  * Test statuses and the outcome always come from the runner, never from the AI.
  */
-(function () {
+(async function () {
   if (new URLSearchParams(location.search).get('journey') === '1') return;
+  const native = window.SkillLoopNative;
+  if (native && !await native.open()) return;
+  if (native && !native.progress.plan) {
+    native.warn('Confirm your repair plan in Part 3 before running tests.');
+    const link = document.createElement('a');
+    link.href = native.url('/interview/', { case: native.progress.case.caseId, flow: '1' });
+    link.textContent = 'Continue to repair';
+    document.getElementById('native-course-notice').append(' ', link);
+    return;
+  }
   const app = window.SkillLoop;
-  const shared = window.SkillLoopShared;
-  const levels = window.SkillLoopLevels;
+  const sample = window.SkillLoopShared;
+  const shared = native ? { ...sample, cases: { [native.progress.case.caseId]: native.progress.case } } : sample;
+  const levels = native?.progress.retryDisplay ? { ...window.SkillLoopLevels, 'retry-queue': native.progress.retryDisplay } : window.SkillLoopLevels;
   const runner = window.SkillLoopRunner;
   const $ = (selector) => document.querySelector(selector);
   const caseIds = Object.keys(shared.cases);
@@ -102,6 +113,8 @@
   const requested = new URLSearchParams(location.search).get('case');
   let current = caseIds.includes(requested) ? requested : caseIds[0];
   let worker = null;
+  let nativeRunning = false;
+  let saveTimer;
   if (replanned) save();
 
   const item = () => shared.cases[current];
@@ -110,6 +123,15 @@
   function save() {
     // Other pages share the `correction` key, so keep whatever they stored.
     app.write('correction', { ...app.read('correction', {}), verify: progress });
+    if (native && !nativeRunning && progress[current]) {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => native.act('correction-draft', draftInput(progress[current]))
+        .catch(error => native.warn(error.message)), 350);
+    }
+  }
+  function draftInput(entry) {
+    const { mode, code, choices, reproduced, hints, explain } = entry;
+    return { mode, code, choices, reproduced, hints, explain };
   }
   function element(tag, className, content) {
     const node = document.createElement(tag);
@@ -142,7 +164,7 @@
     const data = level();
     const entry = state();
     // Hand-edited code runs in the app only after the worker has shown that it finishes.
-    const safeToRun = entry.mode !== 'code' || (hasRun() && tests().every((result) => result.status !== 'error'));
+    const safeToRun = entry.mode !== 'code' || (!native && hasRun() && tests().every((result) => result.status !== 'error'));
     const code = safeToRun ? activeCode() : item().starterCode;
     const safe = (source) => source.replace(/<\/script/gi, '<\\/script');
     const watch = Object.entries(data.detectors).map(([id, d]) => ({ id, fn: d.fn, detect: d.detect }));
@@ -221,7 +243,7 @@ p { margin: 10px 0 0; } .tip { color: #6b675f; font-size: 13px; margin-top: 0; }
     });
   }
   async function runNow() {
-    if (worker) return;
+    if (worker || nativeRunning) return;
     const entry = state();
     const code = activeCode();
     entry.run = null;
@@ -232,7 +254,20 @@ p { margin: 10px 0 0; } .tip { color: #6b675f; font-size: 13px; margin-top: 0; }
     const box = $('#bk-outcome');
     box.dataset.result = '';
     box.textContent = 'Running the tests…';
-    const results = await runTests(code);
+    let results;
+    try {
+      if (native) {
+        clearTimeout(saveTimer);
+        nativeRunning = true;
+        const checked = await native.act('verify', draftInput(entry));
+        results = checked.tests;
+      } else results = await runTests(code);
+    } catch (error) {
+      nativeRunning = false;
+      render();
+      box.textContent = error.message;
+      return;
+    } finally { nativeRunning = false; }
     entry.run = { code, tests: results };
     save();
     loadApp();
@@ -459,7 +494,7 @@ p { margin: 10px 0 0; } .tip { color: #6b675f; font-size: 13px; margin-top: 0; }
     return {
       caseId: current,
       aiSource,
-      verification: { testSource: 'runner', tests: results, outcome: runner.outcome(results), aiReview, reviewTopics },
+      verification: { testSource: native ? 'server-runner' : 'runner', tests: results, outcome: runner.outcome(results), aiReview, reviewTopics },
     };
   }
   function setReview(aiSource, aiReview, reviewTopics) {
@@ -496,7 +531,7 @@ p { margin: 10px 0 0; } .tip { color: #6b675f; font-size: 13px; margin-top: 0; }
     $('#bk-step-output').hidden = !output;
     if (output) {
       $('#bk-output-note').textContent =
-        `Outcome: ${output.verification.outcome}. Tests ran in your browser (testSource: runner); the review is from ${output.aiSource === 'api' ? 'the AI service' : 'a labelled sample'} (aiSource: ${output.aiSource}).`;
+        `Outcome: ${output.verification.outcome}. ${native ? 'Tests ran in the course verification service' : 'Tests ran in your browser (testSource: runner)'}; the review is from ${output.aiSource === 'api' ? 'the AI service' : 'a labelled sample'} (aiSource: ${output.aiSource}).`;
       $('#bk-output').textContent = JSON.stringify(output, null, 2);
     }
   }
@@ -571,8 +606,8 @@ p { margin: 10px 0 0; } .tip { color: #6b675f; font-size: 13px; margin-top: 0; }
     $('#bk-code-block').hidden = choosing;
     if (choosing) renderChoices();
     if (editor.value !== entry.code) editor.value = entry.code;
-    $('#bk-send').disabled = Boolean(worker);
-    $('#bk-run').disabled = Boolean(worker);
+    $('#bk-send').disabled = Boolean(worker || nativeRunning);
+    $('#bk-run').disabled = Boolean(worker || nativeRunning);
     renderResults();
     renderReview();
     renderExplain();
@@ -642,7 +677,7 @@ p { margin: 10px 0 0; } .tip { color: #6b675f; font-size: 13px; margin-top: 0; }
     box.dataset.result = '';
     box.textContent = 'Asking the AI to review the results…';
     try {
-      const response = await fetch('/api/correction/', {
+      const response = native ? Response.json(await native.act('review-verification')) : await fetch('/api/correction/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -6,6 +6,7 @@
   },
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local scripts/dev.mjs",
+    "dev:native": "node --env-file-if-exists=.env.local scripts/dev-native.mjs",
     "dev:m3-studio": "node scripts/m3-studio-server.cjs",
     "test": "node scripts/check.cjs",
     "test:learning-path": "node --test learning-path/*.test.cjs tests/learning-path-ai.test.mjs tests/learning-path-api.test.mjs",
@@ -13,10 +14,12 @@
     "test:interview": "node --test interview/*.test.cjs"
   },
   "dependencies": {
+    "@vercel/sandbox": "4.0.0",
     "ai": "7.0.151",
     "cheerio": "1.2.0",
     "ipaddr.js": "2.5.0",
     "pg": "8.23.1",
+    "quickjs-emscripten": "0.32.0",
     "saxes": "6.0.0",
     "unpdf": "1.9.1",
     "yauzl": "3.4.0"
@@ -24,5 +27,10 @@
   "devDependencies": {
     "embedded-postgres": "18.6.0-beta.19",
     "playwright-core": "1.65.1"
+  },
+  "overrides": {
+    "@vercel/cli-config": {
+      "zod": "4.6.6"
+    }
   }
 }

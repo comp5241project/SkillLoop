@@ -5,19 +5,24 @@ import { createCourseAuthor } from '../enhancement-v2/m3-ai-author.mjs';
 
 import { isV3Operation, runV3 } from '../enhancement-v3/api.mjs';
 
-const sessionCookie = 'sl_course_access';
+import { nativeEnabled } from '../enhancement-v3/native/environment.mjs';
+import { nativeProgress } from '../enhancement-v3/native/progress.mjs';
+import { v3Store } from '../enhancement-v3/store.mjs';
+
+const sessionCookie = () => nativeEnabled() ? 'sl_native_course_access' : 'sl_course_access';
 const tokenPattern = /^[a-zA-Z0-9._-]+$/;
 
 function cookie(request, token = '', age = 0) {
   if (typeof token !== 'string' || (token && !tokenPattern.test(token))) throw new CourseError(502, 'Invalid sign-in response.');
   const secure = new URL(request.url).protocol === 'https:' ? '; Secure' : '';
-  return `${sessionCookie}=${token}; Max-Age=${age}; Path=/api/courses; HttpOnly; SameSite=Lax${secure}`;
+  return `${sessionCookie()}=${token}; Max-Age=${age}; Path=/api/courses; HttpOnly; SameSite=Lax${secure}`;
 }
 
 function token(request) {
+  const name = sessionCookie();
   const pair = (request.headers.get('cookie') || '').split(';').map((part) => part.trim())
-    .find((part) => part.startsWith(sessionCookie + '='));
-  const value = pair?.slice(sessionCookie.length + 1);
+    .find((part) => part.startsWith(name + '='));
+  const value = pair?.slice(name.length + 1);
   return value && tokenPattern.test(value) ? value : null;
 }
 
@@ -148,6 +153,25 @@ export function createCourseApi({
         const actor = await authenticate(request);
         if (get && op === 'session') return json({ role: actor ? await database().role(actor) : null, accountId: actor });
         if (!actor) throw new CourseError(401, 'Sign in to continue.');
+        if (['native-start', 'native-open', 'native-save'].includes(op)) {
+          if (!nativeEnabled()) throw new CourseError(404, 'Original course experience is unavailable here.');
+          const courseId = id(get ? query.get('course') : data.courseId);
+          const version = positive(get ? query.get('version') : data.version, 'version');
+          const native = nativeProgress(database(), v3Store(database(), v3AI).runLearnerAI);
+          try {
+            if (post && op === 'native-start') return json(await native.start(actor, courseId, version));
+            if (get && op === 'native-open') return json(await native.open(actor, courseId, version));
+            if (post && op === 'native-save') return json(await native.submit(actor, courseId, version, data));
+            throw new CourseError(405, 'Method unavailable.');
+          } catch (error) {
+            if (error instanceof CourseError || error instanceof journey.JourneyError) throw error;
+            if (error.status >= 400 && error.status < 500 || error.code === 'ai-not-configured')
+              throw new CourseError(error.status, error.message, undefined, error.code);
+            if (error.code && /^[0-9A-Z]{5}$/.test(error.code)) throw error;
+            console.error('Native course action failed', { action: data.action, code: error.code, message: error.message });
+            throw new CourseError(502, 'The action could not finish. Your course progress is available. Retry.', undefined, error.code);
+          }
+        }
         if (get && op === 'list') return json({ courses: await database().list(actor) });
         if (get && op === 'open') return json(await database().open(actor, id(query.get('course'))));
         if (post && op === 'preview') return json({ lesson: await database().preview(actor, data.form, data.caseRef) });

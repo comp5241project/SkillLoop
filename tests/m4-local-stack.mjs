@@ -9,12 +9,13 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import EmbeddedPostgres from 'embedded-postgres';
 import pg from 'pg';
+import { startLocalAuth } from './native-local-auth.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const migrations = new URL('../supabase/migrations/', import.meta.url);
 const secret = () => randomBytes(24).toString('hex');
 
-async function freePort() {
+export async function freePort() {
   const server = net.createServer();
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -47,19 +48,21 @@ function authFixture(accounts, key) {
   });
 }
 
-export async function startM4Stack(t, { appImports = [] } = {}) {
+export async function startM4Stack(t, { appImports = [], native = false, port: requestedPort, authBinary, authMigrations } = {}) {
   const scratch = await mkdtemp(join(tmpdir(), 'skillloop-m4-'));
   const databaseDir = join(scratch, 'postgres');
   const port = await freePort();
-  const db = new EmbeddedPostgres({
+  const dbOptions = {
     databaseDir, port, user: 'postgres', password: secret(), persistent: true,
     autoRehydrateSymlinks: true, onLog() {}, onError() {},
-  });
+  };
+  const db = new EmbeddedPostgres(dbOptions);
   let started = false;
   let server;
   let runtime;
   let current;
   let admin;
+  let realAuth;
   const closeApp = async () => {
     if (!current) return;
     const process = current;
@@ -78,6 +81,7 @@ export async function startM4Stack(t, { appImports = [] } = {}) {
       server.close(resolve);
       server.closeAllConnections();
     });
+    await realAuth?.close();
     await runtime?.end();
     await admin?.end();
     if (started) await db.stop();
@@ -95,12 +99,15 @@ export async function startM4Stack(t, { appImports = [] } = {}) {
     const accounts = Object.fromEntries(['teacher', 'other-teacher', 'student', 'other-student'].map((role) =>
       [role, { id: randomUUID(), email: `${role}@skillloop.test`, password: secret() }]));
     // Supabase platform primitives for the disposable PostgreSQL cluster.
+    if (authBinary) await admin.query('create schema auth');
+    if (authBinary) realAuth = await startLocalAuth({ binary: authBinary, migrations: authMigrations, accounts,
+      databaseUrl: `postgres://postgres:${dbOptions.password}@127.0.0.1:${port}/postgres`, port: await freePort(), key });
     await admin.query(`create role anon nologin;
       create role authenticated nologin;
       create role service_role nologin bypassrls;
-      create schema auth;
-      create table auth.users (id uuid primary key);
-      create function auth.uid() returns uuid language sql stable as
+      create schema if not exists auth;
+      create table if not exists auth.users (id uuid primary key);
+      create or replace function auth.uid() returns uuid language sql stable as
         $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
       grant usage on schema auth to anon, authenticated, service_role;
       alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
@@ -111,19 +118,19 @@ export async function startM4Stack(t, { appImports = [] } = {}) {
     await admin.query(`create role course_test_login login noinherit password '${password}';
       grant skillloop_course_server to course_test_login;`);
     for (const [name, account] of Object.entries(accounts)) {
-      await admin.query('insert into auth.users(id) values ($1)', [account.id]);
+      if (!realAuth) await admin.query('insert into auth.users(id) values ($1)', [account.id]);
       if (name.endsWith('teacher')) await admin.query("insert into skillloop_roles values ($1, 'teacher')", [account.id]);
     }
     const databaseUrl = `postgres://course_test_login:${password}@127.0.0.1:${port}/postgres`;
     runtime = new pg.Pool({ connectionString: databaseUrl, allowExitOnIdle: true });
-    server = authFixture(accounts, key);
+    server = realAuth?.proxy ?? authFixture(accounts, key);
     server.listen(0, '127.0.0.1');
     await once(server, 'listening');
-    const appPort = await freePort();
+    const appPort = requestedPort ?? await freePort();
     const base = `http://127.0.0.1:${appPort}`;
     const startApp = async () => {
       current = spawn(process.execPath, [...appImports.flatMap((file) => ['--import', file]), 'scripts/dev.mjs'], { cwd: root, windowsHide: true,
-        env: { ...process.env, PORT: String(appPort), SKILLLOOP_COURSE_DATABASE_URL: databaseUrl,
+        env: { ...process.env, SKILLLOOP_NATIVE_COURSES: native ? '1' : '0', PORT: String(appPort), SKILLLOOP_COURSE_DATABASE_URL: databaseUrl,
           SUPABASE_URL: `http://127.0.0.1:${server.address().port}`, SUPABASE_PUBLISHABLE_KEY: key },
         stdio: ['ignore', 'pipe', 'pipe'] });
       const child = current;

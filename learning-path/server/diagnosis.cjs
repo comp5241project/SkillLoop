@@ -25,7 +25,7 @@ function badRequest(message, status = 400) {
   return error;
 }
 
-function readRequest(body) {
+function readRequest(body, pinnedCase) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     throw badRequest('Request body must be a JSON object.');
   }
@@ -35,8 +35,8 @@ function readRequest(body) {
   if (typeof body.caseId !== 'string') {
     throw badRequest('caseId is required.');
   }
-  const selectedCase = data.findCase(body.caseId);
-  if (!selectedCase) {
+  const selectedCase = pinnedCase ?? data.findCase(body.caseId);
+  if (!selectedCase || selectedCase.id !== body.caseId) {
     throw badRequest('Unknown caseId.');
   }
 
@@ -155,8 +155,8 @@ function validateOutput(value, caseData, responses) {
   return model.validateResult(value, caseData, responses);
 }
 
-function prepare(body) {
-  const { caseData, learner, responses } = readRequest(body);
+function prepare(body, pinnedCase) {
+  const { caseData, learner, responses } = readRequest(body, pinnedCase);
   const rubric = caseData.questions.map((question) => {
     const best = question.options.find((option) => option.score === 2);
     return {
