@@ -53,7 +53,7 @@ async function sandboxChecks(input) {
   const sandbox = await Sandbox.create({ resources: { vcpus: 1 }, timeout: 15000, persistent: false, networkPolicy: 'deny-all' });
   try {
     await sandbox.writeFiles(files);
-    const cmd = await sandbox.runCommand({ cmd: 'node', args: ['run.mjs'], cwd: '/vercel/sandbox' });
+    const cmd = await sandbox.runCommand({ cmd: 'node', args: ['run.mjs'] });
     if (cmd.exitCode !== 0) throw new Error('The verification sandbox could not finish.');
     return JSON.parse(await cmd.stdout());
   } finally {
