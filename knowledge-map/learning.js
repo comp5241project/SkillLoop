@@ -42,7 +42,7 @@
   function showError(message) {
     $('case-title').textContent = 'Case learning';
     $('learning-progress').hidden = true;
-    if (native) $('learning-review-open').hidden = true;
+    $('learning-review-open').hidden = true;
     $('learning-session').hidden = true;
     $('learning-error').hidden = false;
     $('learning-error-message').textContent = message;
@@ -272,7 +272,7 @@
     $('learning-topic').hidden = false;
     $('topic-evidence').hidden = false;
     $('learning-progress').hidden = false;
-    if (native) $('learning-review-open').hidden = false;
+    $('learning-review-open').hidden = false;
     $('learning-card-navigation').hidden = current.selected.length < 2;
     showCard(current);
     if (native && current.selected.some(topic => location.hash === '#topic-' + topic) &&
@@ -313,7 +313,7 @@
       if (position === index) link.setAttribute('aria-current', 'location');
       else link.removeAttribute('aria-current');
     }
-    if (native) revealActiveTopic();
+    revealActiveTopic();
     const topicId = selected[index];
     const dimension = input.result.dimensions.find((item) => item.conceptId === topicId);
     $('learning-title').textContent = topics.get(topicId);
@@ -324,7 +324,7 @@
     $('learning-card-position').textContent = `Topic ${index + 1} of ${cards.length}`;
     $('learning-previous').hidden = index === 0;
     $('learning-next').hidden = index === cards.length - 1;
-    if (native) $('learning-review-end').hidden = index !== cards.length - 1;
+    $('learning-review-end').hidden = index !== cards.length - 1;
     if (focus) {
       $('learning-title').focus({ preventScroll: true });
       $('learning-topic').scrollIntoView({ block: 'start' });
@@ -556,7 +556,7 @@
 
   function showSummaryTopics(current, practicedTopics, needsPractice, evaluations) {
     const list = el('ul', undefined, 'learning-topic-links learning-topic-results');
-    list.append(...(native ? current.selected : practicedTopics).map((id) => {
+    list.append(...current.selected.map((id) => {
       const item = topicLink(id, current.selected.includes(id));
       const { judgment } = evaluations.get(id) || {};
       const status = el('span', undefined, 'learning-topic-status');
@@ -566,7 +566,7 @@
       if (needsPractice.includes(id)) status.append(el('span', 'Further practice'));
       item.append(status);
       const result = evaluations.get(id);
-      if (native && result) item.append(el('p', result.practiceFocus || result.explanation || result.message, 'learning-review-feedback'));
+      if (result) item.append(el('p', result.practiceFocus || result.explanation || result.message, 'learning-review-feedback'));
       return item;
     }));
     $('summary-content').replaceChildren(list);
@@ -597,9 +597,9 @@
     const progress = $('learning-progress-bar');
     progress.max = selected.length;
     progress.value = practiced;
-    if (native) revealActiveTopic();
+    revealActiveTopic();
     const incomplete = practiced < selected.length && !savedOnly;
-    $('learning-summary').hidden = !native && incomplete;
+    $('learning-summary').hidden = false;
     $('continue-dialogue').hidden = true;
     $('handoff-status').textContent = '';
     if ($('learning-summary').hidden) return;
@@ -607,7 +607,7 @@
     $('summary-state').textContent = needsPractice.length ? furtherPracticeLabel(needsPractice.length) + '.' :
       incomplete ? '' : 'No further practice flagged.';
     showSummaryTopics(current, practicedTopics, needsPractice, evaluations);
-    if (native) {
+    {
       $('learning-review-count').textContent = `${practiced}/${selected.length} practiced`;
       $('learning-review-progress').max = selected.length;
       $('learning-review-progress').value = practiced;
@@ -738,7 +738,7 @@
     const link = event.target.closest('a[href^="#topic-"]');
     if (!session?.course || !link || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
-    if (native && link.closest('#learning-review')) {
+    if (link.closest('#learning-review')) {
       reviewTrigger = null;
       $('learning-review').close();
     }
@@ -768,7 +768,7 @@
     if (session?.record && (event.key === 'skillloop.v1.learningPathDiagnosis' || event.key === null)) isCurrent(session);
   });
 
-  if (native) {
+  {
     const main = $('main-content');
     main.classList.add('learning-published');
     main.append($('published-learning-review').content.cloneNode(true));
@@ -800,9 +800,11 @@
     tools.append($('learning-practiced'), makeReviewButton('learning-review-open'));
     $('learning-progress').prepend($('learning-priorities'), tools);
     $('learning-topic').prepend($('learning-card-position'));
-    const requirements = el('ul');
-    requirements.append(...native.progress.case.requirements.map(text => el('li', text)));
-    $('case-scenario').after(requirements);
+    if (native) {
+      const requirements = el('ul');
+      requirements.append(...native.progress.case.requirements.map(text => el('li', text)));
+      $('case-scenario').after(requirements);
+    }
     $('learning-card-navigation').after(makeReviewButton('learning-review-end'));
     const progressCard = el('div', undefined, 'learning-review-progress');
     const reviewCount = el('strong');
@@ -824,6 +826,12 @@
       const bounds = event.target.getBoundingClientRect();
       if (event.clientX < bounds.left || event.clientX > bounds.right) event.target.close();
     });
+    if (!native) {
+      $('learning-review-gate').hidden = true;
+      $('learning-review-footer').append($('continue-dialogue'), $('handoff-status'));
+    }
+  }
+  if (native) {
     $('learning-error').querySelector('a').href = native.url('/learning-path/');
     const { practice, case: pinned } = native.progress;
     if (practice) {

@@ -76,9 +76,17 @@ test('real Chrome runs the published learning journey on all four student routes
   };
   const learn = async (option, reason) => {
     await heading('Try a boundary');
+    const review = page.getByRole('button', { name: 'Review & continue', exact: true }).first();
+    await review.click();
+    const drawer = page.getByRole('dialog', { name: 'Review & continue' });
+    await drawer.getByRole('link', { name: /Not practiced/ }).click();
+    assert.equal(await drawer.isVisible(), false);
+    await page.setViewportSize({ width: 320, height: 844 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.locator('main form select').selectOption(String(option));
     await page.getByLabel('Explain your reasoning').fill(reason);
     await click('Check my reasoning');
+    await page.getByRole('button', { name: 'Review & continue', exact: true }).first().click();
     await next('Continue to repair', '/interview/');
   };
   const repair = async (choices) => {

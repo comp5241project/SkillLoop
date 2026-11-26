@@ -34,6 +34,8 @@ Teachers approve an exact draft before publication. Registered tests determine t
 
 ### Student entry points and progress
 
+All Case Learning entries use the compact priority-topic strip and the Review & continue drawer. Demo and diagnosis-based lessons keep their existing practice records. Published Journey lessons show the assigned topic and use their saved case activity. Original four-stage courses include the formal case check in the drawer.
+
 | Entry | Progress |
 | --- | --- |
 | **Try Demo** | The original four stages hand off progress in the same browser. The standalone Part 2 sample runs in its own page session. |

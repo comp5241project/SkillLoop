@@ -10,6 +10,8 @@
   const stage = stages.find((key) => paths[key] === location.pathname.replace(/\/?$/, '/'));
   const main = document.querySelector('main');
   if (!stage || !main) return;
+  const reviewTemplate = document.getElementById('published-learning-review')?.content.cloneNode(true);
+  let layoutObserver;
   const courseId = params.get('course');
   const version = params.get('version');
   const query = { course: courseId, version };
@@ -186,15 +188,16 @@
         }
         notes.push(activities);
       }
-      controls.append(panel(source, notes));
+      const teachingPanel = panel(source, notes);
+      controls.append(teachingPanel);
       const { form, button } = formFor('Check my reasoning', (data) =>
         save({ option: Number(data.get('option')), explanation: data.get('why') }));
       select(form, teaching.practice.prompt, 'option', teaching.practice.options);
       field(form, 'Explain your reasoning', 'why', 'textarea', { required: true, maxLength: 1200, rows: 3 });
       form.append(button);
-      controls.append(panel('Try a boundary', [form]));
-      if (view.result) controls.append(panel('Feedback', [node('p', view.result.feedback),
-        link('Continue to repair', paths.repair)]));
+      const practicePanel = panel('Try a boundary', [form]);
+      controls.append(practicePanel);
+      learningLayout(view, facts, teachingPanel, practicePanel);
     } else if (stage === 'repair') {
       if (!view.issues) {
         controls.append(panel('Verification unavailable', [node('p', 'This case version has no approved runner.')]));
@@ -241,6 +244,96 @@
           link('Back to the published lesson', '/enhancement-v2/studio/learner/')]));
       }
     }
+  }
+
+  function learningLayout(view, facts, teaching, exercise) {
+    layoutObserver?.disconnect();
+    const topicId = view.caseRef.conceptId;
+    const topic = window.SkillLoopSamples?.topics.find(item => item.topicId === topicId)?.title ?? topicId;
+    const header = node('header');
+    header.className = 'learning-header';
+    const context = node('div');
+    context.className = 'learning-course-context';
+    const metadata = node('div');
+    metadata.className = 'learning-course-metadata';
+    metadata.append(node('p', 'Part 2 · Case Learning'), node('p', 'Published course · Version ' + view.version));
+    context.append(node('h1', view.courseTitle), metadata);
+    const progress = node('div');
+    progress.className = 'learning-progress';
+    const priorities = node('nav');
+    priorities.className = 'learning-priorities';
+    priorities.setAttribute('aria-label', 'Priority topics');
+    const topics = node('ul');
+    topics.id = 'weak-topics';
+    const tab = node('a', topic);
+    tab.href = '#journey-topic';
+    tab.setAttribute('aria-current', 'location');
+    tab.toggleAttribute('data-practiced', Boolean(view.result));
+    const item = node('li');
+    item.append(tab);
+    topics.append(item);
+    priorities.append(topics);
+    const tools = node('div');
+    tools.className = 'learning-strip-tools';
+    const count = node('span', (view.result ? '1' : '0') + '/1 topic practiced');
+    count.id = 'learning-practiced';
+    const review = reviewTemplate.cloneNode(true);
+    const dialog = review.querySelector('dialog');
+    let trigger;
+    const openReview = () => {
+      const control = node('button', 'Review & continue');
+      control.className = 'sl-btn sl-btn-main';
+      control.type = 'button';
+      control.setAttribute('aria-haspopup', 'dialog');
+      control.setAttribute('aria-controls', 'learning-review');
+      control.addEventListener('click', () => { trigger = control; dialog.showModal(); });
+      return control;
+    };
+    tools.append(count, openReview());
+    const bar = node('progress');
+    bar.max = 1;
+    bar.value = view.result ? 1 : 0;
+    bar.setAttribute('aria-label', 'Topics practiced');
+    progress.append(priorities, tools, bar);
+    header.append(context, progress);
+    const title = node('h2', topic);
+    title.tabIndex = -1;
+    const objective = node('section');
+    objective.id = 'journey-topic';
+    objective.append(node('p', 'Topic 1 of 1'), node('p', 'Learning objective'), title,
+      node('p', view.teaching.practice.prompt));
+    const selectTopic = event => {
+      event.preventDefault();
+      trigger = null;
+      if (dialog.open) dialog.close();
+      title.focus({ preventScroll: true });
+      objective.scrollIntoView({ block: 'start' });
+    };
+    tab.addEventListener('click', selectTopic);
+    const brief = node('details');
+    brief.className = 'learning-secondary';
+    brief.append(node('summary', 'Case brief and diagnosis'), controls.firstElementChild, facts,
+      node('p', view.diagnosis.question), node('p', 'You chose: ' + view.diagnosis.answer));
+    controls.className = 'learning-flow';
+    controls.replaceChildren(objective, brief, teaching, exercise, openReview());
+    const body = review.querySelector('#learning-review-body');
+    const reviewedTopic = node('a', topic + (view.result ? ' · Practiced' : ' · Not practiced'));
+    reviewedTopic.href = '#journey-topic';
+    reviewedTopic.addEventListener('click', selectTopic);
+    body.append(panel('Learning summary', [reviewedTopic]),
+      panel('Reflection', [node('p', 'Review your reasoning against the case requirements and the saved feedback.')]));
+    if (view.result) body.append(panel('Feedback', [node('p', view.result.feedback)]));
+    const footer = review.querySelector('#learning-review-footer');
+    footer.replaceChildren(view.result ? link('Continue to repair', paths.repair) :
+      node('p', 'Submit your practice answer to continue to Part 3.'));
+    review.querySelector('#learning-review-close').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('close', () => trigger?.focus({ preventScroll: true }));
+    main.classList.add('learning-published');
+    main.replaceChildren(header, notice, controls, review);
+    const measure = () => main.style.setProperty('--learning-strip-height', header.offsetHeight + 12 + 'px');
+    layoutObserver = new ResizeObserver(measure);
+    layoutObserver.observe(header);
+    measure();
   }
 
   async function open() {

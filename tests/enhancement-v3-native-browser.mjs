@@ -261,7 +261,9 @@ test('Chrome: publish both courses in V3 and follow the original four stages', {
   await openCourse(demo, '/knowledge-map/');
   await demo.getByRole('button', { name: 'Try a sample case', exact: true }).click();
   await demo.locator('article.learning-card:visible').waitFor();
-  assert.equal(await demo.locator('#learning-review').count(), 0);
+  await demo.locator('#learning-review-open').click();
+  await demo.getByRole('dialog', { name: 'Review & continue' }).waitFor();
+  await demo.keyboard.press('Escape');
   await demo.close();
   assert.deepEqual(errors, []);
 });
