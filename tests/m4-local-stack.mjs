@@ -84,7 +84,14 @@ export async function startM4Stack(t, { appImports = [], native = false, port: r
     await realAuth?.close();
     await runtime?.end();
     await admin?.end();
-    if (started) await db.stop();
+    if (started) {
+      const postgres = db.process;
+      await db.stop();
+      // Windows descendants can retain the parent's pipes after taskkill exits.
+      postgres?.stdin?.destroy();
+      postgres?.stdout?.destroy();
+      postgres?.stderr?.destroy();
+    }
     await rm(scratch, { recursive: true, force: true, maxRetries: 4, retryDelay: 200 });
   };
   t?.after(close);
